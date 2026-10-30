@@ -1,0 +1,135 @@
+{
+ "dataset": "Heracleum dataset, Moscow region (Menshchikov et al. 2021), 263 aerial photos, 3 cameras",
+ "backbone": "vit_small_patch14_dinov2.lvd142m (frozen, Apache-2.0), 896px wide input, 14px patches",
+ "probe": "L2-normalised patch token + 3×3 context mean → logistic regression",
+ "operating_points": "thresholds chosen on the training cameras only: f1 = max F1 (balanced), f2 = max F2 (scouting, recall-weighted)",
+ "protocol": "leave-one-camera-out",
+ "folds": {
+  "FC220": {
+   "camera": "DJI Mavic Pro",
+   "images": 102,
+   "patches": 235008,
+   "patch_roc_auc": 0.952,
+   "patch_ap": 0.703,
+   "thresholds": {
+    "f1": 0.808,
+    "f2": 0.52
+   },
+   "f1": {
+    "pixel_iou": 0.415,
+    "pixel_dice": 0.586,
+    "pixel_precision": 0.771,
+    "pixel_recall": 0.473,
+    "stand_recall": 0.494,
+    "stands": 877,
+    "images_with_hogweed_detected": "75/90",
+    "empty_images_clean": "9/12"
+   },
+   "f2": {
+    "pixel_iou": 0.488,
+    "pixel_dice": 0.655,
+    "pixel_precision": 0.627,
+    "pixel_recall": 0.687,
+    "stand_recall": 0.709,
+    "stands": 877,
+    "images_with_hogweed_detected": "83/90",
+    "empty_images_clean": "7/12"
+   }
+  },
+  "FC300S": {
+   "camera": "DJI Phantom 3",
+   "images": 92,
+   "patches": 282624,
+   "patch_roc_auc": 0.968,
+   "patch_ap": 0.792,
+   "thresholds": {
+    "f1": 0.805,
+    "f2": 0.547
+   },
+   "f1": {
+    "pixel_iou": 0.305,
+    "pixel_dice": 0.467,
+    "pixel_precision": 0.86,
+    "pixel_recall": 0.32,
+    "stand_recall": 0.255,
+    "stands": 1053,
+    "images_with_hogweed_detected": "46/92",
+    "empty_images_clean": "0/0"
+   },
+   "f2": {
+    "pixel_iou": 0.446,
+    "pixel_dice": 0.617,
+    "pixel_precision": 0.824,
+    "pixel_recall": 0.493,
+    "stand_recall": 0.397,
+    "stands": 1053,
+    "images_with_hogweed_detected": "64/92",
+    "empty_images_clean": "0/0"
+   }
+  },
+  "YDXJ 1": {
+   "camera": "Xiaomi Yi",
+   "images": 69,
+   "patches": 211968,
+   "patch_roc_auc": 0.962,
+   "patch_ap": 0.826,
+   "thresholds": {
+    "f1": 0.851,
+    "f2": 0.645
+   },
+   "f1": {
+    "pixel_iou": 0.644,
+    "pixel_dice": 0.783,
+    "pixel_precision": 0.76,
+    "pixel_recall": 0.808,
+    "stand_recall": 0.943,
+    "stands": 332,
+    "images_with_hogweed_detected": "69/69",
+    "empty_images_clean": "0/0"
+   },
+   "f2": {
+    "pixel_iou": 0.635,
+    "pixel_dice": 0.777,
+    "pixel_precision": 0.672,
+    "pixel_recall": 0.921,
+    "stand_recall": 0.973,
+    "stands": 332,
+    "images_with_hogweed_detected": "69/69",
+    "empty_images_clean": "0/0"
+   }
+  }
+ },
+ "pooled": {
+  "images": 263,
+  "patch_roc_auc": 0.948,
+  "patch_ap": 0.747,
+  "f1": {
+   "pixel_iou": 0.492,
+   "pixel_dice": 0.659,
+   "pixel_precision": 0.779,
+   "pixel_recall": 0.571,
+   "stand_recall": 0.449,
+   "stands": 2262,
+   "images_with_hogweed_detected": "190/251",
+   "empty_images_clean": "9/12"
+  },
+  "f2": {
+   "pixel_iou": 0.548,
+   "pixel_dice": 0.708,
+   "pixel_precision": 0.692,
+   "pixel_recall": 0.725,
+   "stand_recall": 0.603,
+   "stands": 2262,
+   "images_with_hogweed_detected": "216/251",
+   "empty_images_clean": "7/12"
+  },
+  "note": "pooled over held-out cameras, each scored by a probe that never saw that camera"
+ },
+ "deployed_probe": {
+  "file": "outputs/drone/dinov2s_probe.joblib",
+  "thresholds": {
+   "f1": 0.826,
+   "f2": 0.546
+  }
+ }
+}

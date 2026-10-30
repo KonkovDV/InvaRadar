@@ -1,0 +1,18 @@
+{
+ "heracleum": {
+  "hotspots": 16056,
+  "shown": 3000,
+  "mechanical": 5521,
+  "ground": 10367,
+  "drone": 168,
+  "near_children_100m": 1227
+ },
+ "solidago": {
+  "hotspots": 22252,
+  "shown": 3000,
+  "mechanical": 7406,
+  "ground": 14675,
+  "drone": 171,
+  "near_children_100m": 2025
+ }
+}

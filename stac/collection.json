@@ -1,0 +1,73 @@
+{
+ "type": "Collection",
+ "stac_version": "1.1.0",
+ "id": "invaradar-2025",
+ "title": "InvaRadar: invasive plant likelihood and hotspots, Moscow 2025",
+ "description": "10 m likelihood maps and prioritised hotspots of Heracleum sosnowskyi and Solidago spp. for Moscow and the inner Moscow region, from AlphaEarth Foundations embeddings, landscape context, spread corridors and terrain hydrology. Validated with 5 km spatial blocks and a forward-in-time test.",
+ "license": "CC-BY-4.0",
+ "keywords": [
+  "invasive species",
+  "Heracleum sosnowskyi",
+  "Solidago",
+  "Moscow",
+  "AlphaEarth"
+ ],
+ "providers": [
+  {
+   "name": "InvaRadar team",
+   "roles": [
+    "producer",
+    "processor"
+   ]
+  },
+  {
+   "name": "Google DeepMind",
+   "roles": [
+    "producer"
+   ],
+   "description": "AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind"
+  }
+ ],
+ "extent": {
+  "spatial": {
+   "bbox": [
+    [
+     37.089937,
+     55.454685,
+     38.145893,
+     56.050149
+    ]
+   ]
+  },
+  "temporal": {
+   "interval": [
+    [
+     "2025-01-01T00:00:00Z",
+     "2025-12-31T23:59:59Z"
+    ]
+   ]
+  }
+ },
+ "links": [
+  {
+   "rel": "root",
+   "href": "./catalog.json",
+   "type": "application/json"
+  },
+  {
+   "rel": "parent",
+   "href": "./catalog.json",
+   "type": "application/json"
+  },
+  {
+   "rel": "item",
+   "href": "./invaradar-heracleum-2025.json",
+   "type": "application/geo+json"
+  },
+  {
+   "rel": "item",
+   "href": "./invaradar-solidago-2025.json",
+   "type": "application/geo+json"
+  }
+ ]
+}

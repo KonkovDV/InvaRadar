@@ -1,0 +1,21 @@
+InvaRadar
+Copyright 2026 Konkov D. V. and The InvaRadar Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+Results in outputs/ and the release assets are licensed under CC BY 4.0 (see LICENSE-DATA.md).
+
+Third-party data and works used by this project:
+
+* The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind.
+  Licensed under CC BY 4.0.
+* iNaturalist open data: observations and photos © their authors, under the licence chosen by each author
+  (CC0, CC BY, CC BY-NC). Photos in presentation/assets are CC BY or CC0; authors are listed in
+  presentation/assets/CREDITS.csv.
+* Overture Maps Foundation data: ODbL 1.0 (OpenStreetMap-derived layers) and CDLA Permissive 2.0.
+  © OpenStreetMap contributors, Overture Maps Foundation.
+* Copernicus DEM GLO-30: © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018,
+  provided under COPERNICUS by the European Union and ESA; all rights reserved.
+* Fonts in presentation/fonts: Literata (© The Literata Project Authors), Golos Text (© The Golos Text Project
+  Authors), JetBrains Mono (© The JetBrains Mono Project Authors) — SIL Open Font License 1.1 (presentation/fonts/OFL.txt).
+* Icons: Tabler Icons (MIT), rendered through react-icons (MIT).
+* Ultralytics YOLO11 weights used by scripts/train_photo_verifier.py are AGPL-3.0 and are not redistributed here.

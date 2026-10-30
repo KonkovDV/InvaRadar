@@ -1,0 +1,108 @@
+{
+ "taxon": "heracleum",
+ "n_presence": 1574,
+ "n_blocks_with_presence": 150,
+ "spatial_cv": {
+  "capture@1%area": {
+   "estimate": 0.0248,
+   "ci95": [
+    0.0133,
+    0.0372
+   ],
+   "lift": 2.48,
+   "lift_ci95": [
+    1.33,
+    3.72
+   ]
+  },
+  "capture@5%area": {
+   "estimate": 0.1277,
+   "ci95": [
+    0.0932,
+    0.1626
+   ],
+   "lift": 2.55,
+   "lift_ci95": [
+    1.86,
+    3.25
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.2503,
+   "ci95": [
+    0.2073,
+    0.2881
+   ],
+   "lift": 2.5,
+   "lift_ci95": [
+    2.07,
+    2.88
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.4161,
+   "ci95": [
+    0.3675,
+    0.4584
+   ],
+   "lift": 2.08,
+   "lift_ci95": [
+    1.84,
+    2.29
+   ]
+  }
+ },
+ "spatial_cv_method": "cluster bootstrap over 5 km blocks, 2000 replicates, percentile 95% CI",
+ "temporal_test": {
+  "capture@1%area": {
+   "estimate": 0.0183,
+   "ci95": [
+    0.0089,
+    0.0372
+   ],
+   "lift": 1.83,
+   "lift_ci95": [
+    0.89,
+    3.72
+   ]
+  },
+  "capture@5%area": {
+   "estimate": 0.0914,
+   "ci95": [
+    0.0664,
+    0.1244
+   ],
+   "lift": 1.83,
+   "lift_ci95": [
+    1.33,
+    2.49
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.1854,
+   "ci95": [
+    0.1497,
+    0.2274
+   ],
+   "lift": 1.85,
+   "lift_ci95": [
+    1.5,
+    2.27
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.3838,
+   "ci95": [
+    0.3365,
+    0.4334
+   ],
+   "lift": 1.92,
+   "lift_ci95": [
+    1.68,
+    2.17
+   ]
+  },
+  "n_new_presence": 383
+ },
+ "temporal_method": "Wilson score 95% CI"
+}

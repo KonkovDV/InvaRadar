@@ -1,0 +1,25 @@
+name: Полевая проверка
+description: Очаг найден или не найден в поле — это лучшая разметка для модели
+labels: [field-data]
+body:
+  - type: input
+    id: coords
+    attributes:
+      label: Координаты (широта, долгота)
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Результат
+      options: ["борщевик есть", "золотарник есть", "ничего нет", "двойник (дудник, пижма и др.)"]
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Дата осмотра
+  - type: textarea
+    id: notes
+    attributes:
+      label: Площадь куртины, фото, комментарии

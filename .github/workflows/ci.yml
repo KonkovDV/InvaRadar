@@ -24,7 +24,7 @@ jobs:
       # the binary is reused by the Python jobs on other runners: no target-cpu=native from .cargo/config.toml
       RUSTFLAGS: "-C target-cpu=x86-64-v3"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -48,7 +48,7 @@ jobs:
       matrix:
         python: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with:
           name: invaradar_core-linux-x86_64

@@ -1,134 +1,278 @@
 <p align="center">
-  <a href="https://konkovdv.github.io/InvaRadar/"><img alt="Hotspot map" src="https://img.shields.io/badge/map-GitHub%20Pages-2F6B55?style=for-the-badge"></a>
-  <a href="presentation/InvaRadar_Ecopremia2026_podacha.pdf"><img alt="Submission PDF" src="https://img.shields.io/badge/submission-PDF-EC1C24?style=for-the-badge&logo=files&logoColor=white"></a>
-  <a href="presentation/InvaRadar_Ecopremia2026.pdf"><img alt="Full talk PDF" src="https://img.shields.io/badge/27%20slides-PDF-B7472A?style=for-the-badge&logo=files&logoColor=white"></a>
+  <a href="https://konkovdv.github.io/InvaRadar/"><img alt="Hotspot map" src="https://img.shields.io/badge/map-GitHub_Pages-2F6B55?style=for-the-badge"></a>
+  <a href="presentation/InvaRadar_Ecopremia2026_podacha.pdf"><img alt="Submission deck, PDF" src="https://img.shields.io/badge/submission-PDF%2C_10_pages-EC1C24?style=for-the-badge&logo=files&logoColor=white"></a>
+  <a href="presentation/InvaRadar_Ecopremia2026.pdf"><img alt="Full deck, PDF" src="https://img.shields.io/badge/27_slides-PDF-B7472A?style=for-the-badge&logo=files&logoColor=white"></a>
 </p>
 
 <p align="center">
   <a href="https://github.com/KonkovDV/InvaRadar/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/KonkovDV/InvaRadar/actions/workflows/ci.yml/badge.svg?branch=main"></a>
-  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white">
+  <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/Python-3.11%E2%80%933.13-3776AB?logo=python&logoColor=white">
   <img alt="Rust" src="https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white">
   <a href="LICENSE"><img alt="Code Apache-2.0" src="https://img.shields.io/badge/code-Apache--2.0-2F6B55"></a>
   <a href="LICENSE-DATA.md"><img alt="Data CC BY 4.0" src="https://img.shields.io/badge/data-CC%20BY%204.0-E0A030"></a>
+  <img alt="Moscow Ecology Award 2026" src="https://img.shields.io/badge/Moscow_Ecology_Award-2026_%C2%B7_digital-0F2A22">
 </p>
+
+[Русский](README.md) | English
 
 # InvaRadar
 
-Language: **EN** · [RU](README.md)
+**The problem.** Since 1 March 2026, Russian federal law 294-ФЗ requires every holder of a land plot to find and destroy dangerous invasive plants, Sosnowsky's hogweed among them. Inaction is fined under art. 8.7 part 2 of the Code of Administrative Offences: 20–50 thousand roubles for a person, 400–700 thousand for a company. A stand has to be found before it can be removed. Flying a drone over the whole of Moscow is not an option: drone launches in the city have been restricted since May 2023.
 
-InvaRadar finds Sosnowsky's hogweed and two invasive goldenrods from satellite embeddings and turns the map into a crew work order: where a likely stand is, which control method the law allows there, and in which order to drive. A repeat image 3–4 weeks later checks the work and becomes next season's label.
+**What InvaRadar does.** It computes a 10 m likelihood map of Sosnowsky's hogweed and two invasive goldenrods from open satellite embeddings. It queues the likely stands by how close they are to children, roads and rivers. For every stand it writes a work order: the control method and the rule that allows that method in that place. A person signs the order. The map is not used to write a penalty notice.
 
-A person signs the work order. The map narrows the search. It does not write a penalty notice.
+| Link | Question | InvaRadar |
+|---|---|---|
+| Satellite | where is it most likely to grow | a map of both species over 4,225 km² at 10 m |
+| Queue | where should the crew go first | likelihood × proximity to people × proximity to roads, rivers and power lines × stand size; a day route |
+| Check | is it hogweed or wild angelica | a resident's photo → species classifier; a drone orthomosaic → stand outline |
+| **Work order** | **which method is lawful here** | **method and rule: Water Code art. 65, sanitary rules СанПиН 2.1.3684-21, heritage law 73-ФЗ** |
+| Follow-up | did it work | a revisit date in the order; the image after the work closes the loop in the 2027 season |
 
-Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environmental solutions". Konkov D. V. ([@KonkovDV](https://github.com/KonkovDV)). Map: [konkovdv.github.io/InvaRadar](https://konkovdv.github.io/InvaRadar/).
+Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environmental solutions". Konkov D. V. ([@KonkovDV](https://github.com/KonkovDV)).
 
-![Hogweed likelihood, 65 by 65 km window, 2025](outputs/figures/heracleum_city.png)
+## What already works
+
+- **A map of both species** over a 65 × 65 km window: Moscow and the inner belt of Moscow Oblast, 42.25 million pixels. The Rust core computes it in about 2 minutes on 4 cores.
+- **Tested on 5 km blocks held out of training.** The top 10% of area holds 25.0% of known hogweed reports (95% CI 20.7–28.8), 2.5 times what a random search finds. Goldenrod: 32.5%, 3.3 times.
+- **Tested forward in time.** The model saw reports up to 2024. Of the new 2025–2026 reports, 38.4% of hogweed (n = 383) and 45.7% of goldenrod (n = 346) fall in the top 20% of area.
+- **A work order for each of 38,308 likely stands** (16,056 hogweed and 22,252 goldenrod), with the method and the rule.
+- **The law is checked by tests** on the top 200 orders of each species and on every point of the web map: no chemicals in a water-protection zone, a protected area or next to children; no pesticide drone inside a settlement; no digging beside a heritage site.
+- **Residents' photos.** Hogweed against wild angelica, Siberian hogweed, cow parsley and ground elder: precision 86.7%, recall 86.5%. Goldenrod against tansy, ragwort and St John's wort: 88.7% and 88.7%. At confidence 0.9 and above the model closes 68.2% of reports itself.
+- **The drone module on 263 aerial photos** from the open Skoltech set: ROC AUC 0.948 with the capturing camera kept out of training. The dataset authors report 0.96 for their on-board network (Menshchikov et al., 2021).
+- **Rust inference matches LightGBM**: the largest difference is 8.9×10⁻¹⁶.
+
+![Sosnowsky's hogweed likelihood, 65 by 65 km window, 2025](outputs/figures/heracleum_city.png)
+
+<sub>Hogweed likelihood, 2025. The dark patches are the top percentiles of area, where a crew goes first.</sub>
 
 ## Contents
 
-- [Where to look](#where-to-look)
-- [What is already measured](#what-is-already-measured)
+- [Where to start](#where-to-start)
+- [Numbers](#numbers)
 - [How it is built](#how-it-is-built)
-- [What version 1.2 does not contain](#what-version-12-does-not-contain)
+- [The law in a work order](#the-law-in-a-work-order)
+- [Where the choices come from](#where-the-choices-come-from)
+- [Related work](#related-work)
+- [Limits of version 1.2](#limits-of-version-12)
+- [Hard questions](#hard-questions)
 - [Run](#run)
-- [Map and slides](#map-and-slides)
+- [Layout and stack](#layout-and-stack)
 - [Documents](#documents)
+- [Citation and licences](#citation-and-licences)
 
-## Where to look
+## Where to start
 
-1. Map of the 3,000 highest-priority stands of each species, with the method and the legal basis on click: [konkovdv.github.io/InvaRadar](https://konkovdv.github.io/InvaRadar/).
-2. Numbers and the test protocol: [model card](docs/MODEL_CARD.md), [experiment log](docs/EXPERIMENTS.md).
-3. The law inside a work order: [science note](docs/SCIENCE.md) and `invaradar/management.py`.
-4. Award submission, 10 landscape A4 pages: [`presentation/InvaRadar_Ecopremia2026_podacha.pdf`](presentation/InvaRadar_Ecopremia2026_podacha.pdf). Full 27-slide talk: [`InvaRadar_Ecopremia2026.pdf`](presentation/InvaRadar_Ecopremia2026.pdf).
+The 3,000 highest-priority stands of each species, with the method and the rule on click: [konkovdv.github.io/InvaRadar](https://konkovdv.github.io/InvaRadar/).
 
-## What is already measured
+[![InvaRadar web map: priority hogweed stands coloured by control method](docs/assets/web_map.jpg)](https://konkovdv.github.io/InvaRadar/)
 
-A 65 × 65 km window, 4,225 km², 10 m cells, 42.25 million pixels. It covers Moscow and the inner belt of Moscow Oblast. The far parts of New Moscow (TiNAO) fall outside the window. Files: `outputs/heracleum/`, `outputs/solidago/`.
+<sub>Rust: mechanical only. Amber: ground spot treatment. Blue: drone spraying allowed. Basemap © OpenStreetMap contributors. The interface is in Russian.</sub>
+
+| You are | Read |
+|---|---|
+| A jury member | the [submission deck](presentation/InvaRadar_Ecopremia2026_podacha.pdf), the map, then "Numbers" and "Limits" below |
+| A botanist or ecologist | the [science note](docs/SCIENCE.md), the [model card](docs/MODEL_CARD.md), the [experiment log](docs/EXPERIMENTS.md) (in Russian) |
+| A lawyer or inspector | [the law section](docs/SCIENCE.md#7-право), `invaradar/management.py`, `tests/test_legal_invariants.py` |
+| A GIS specialist | the [data card](docs/DATA_CARD.md), the `stac/` catalogue, `make release` |
+| A developer | the [architecture](docs/ARCHITECTURE.md), [contributing](CONTRIBUTING.md), the `Makefile` |
+
+## Numbers
+
+A 65 × 65 km window, 4,225 km², 10 m cells. It covers Moscow and the inner belt of the oblast; the far parts of New Moscow fall outside. Every number is in `outputs/heracleum/`, `outputs/solidago/`, `outputs/photo/` and `outputs/drone/`.
 
 | | Hogweed | Goldenrod |
 |---|---|---|
-| Known reports inside the top 10% of area, on 5 km blocks held out of training | **25.0%** (95% CI 20.7–28.8), 2.5× a random search | **32.5%** (28.4–35.9), 3.3× |
-| Known reports inside the top 1% of area | 2.5% (1.3–3.7) | **7.1%** (5.1–8.8), lift 7.1 (5.1–8.8) |
-| New 2025–26 reports inside the top 20%, model trained through 2024 | 38.4% (33.7–43.3), n = 383 | 45.7% (40.5–50.9), n = 346 |
+| Reports in the top 10% of area, on 5 km blocks held out of training | **25.0%** (95% CI 20.7–28.8), 2.5× a random search | **32.5%** (28.4–35.9), 3.3× |
+| Reports in the top 1% of area | 2.5% (1.3–3.7) | **7.1%** (5.1–8.8), 7× |
+| New 2025–26 reports in the top 20%, trained through 2024 | 38.4% (33.7–43.3), n = 383 | 45.7% (40.5–50.9), n = 346 |
 | ROC AUC against background, same blocks | 0.686 | 0.690 |
+| Share of area inside the model's area of applicability | 96.3% | 95.7% |
 | Likely stands of at least 400 m² / within 300 m of schools, kindergartens and playgrounds | 16,056 / 4,309 | 22,252 / 6,995 |
-| Drone spraying allowed / ground spot treatment / mechanical only | 168 / 10,367 / 5,521 | 171 / 14,675 / 7,406 |
+| Drone spraying / ground treatment / mechanical only | 168 / 10,367 / 5,521 | 171 / 14,675 / 7,406 |
 
-Spatial intervals are a cluster bootstrap over 5 km blocks, 2,000 replicates. The forward-in-time intervals are Wilson scores. A random crew finds a share of reports equal to the share of area it walks: 10% of the area holds 10% of the reports.
+Spatial intervals are a cluster bootstrap over 5 km blocks, 2,000 replicates; the forward-in-time intervals are Wilson scores. A random search finds a share of reports equal to the share of area it covers: 10% of the area holds 10% of the reports.
 
-The labels are citizen points with up to 50 m of coordinate error, often a plant smaller than the pixel. The working measure is therefore how many known points fall in the top of the map, not the outline of a stand. A ROC AUC near 0.69 is what that label noise looks like.
+The labels are residents' points with up to 50 m of coordinate error, often a plant smaller than the pixel. The measure is therefore the share of known points near the top of the map, not the overlap of outlines. Hogweed points reported by two or more observers fall in the top 10% of area 39.8% of the time (n = 133, `outputs/heracleum/exp_labels.json`).
 
-Citizen photos against look-alikes, 13,000 images, test observers absent from training: hogweed precision 86.7% at recall 86.5%; goldenrod 88.7% and 88.7%. At confidence 0.9 and above the model closes 68.2% of reports itself, and 93.8% of those calls name the right species. The rest go to a botanist.
-
-UAV module, 263 aerial photos from the Moscow region in the open Skoltech set, three cameras, the test camera kept out of training: ROC AUC 0.948. At the scouting threshold (max F2, fit on the other cameras) Dice is 0.71, hogweed is present on 216 of 251 frames, and individual stands are found 60% of the time. The area threshold, max F1, gives Dice 0.66. Detail: [experiment log](docs/EXPERIMENTS.md), `make drone`.
+Drone module, 263 aerial photos: at the scouting threshold (max F2, fit on the two other cameras) Dice is 0.71, hogweed is found on 216 of 251 frames, and individual stands 60% of the time. For area counts the max F1 threshold gives Dice 0.66. Per-camera numbers and the protocol are in the [experiment log](docs/EXPERIMENTS.md).
 
 ![Aerial photo from the Moscow region: white outline is the botanists' mask, amber is InvaRadar](outputs/figures/drone_real.png)
 
-Hogweed points reported by two or more observers fall in the top 10% of area 39.8% of the time (n = 133), in `outputs/heracleum/exp_labels.json`. The 25.0% row above is every report on held-out blocks.
+<sub>Open Skoltech set (Menshchikov et al., 2021). The camera that took this frame was not used in training.</sub>
 
 ## How it is built
 
-1. **Satellite.** AlphaEarth Foundations embeddings of the 10 m cell and the mean in windows of 50, 150 and 450 m; log distance to roads, railways, water and power lines; terrain via Priority-Flood, D8 flow, TWI and HAND. 265 features. LightGBM, with background drawn from other plants recorded by the same observers (Phillips et al. 2009).
-2. **Test.** 5 × 5 km blocks (Roberts et al. 2017) and a forward-in-time split. Area of applicability follows Meyer & Pebesma 2021: 96.3% of the window for hogweed, 95.7% for goldenrod. A 250-point field sample is stratified by likelihood (Olofsson et al. 2014).
-3. **Queue.** Likelihood × proximity to people × proximity to roads, rivers and power lines × stand size.
-4. **Work order.** Water Code art. 65: a 50, 100 or 200 m zone by river length, and no pesticides inside it. Sanitary rules СанПиН 2.1.3684-21: ground treatment only inside a settlement, a pesticide drone no closer than 700 m to housing, water and protected areas, and no pesticides on the grounds of a school or kindergarten. Federal law 73-ФЗ: no digging beside a heritage site. Protected areas and parks: mechanical methods. One hundred metres from a school, kindergarten or playground is a caution of this system. There is no statute that sets that distance.
-5. **Check.** A repeat image after 3–4 weeks.
+```mermaid
+flowchart LR
+  D["AlphaEarth 10 m<br/>iNaturalist, Overture,<br/>Copernicus DEM"] --> R["Rust core<br/>265 features, terrain"]
+  R --> M["LightGBM<br/>likelihood map"]
+  M --> H["Stands of 400 m² and up<br/>queue by people"]
+  H --> W["Work order<br/>method and rule"]
+  P["Resident's photo"] --> V["Species classifier"] --> W
+  U["Drone orthomosaic"] --> S["DINOv2<br/>stand outline"] --> W
+  W --> C["Revisit"] -->|"next season's labels"| M
+```
 
-Terrain stays on for hogweed and is off for goldenrod. The rule was fixed in advance: the share of new reports inside the top 20% of area. Hogweed rose from 36.0% to 38.4%. Goldenrod with terrain fell from 45.7% to 43.4%. Hogweed keeps to damp verges, abandoned fields and banks. Terrain is 3.4% of feature importance.
+1. **Features.** 64 dimensions of the AlphaEarth Foundations embedding at the 10 m cell and the means in windows of 50, 150 and 450 m. Log distance to major roads, minor roads, railways, water and power lines. Terrain: Priority-Flood depression filling, D8 flow, TWI and HAND. 265 features in all.
+2. **Model.** LightGBM, report against background. The background is 60,000 records of other vascular plants by the same observers in the same window.
+3. **Test.** 5 × 5 km blocks and a forward-in-time split. Area of applicability after Meyer & Pebesma. A 250-point field sample over four likelihood strata.
+4. **Queue.** Connected patches of the top 2% of likelihood, 400 m² and up. Priority is likelihood × proximity to people × proximity to spread corridors × size. Route: nearest neighbour, then 2-opt.
+5. **Work order.** The rules in `invaradar/management.py`, each with its own legal basis.
 
-Rust inference matches LightGBM. The largest absolute difference is 8.9×10⁻¹⁶. The window takes about 2 minutes on 4 cores.
+Terrain stays on for hogweed and is off for goldenrod. The rule was set before the comparison: the share of new reports in the top 20% of area. Hogweed rose from 36.0% to 38.4%; goldenrod with terrain fell from 45.7% to 43.4%. Hogweed keeps to damp verges, abandoned fields and banks; on old fields goldenrod follows abandonment more than water.
 
-Hogweed labels from iNaturalist are *H. sosnowskyi*, *H. mantegazzianum*, and the giant-hogweed complex. In European Russia the last two taxa are usually the same Sosnowsky's hogweed filed under another name. The goldenrods are *S. canadensis* and *S. gigantea*. Both grow in the city.
+Hogweed labels come from three iNaturalist taxa: *H. sosnowskyi*, *H. mantegazzianum* and the giant-hogweed complex. In central Russia the last two are almost always Sosnowsky's hogweed filed under another name. The goldenrods are *Solidago canadensis* and *S. gigantea*: both grow in the city, and crews remove both.
 
-Diagram and file list: [architecture](docs/ARCHITECTURE.md).
+Module diagram and file list: [architecture](docs/ARCHITECTURE.md).
 
-## What version 1.2 does not contain
+## The law in a work order
 
-- A register of confirmed stands. A hotspot is a connected patch of the top 2% of likelihood, at least 400 m². It is a queue for a visit.
-- A completed walk of the 250 field points. The points are drawn. Ground area is not in the tables.
-- Water-protection zones from the State Water Register. River length is measured on the network inside the window and is a lower bound. The queues and the web map are the 30 October 2026 calculation. A fresh pass over the water network is `make requeue`.
-- A flight over Moscow. The 263 frames are the open Skoltech set, not a city orthomosaic.
-- The wall-to-wall 10 m maps in git. `make release` writes them to `dist/release/` with GeoParquet and `SHA256SUMS`.
+Versions as of 30 October 2026: the Water Code as amended on 4 August 2026; sanitary rules СанПиН 2.1.3684-21 with the amendments of 12 February 2026 (in force since 10 March 2026).
+
+| Rule | Basis | Hogweed stands |
+|---|---|---|
+| Water-protection zone of 50, 100 or 200 m by river length: no pesticides, mechanical methods only | Water Code art. 65, parts 4–6 and part 15 items 3, 6 | 4,456 |
+| Settlement: ground equipment only; a pesticide drone no closer than 700 m to housing, water and protected areas | СанПиН 2.1.3684-21, items 273 and 282 | 10,367 treated from the ground |
+| Grounds of a children's organisation: no pesticides | СанПиН 2.1.3684-21, item 273 | 105 |
+| School, kindergarten or playground within 100 m: no pesticides, first in the queue | a caution of this system; no statute sets this distance | 1,227 |
+| Protected areas and parks: mechanical methods | protected-area regimes, Mospriroda practice | 727 |
+| Heritage site within 50 m: no digging out of root collars | 73-ФЗ | 74 |
+| Ground treatment: notice 5 days ahead, signs, inside a settlement before 7:00 or after 22:00 in calm weather | СанПиН 2.1.3684-21, items 272–273 | every order |
+
+Hogweed totals: mechanical only 5,521 stands, ground spot treatment 10,367, drone spraying allowed 168, all outside settlements. Goldenrod: 7,406, 14,675 and 171.
+
+Biology in the order: hogweed flowers once and dies, so umbels are cut before the end of July and the root collar is cut 5–10 cm below the soil. Stands larger than 0.5 ha are mown every 3–4 weeks. A stand is watched for 5 seasons. Goldenrod is mown twice a summer, in late May–June and before it flowers in August.
+
+## Where the choices come from
+
+| Observation | What InvaRadar does |
+|---|---|
+| Citizen records cluster along roads and in parks. Background drawn from other species recorded by the same people removes that bias (Phillips et al., 2009) | background of 60,000 records of other plants by the same observers |
+| A random split overstates a spatial model (Roberts et al., 2017) | 5 × 5 km blocks and a test on later years |
+| A map cannot be trusted where the features are far from training (Meyer & Pebesma, 2021) | a dissimilarity index; 3.7% of the area is outside the area of applicability for hogweed |
+| Map area and accuracy are estimated from a stratified random sample (Olofsson et al., 2014) | 250 points over four likelihood strata |
+| Without filling depressions, flow stops in every pit (Barnes et al., 2014); HAND measures height above the stream along the flow path (Rennó et al., 2008) | Priority-Flood, D8, TWI and HAND in the Rust core |
+| Open annual 10 m embeddings describe every pixel without labelling imagery (AlphaEarth Foundations, 2025) | 64 dimensions of the pixel and means in three windows |
+| A frozen DINOv2 transfers to a new task with a linear probe (Oquab et al., 2024) | drone module: a probe on the 14 × 14 patch and its 3 × 3 neighbourhood, weights under Apache-2.0 |
+| A single plant is smaller than a Sentinel-2 pixel | the satellite narrows the search, the drone draws the outline |
+
+Full reference list: [sources](docs/SOURCES.md).
+
+## Related work
+
+| Work | What it does | Number from an open source | Relation to InvaRadar |
+|---|---|---|---|
+| Skoltech, Menshchikov et al., 2021 | on-board hogweed segmentation on a drone, Jetson Nano | ROC AUC 0.96 | on their set the drone module reaches 0.948 with the frame's camera kept out of training |
+| Yandex, School of Data Analysis and StopBorshchevik, 2026 | stand outlines from satellite images | 421 ha in 17 regions, mean IoU 0.7 | not comparable: they score polygons, we score residents' points. Their outlines can feed the queue |
+| Moscow Oblast agriculture ministry, 2026 | remote sensing, drone, cadastre, fine | first fine of 150 thousand roubles, Ruza district | the same chain, steered towards children first and a lawful method |
+| Invasium, Tsitsin Main Botanical Garden | photos through a chat bot, checked by botanists | — | the classifier takes the confident reports off the botanist's desk |
+| Hogweed SDM for Lithuania | habitat suitability | 1 km grid | 10 m cells and tests on new areas and years |
+
+None of these goes all the way from the map to a work order with its legal basis. Open code and models from 2025–2026: [landscape](docs/LANDSCAPE.md) (in Russian).
+
+## Limits of version 1.2
+
+| Area | Now | Next |
+|---|---|---|
+| Field check | 250 points drawn, not yet walked; no ground-truth stand area in the tables | the walk in the 2027 pilot |
+| Water-protection zones | river length from the network inside the window, a lower bound; queues and map are the 30 October 2026 run | boundaries from the State Water Register; rerun with `make requeue` |
+| Protected areas | parks, natural monuments and reserves from Overture | the official protected-area layer |
+| Drone | 263 spring frames from Skoltech: leaves and rosettes | summer flights over Moscow under a city contract, a bloom index |
+| Follow-up | a revisit date in the order | an image after the work, feeding the next season's labels |
+| Residents' photos | YOLO11s-cls; the AGPL-3.0 weights are not in the repository | BioCLIP 2 under MIT |
+| Terrain | Copernicus DEM includes buildings and canopy | a city terrain model without buildings |
+| Wall-to-wall 10 m maps | `make release` writes them to `dist/release/` | a GitHub release |
+
+## Hard questions
+
+| Question | Short answer | Detail |
+|---|---|---|
+| Isn't 25% low? | It is the share of known points inside 10% of the area, on districts the model never saw: 2.5 times a random search. For points seen by two or more observers it is 39.8% | [model card](docs/MODEL_CARD.md) |
+| ROC AUC 0.69 — a weak model? | AUC measures how a report separates from background over the whole area. The labels carry up to 50 m of error, and the background points include hogweed nobody reported. A crew cares about the top of the queue, where reports are 2.5–3.3 times denser | [experiment log](docs/EXPERIMENTS.md) |
+| Can a drone spray in Moscow? | Inside a settlement only ground equipment is allowed, and a pesticide drone must stay 700 m from housing, water and protected areas. In this run that leaves 168 and 171 stands, all outside settlements | [law](docs/SCIENCE.md#7-право) |
+| Does the AI issue fines? | No. The map is a risk indicator, a person signs the order, and an inspector writes any protocol under art. 8.7 | [model card](docs/MODEL_CARD.md) |
+| Why terrain for hogweed only? | The rule was set before the comparison. Terrain raised the share of new hogweed reports and lowered it for goldenrod | [experiment log](docs/EXPERIMENTS.md) |
+| Why is *H. mantegazzianum* in the hogweed labels? | In central Russia records under that name on iNaturalist are almost always Sosnowsky's hogweed. Dropping them would drop real stands | [model card](docs/MODEL_CARD.md) |
+| What if AlphaEarth goes away? | Embeddings enter through one interface; TESSERA and OlmoEarth provide comparable global 10 m layers. Version 1.2 has not been run on them | [landscape](docs/LANDSCAPE.md) |
+| Whose photos are these? | iNaturalist under CC BY and CC0, authors in `presentation/assets/CREDITS.csv`. The Skoltech set has no stated licence; it is used for evaluation only and not redistributed | [NOTICE](NOTICE) |
+| Personal data? | The model holds plant coordinates only. A bot or API must not keep faces, number plates or home geotags (152-ФЗ) | [security](SECURITY.md) |
+| Why Rust? | 42 million pixels × 265 features in one pass: the map in about 2 minutes on 4 cores, terrain cached | [architecture](docs/ARCHITECTURE.md) |
 
 ## Run
 
-Python 3.11+ and Rust. A full run downloads about 9 GB: AlphaEarth blocks, iNaturalist, Overture, Copernicus DEM.
+Python 3.11+ and Rust. A full run downloads about 9 GB of open data: AlphaEarth blocks, iNaturalist records, Overture, Copernicus DEM.
 
 ```bash
 git clone https://github.com/KonkovDV/InvaRadar && cd InvaRadar
 pip install -e ".[dev]"
-make core test    # 6 Rust tests and 28 Python tests; 12 of the Python tests check the law on the published work orders and the map
-make all          # both species, terrain variants, intervals, figures
+make core test    # 6 Rust tests and 28 Python tests; 12 of them check the law on the orders and the map
+make all          # data, both species, terrain variants, intervals, figures
 ```
 
-On Windows, without make: `cargo test --release` inside `core-rs`, then `py -m pytest` at the root. The binary is `invaradar_core.exe`.
+Without make, Windows included: `cargo test --release` inside `core-rs`, then `python -m pytest` at the root. On Windows the core binary is `invaradar_core.exe`.
 
-Data directories are `INVARADAR_DATA`, `INVARADAR_CACHE` and `INVARADAR_OUT`. After a change to the rules or the context layers, work orders are rebuilt without retraining: `make requeue`.
-
-Docker: `docker build -t invaradar .`
-
-## Map and slides
-
-`web/index.html` is published by `.github/workflows/pages.yml`. `python scripts/export_web.py` refreshes the map data.
-
-| File | Use |
+| Command | What it does |
 |---|---|
-| [`presentation/InvaRadar_Ecopremia2026_podacha.pdf`](presentation/InvaRadar_Ecopremia2026_podacha.pdf) | submission: 10 A4 pages in the sections the contest rules ask for |
-| [`presentation/InvaRadar_Ecopremia2026.pdf`](presentation/InvaRadar_Ecopremia2026.pdf) | 27 slides, 16:9, for the talk and the questions |
-| [`presentation/SPEAKER_NOTES.md`](presentation/SPEAKER_NOTES.md) | spoken text for the long deck |
+| `make requeue` | rebuilds queues and work orders after a change to rules or layers, without retraining |
+| `make drone` | the drone benchmark on the Skoltech set (`pip install -e ".[drone]"`, the set cloned next to the repository) |
+| `make release` | wall-to-wall 10 m maps (COG), stand GeoParquet, the STAC catalogue and `SHA256SUMS` in `dist/release/` |
+| `make deck` | both decks from `outputs/*.json` |
 
-Names and contacts for the title page live in `presentation/team.json`. `make deck` rebuilds both decks from `outputs/*.json`.
+Data directories are set by `INVARADAR_DATA`, `INVARADAR_CACHE` and `INVARADAR_OUT`. Docker: `docker build -t invaradar .`
+
+## Layout and stack
+
+```
+core-rs/        Rust core: features, terrain, inference, stands, route, sampling
+invaradar/      Python package: data, priority, legal rules, drone module
+scripts/        pipeline, area of applicability, intervals, maps, photo classifier
+tests/          the law on work orders, water zones, priority, dequantisation, drone, core
+outputs/        metrics, intervals, queues, top 200 orders, field sample, figures
+web/            web map on MapLibre GL
+stac/           STAC 1.1 catalogue for the wall-to-wall maps
+presentation/   decks, generators, fonts, photos
+docs/           science, experiments, model and data cards, landscape, plan, sources
+```
+
+- **Rust 2024**: `rayon`, `memmap2`, `serde_json`, `anyhow`. One multithreaded pass over the mosaic, no copies.
+- **Python**: LightGBM, scikit-learn, GeoPandas, Shapely, rasterio, pyproj, PyArrow. Drone module: PyTorch and timm (`.[drone]`). Photo classifier: Ultralytics (`.[photo]`).
+- **Formats**: Cloud Optimized GeoTIFF, GeoParquet, STAC 1.1.
+- **Web map**: MapLibre GL over OpenStreetMap, published with GitHub Pages.
+- **CI**: `cargo fmt`, `clippy -D warnings`, `cargo test`, `ruff`, `pytest` on Python 3.11, 3.12 and 3.13.
 
 ## Documents
 
-| | |
-|---|---|
-| [Science](docs/SCIENCE.md) | species biology, the pixel, the statutes |
-| [Experiments](docs/EXPERIMENTS.md) | what was kept, what was dropped, with the numbers |
-| [Model card](docs/MODEL_CARD.md) | features, tests, limits |
-| [Data card](docs/DATA_CARD.md) | hotspot fields, licences, how to read the raster |
-| [Landscape](docs/LANDSCAPE.md) | open code and work from 2025–2026 |
-| [Plan](docs/PLAN.md) | the 2027 season |
-| [Sources](docs/SOURCES.md) | the reference list |
+The documents below are in Russian.
 
-Code is Apache-2.0. Results are CC BY 4.0. Cite [CITATION.cff](CITATION.cff). "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind." Observations © their iNaturalist authors. © OpenStreetMap contributors, Overture Maps Foundation. Copernicus DEM © DLR e.V., Airbus.
+| Document | Contents |
+|---|---|
+| [Science note](docs/SCIENCE.md) | species biology, the pixel, hydrology, law, heritage |
+| [Experiment log](docs/EXPERIMENTS.md) | what was compared, by which rule, what was kept |
+| [Model card](docs/MODEL_CARD.md) | features, training, tests, limits, ethics |
+| [Data card](docs/DATA_CARD.md) | stand and order fields, files, provenance, reading the raster |
+| [Architecture](docs/ARCHITECTURE.md) | diagram, modules, why Rust and Python |
+| [Landscape](docs/LANDSCAPE.md) | work in Russia and abroad, open code, models of 2025–2026 |
+| [Plan](docs/PLAN.md) | the 2027 season, KPIs, team, budget, risks |
+| [Sources](docs/SOURCES.md) | literature, statutes, data |
+| [Decks](presentation/README.md) | files, design, rebuilding |
+| [Changelog](CHANGELOG.md) | versions 0.1 to 1.2 |
+
+## Citation and licences
+
+GitHub shows a "Cite this repository" button from [CITATION.cff](CITATION.cff).
+
+```bibtex
+@software{konkov_invaradar_2026,
+  author  = {Konkov, Dmitrij V.},
+  title   = {InvaRadar: early detection of invasive plants from satellite embeddings, drones and citizen photos},
+  version = {1.2.0},
+  year    = {2026},
+  url     = {https://github.com/KonkovDV/InvaRadar},
+  license = {Apache-2.0}
+}
+```
+
+Code is [Apache-2.0](LICENSE). Maps, stands, work orders and metrics are [CC BY 4.0](LICENSE-DATA.md). "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind." Observations © their iNaturalist authors. © OpenStreetMap contributors, Overture Maps Foundation. Copernicus DEM © DLR e.V., Airbus. Full list: [NOTICE](NOTICE).
+
+How to help: [CONTRIBUTING.md](CONTRIBUTING.md). Vulnerabilities: [SECURITY.md](SECURITY.md).

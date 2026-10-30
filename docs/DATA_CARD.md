@@ -46,11 +46,10 @@
 
 AlphaEarth Foundations 2025 (Google DeepMind), наблюдения iNaturalist (экспорт open data, октябрь 2026), Overture Maps release 2026-10-21.0, Copernicus DEM GLO-30. Обработка — код этого репозитория, версия 1.2.0.
 
-## Как читать в облаке
+## Как читать растр
 
 ```python
 import geopandas as gpd, rasterio
-# после make release; до него файла в репозитории нет
 with rasterio.open("dist/release/invaradar_heracleum_likelihood_2025_10m_cog.tif") as ds:
     window = ds.read(1, window=((3000, 3512), (3000, 3512)))   # читает только нужные тайлы
 hot = gpd.read_parquet("dist/release/invaradar_heracleum_hotspots_prescribed_2025.parquet")

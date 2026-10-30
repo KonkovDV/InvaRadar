@@ -64,7 +64,7 @@ UAV module, 263 aerial photos from the Moscow region in the open Skoltech set, t
 
 ![Aerial photo from the Moscow region: white outline is the botanists' mask, amber is InvaRadar](outputs/figures/drone_real.png)
 
-Hogweed points reported by two or more observers fall in the top 10% of area 39.8% of the time (n = 133). That slice is `outputs/heracleum/exp_labels.json`. It does not replace the 25.0% row above.
+Hogweed points reported by two or more observers fall in the top 10% of area 39.8% of the time (n = 133), in `outputs/heracleum/exp_labels.json`. The 25.0% row above is every report on held-out blocks.
 
 ## How it is built
 
@@ -74,7 +74,7 @@ Hogweed points reported by two or more observers fall in the top 10% of area 39.
 4. **Work order.** Water Code art. 65: a 50, 100 or 200 m zone by river length, and no pesticides inside it. Sanitary rules СанПиН 2.1.3684-21: ground treatment only inside a settlement, a pesticide drone no closer than 700 m to housing, water and protected areas, and no pesticides on the grounds of a school or kindergarten. Federal law 73-ФЗ: no digging beside a heritage site. Protected areas and parks: mechanical methods. One hundred metres from a school, kindergarten or playground is a caution of this system. There is no statute that sets that distance.
 5. **Check.** A repeat image after 3–4 weeks.
 
-Terrain stays on for hogweed and is off for goldenrod. The rule was fixed in advance: the share of new reports inside the top 20% of area. Hogweed rose from 36.0% to 38.4%. Goldenrod fell from 45.7% to 43.4%. The plant keeps to damp verges, abandoned fields and banks. It is not a narrow floodplain specialist, and terrain is 3.4% of feature importance.
+Terrain stays on for hogweed and is off for goldenrod. The rule was fixed in advance: the share of new reports inside the top 20% of area. Hogweed rose from 36.0% to 38.4%. Goldenrod with terrain fell from 45.7% to 43.4%. Hogweed keeps to damp verges, abandoned fields and banks. Terrain is 3.4% of feature importance.
 
 Rust inference matches LightGBM. The largest absolute difference is 8.9×10⁻¹⁶. The window takes about 2 minutes on 4 cores.
 
@@ -86,7 +86,7 @@ Diagram and file list: [architecture](docs/ARCHITECTURE.md).
 
 - A register of confirmed stands. A hotspot is a connected patch of the top 2% of likelihood, at least 400 m². It is a queue for a visit.
 - A completed walk of the 250 field points. The points are drawn. Ground area is not in the tables.
-- Water-protection zones from the State Water Register. River length is measured on the network inside the window, a lower bound. The queues and the web map were built on 30 October 2026, before the confluence walk was corrected. The next pass on a fresh network is `make requeue`.
+- Water-protection zones from the State Water Register. River length is measured on the network inside the window and is a lower bound. The queues and the web map are the 30 October 2026 calculation. A fresh pass over the water network is `make requeue`.
 - A flight over Moscow. The 263 frames are the open Skoltech set, not a city orthomosaic.
 - The wall-to-wall 10 m maps in git. `make release` writes them to `dist/release/` with GeoParquet and `SHA256SUMS`.
 

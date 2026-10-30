@@ -5,9 +5,10 @@ body:
   - type: input
     id: coords
     attributes:
-      label: Координаты (широта, долгота)
+      label: Координаты, округлённые до 0,01°
+      description: Необязательно. Не указывайте частный участок, адрес и людей. Для пилота сбор идёт через QField или ODK на хостинге в РФ.
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: result
     attributes:

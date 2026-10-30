@@ -14,7 +14,9 @@ is advisory: a person signs the work order.
     - lakes and reservoirs (part 6): 50 m, except water bodies smaller than 0.5 km², which have no zone of their own
       unless they are part of a river;
     - sources of rivers and streams (part 5): 50 m radius; technical water (pools, wastewater, sewage basins) has no
-      zone; rivers in closed collectors have no zone (part 10) — not modelled, so the rule errs on the safe side.
+      zone; rivers in closed collectors have no zone (part 10) — this case is not separated, so a collector may
+      still receive a zone;
+    - ditches and drains stay at 50 m as a caution until an official right-of-way is known (part 9).
   Production should replace this with the State Water Register and the zone boundaries approved for Moscow.
 * Aerial application of pesticides keeps at least 2 km (manned aircraft) or 700 m (unmanned aircraft systems) from
   settlements, drinking-water sources, nature reserves, national parks, zakazniks and fishery water bodies
@@ -22,9 +24,9 @@ is advisory: a person signs the work order.
   are treated with ground boom or knapsack sprayers only (item 273(3)). So in Moscow the drone finds and outlines
   stands, and a ground crew treats them. Settlements: locality boundaries plus residential land use
   (invaradar.layers); water bodies with a protection zone stand in for fishery water bodies.
-* Ground application: residents are notified through the media at least 5 calendar days ahead, warning signs stand at
-  the entrances (item 272); inside settlements spot treatment runs before 7:00 or after 22:00 in calm weather
-  (item 273(4)). The work order carries these conditions.
+* Ground application: residents are notified through the media at least 5 calendar days ahead and warning signs stand
+  at the entrances (item 272). A clock time of "before 7:00 or after 22:00" was not found in the open text of
+  item 273, so the work order does not state it.
 * Children: pesticides are banned on the territories of children's organisations (СанПиН item 273(2));
   playgrounds and anything within 100 m of a kindergarten, school or playground are a precaution of this system,
   not a statutory distance → no pesticides, first in the queue.
@@ -36,8 +38,8 @@ is advisory: a person signs the work order.
 
 Biology:
 * Heracleum sosnowskyi flowers once and dies after seeding, so cutting the root collar 5–10 cm below ground kills
-  the plant (manual work, practical for small stands; stands above ~0.5 ha get repeated mowing every 3–4 weeks
-  instead, with root-collar cutting at the edges); removing umbels before seed set (by late July) stops the seed rain; most seeds germinate the next
+  the plant (manual work, practical for small stands; stands above ~0.5 ha are mown at least every 2 weeks from May
+  to September, with root-collar cutting at the edges); umbels are cut by late July and again in August; most seeds germinate the next
   spring and a few per cent survive 2–3 years, while mown rosettes postpone flowering → 5 seasons of follow-up.
 * Solidago spreads by rhizomes: mowing twice a season (late May–June and before flowering in August) depletes them
   over several years; seed heads must be removed before September.
@@ -46,8 +48,10 @@ from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
+from shapely.geometry import box
 
 from .layers import child_facilities, child_organisations, settlements
+from .legal import listed_act
 
 CHILD_M = 100.0
 AERIAL_UAV_M = 700.0          # СанПиН 2.1.3684-21 item 282 for unmanned aircraft systems (since 10.03.2026)
@@ -59,10 +63,12 @@ LAKE_MIN_KM2 = 0.5
 CONNECT_M = 30.0
 
 RIVER_LINES = {"river"}
-SMALL_LINES = {"stream", "canal", "ditch", "drain"}
+LENGTH_LINES = {"river", "stream", "canal"}  # Water Code art. 65 part 4: width follows length
+DITCH_LINES = {"ditch", "drain"}             # 50 m as a caution; art. 65 part 9 is the right-of-way strip
 STANDING = {"lake", "reservoir", "pond", "oxbow", "water", "bay", "lagoon", "river", "canal", "stream", "moat"}
 NO_ZONE = {"swimming_pool", "reflecting_pool", "wastewater", "sewage", "basin", "water_storage", "fountain"}
 
+FARM_LANDUSE = {"farmyard", "animal_keeping", "farm"}
 PROTECTED_LANDUSE = {"park", "natural_monument", "nature_reserve", "protected_area", "national_park"}
 RESERVE_PLACES = {"nature_reserve", "national_park"}
 HERITAGE_PLACES = {"historic_site", "monument"}
@@ -149,13 +155,16 @@ def water_zones(water: gpd.GeoDataFrame, crs) -> gpd.GeoDataFrame:
     is_line = w.geom_type.str.contains("Line")
     zone = np.zeros(len(w))
 
-    # rivers: each watercourse traced along the network, width from its length
-    riv = w[is_line & cls.isin(RIVER_LINES)]
-    if len(riv):
-        lengths = watercourse_lengths(riv)
-        zone[riv.index.to_numpy()] = [river_width_m(x) for x in lengths]
-
-    zone[(is_line & cls.isin(SMALL_LINES)).to_numpy()] = 50.0
+    # rivers, streams and canals: width from the length of the watercourse
+    net = w[is_line & cls.isin(LENGTH_LINES)]
+    if len(net):
+        lengths = watercourse_lengths(net)
+        zone[net.index.to_numpy()] = [river_width_m(x) for x in lengths]
+    # ditches and drains: 50 m until an official right-of-way is available (Water Code art. 65 part 9)
+    ditch = (is_line & cls.isin(DITCH_LINES)).to_numpy()
+    zone[ditch] = 50.0
+    note = np.full(len(w), "", dtype=object)
+    note[ditch] = "правило осторожности; ВК РФ ст. 65 ч. 9 — ширина по полосе отвода, официальной полосы в данных нет"
     zone[((w.geom_type == "Point") & (cls == "spring")).to_numpy()] = 50.0
 
     # standing water and river areas: a river's width if connected to it, 50 m for lakes ≥ 0.5 km², else none
@@ -169,7 +178,20 @@ def water_zones(water: gpd.GeoDataFrame, crs) -> gpd.GeoDataFrame:
             near = gpd.sjoin_nearest(P[["geometry"]], lines[["geometry", "zone_m"]], max_distance=CONNECT_M)
             best = near.groupby(level=0)["zone_m"].max()
             zone[best.index.to_numpy()] = np.maximum(zone[best.index.to_numpy()], best.to_numpy())
-    return w.assign(zone_m=zone)
+    return w.assign(zone_m=zone, zone_note=note)
+
+
+def _jurisdiction(g: gpd.GeoDataFrame, regions) -> np.ndarray:
+    out = np.full(len(g), "unknown", dtype=object)
+    if regions is None or len(regions) == 0 or "jurisdiction" not in regions.columns:
+        return out
+    pts = gpd.GeoDataFrame(geometry=g.geometry.representative_point(), crs=g.crs)
+    joined = gpd.sjoin(pts, regions.to_crs(g.crs)[["jurisdiction", "geometry"]], how="left", predicate="within")
+    hit = joined.groupby(level=0)["jurisdiction"].first()
+    for i, value in hit.items():
+        if isinstance(value, str):
+            out[int(i)] = value
+    return out
 
 
 def _near(g: gpd.GeoDataFrame, layer: gpd.GeoDataFrame | None, dist: float) -> np.ndarray:
@@ -184,7 +206,8 @@ def _near(g: gpd.GeoDataFrame, layer: gpd.GeoDataFrame | None, dist: float) -> n
     return out
 
 
-def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localities=None) -> gpd.GeoDataFrame:
+def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localities=None,
+              zso=None, regions=None) -> gpd.GeoDataFrame:
     g = h.reset_index(drop=True).copy()
     lu_cls = landuse["class"].astype(str)
     pc = places["basic_category"].astype(str)
@@ -206,12 +229,17 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
     g["in_settlement"] = _near(g, settlements(landuse, localities, g.crs), 0.0)
     g["near_settlement_uav"] = _near(g, settlements(landuse, localities, g.crs), AERIAL_UAV_M)
     g["near_reserve_or_water_uav"] = _near(g, reserves, AERIAL_UAV_M) | _near(g, wz[wz.zone_m > 0], AERIAL_UAV_M)
+    farms = landuse[lu_cls.isin(FARM_LANDUSE)] if "class" in landuse else landuse.iloc[0:0]
+    g["near_farm_uav"] = _near(g, farms, AERIAL_UAV_M)
+    g["in_zso"] = _near(g, zso, 0.0)
+    g["jurisdiction"] = _jurisdiction(g, regions)
+    g["listed_species_act"] = [listed_act(j, taxon) for j in g["jurisdiction"]]
 
     methods, basis = [], []
     for r in g.itertuples():
         b = []
-        chem_ok = not (r.in_water_zone or r.in_protected or r.near_children)
-        aerial_ok = chem_ok and not (r.near_settlement_uav or r.near_reserve_or_water_uav)
+        chem_ok = not (r.in_water_zone or r.in_protected or r.near_children or r.in_zso)
+        aerial_ok = chem_ok and not (r.near_settlement_uav or r.near_reserve_or_water_uav or r.near_farm_uav)
         dig_ok = not r.near_heritage
         if r.in_water_zone:
             b.append(f"ВК РФ ст. 65 ч. 15 п. 3 и 6: водоохранная зона {r.water_zone_m:.0f} м, пестициды и авиаобработка "
@@ -220,41 +248,55 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
             b.append("СанПиН 2.1.3684-21 п. 273: территория детской организации, пестициды запрещены")
         elif r.near_children:
             b.append("дети ≤100 м: без пестицидов (правило осторожности системы), первым в очереди")
+        if r.in_zso:
+            b.append("зона санитарной охраны водозабора: пестициды запрещены, пока режим пояса не уточнён по акту ЗСО")
         if r.in_protected:
             b.append("ООПТ / парк: только механические методы")
         if chem_ok and not aerial_ok:
             where = "в населённом пункте" if r.in_settlement else "ближе 700 м к жилью, водоёму или ООПТ"
             b.append(f"СанПиН 2.1.3684-21 п. 282, 273: {where} обработка с дрона запрещена, только наземная")
         if r.near_heritage:
-            b.append("73-ФЗ: без земляных работ")
-        ground = ("наземная точечная обработка ранцевым опрыскивателем по контуру очага (СанПиН п. 272–273: "
-                  "оповещение за 5 дней, знаки, до 7 или после 22 ч в безветрие); ")
+            b.append("73-ФЗ ст. 36: земляные работы на объекте наследия требуют согласования; 50 м — правило осторожности системы, в законе этого расстояния нет")
+        chem_tail = ("препарат только из Государственного каталога, с регламентом для несельскохозяйственных земель; "
+                     "норма, кратность и срок выхода людей — по регламенту; оповещение владельцев пасек в радиусе 7 км "
+                     "(ст. 16 490-ФЗ); ")
+        ground = ("наземная точечная обработка ранцевым опрыскивателем по контуру очага (СанПиН п. 272: "
+                  "оповещение за 5 дней, знаки); " + chem_tail)
+        ppe = ("; СИЗ: влагонепроницаемая одежда, перчатки, защита глаз; работать в пасмурную погоду или вечером; "
+               "при попадании сока — смыть водой с мылом, кожу беречь от солнца 48 ч; "
+               "зонтики — в герметичных мешках и вывезти; после работ подсеять злаки")
         large = getattr(r, "area_m2", 0.0) >= LARGE_STAND_M2
         if taxon == "heracleum":
+            cut = "зонтики срезать до конца июля и повторно вторичные в августе"
             if large:
-                m = ("многократный покос каждые 3–4 недели с мая по сентябрь, зонтики срезать и вывезти до конца июля"
-                     + ("; подрезка корневой шейки на краях очага и в малых куртинах" if dig_ok else "; без перекопки"))
+                m = ("покос не реже 1 раза в 2 недели с мая по сентябрь, до 8–10 раз за сезон (многократный покос), " + cut
+                     + ("; подрезка корневой шейки на 5–10 см на краях очага и в малых куртинах" if dig_ok else "; без перекопки"))
             elif dig_ok:
-                m = "подрезка корневой шейки на 5–10 см ниже земли + удаление зонтиков до конца июля"
+                m = "подрезка корневой шейки на 5–10 см ниже земли + " + cut
             else:
-                m = "удаление зонтиков до конца июля + укрывной материал, без перекопки"
+                m = cut + " + укрывной материал, без перекопки"
+            m += ppe
             if aerial_ok:
-                m = "точечное опрыскивание с дрона по контурам (СанПиН п. 282–286); " + m
+                m = ("точечное опрыскивание с дрона по контурам, если регламент препарата допускает БАС, есть "
+                     "разрешение на использование воздушного пространства и люди с животными не ближе 700 м; "
+                     + chem_tail + m)
             elif chem_ok:
                 m = ground + m
         else:
-            m = "покос дважды: конец мая–июнь и до цветения в августе; удаление соцветий до сентября"
+            m = "покос дважды: конец мая–июнь и до цветения в августе; удаление соцветий до сентября; наблюдение 5 сезонов"
             if dig_ok:
                 m += "; выборка корневищ на малых куртинах"
             if aerial_ok:
-                m = "точечная обработка по контурам (с дрона допустимо, СанПиН п. 282–286); " + m
+                m = ("точечная обработка по контурам (с дрона — только при допуске БАС в регламенте, разрешении "
+                     "на использование воздушного пространства и дистанции 700 м до людей и животных); " + chem_tail + m)
             elif chem_ok:
                 m = "при необходимости " + ground + m
-        methods.append(m)
-        basis.append("; ".join(b) if b else "ограничений не найдено")
+        methods.append(m + "; осмотр до работ: уничтожение только после подтверждения вида")
+        basis.append("; ".join(b) if b else "ограничений по открытым слоям не найдено; вид подтвердить на месте")
     g["method"] = methods
     g["legal_basis"] = basis
-    g["follow_up_years"] = 5 if taxon == "heracleum" else 3
+    g["status"] = "candidate"
+    g["follow_up_years"] = 5
     return g
 
 
@@ -263,6 +305,11 @@ def summarize(P: gpd.GeoDataFrame) -> dict:
     drone = P.method.str.contains("с дрона")
     ground = P.method.str.contains("наземная точечная")
     chem_ok = ~(P.in_water_zone | P.in_protected | P.near_children)
+    if "in_zso" in P.columns:
+        chem_ok = chem_ok & ~P.in_zso
+    uav_block = P.near_settlement_uav | P.near_reserve_or_water_uav
+    if "near_farm_uav" in P.columns:
+        uav_block = uav_block | P.near_farm_uav
     out = {
         "hotspots": int(len(P)),
         "in_water_zone_no_pesticides": int(P.in_water_zone.sum()),
@@ -273,7 +320,7 @@ def summarize(P: gpd.GeoDataFrame) -> dict:
         "near_children_100m": int(P.near_children.sum()),
         "near_heritage_no_digging": int(P.near_heritage.sum()),
         "in_settlement": int(P.in_settlement.sum()),
-        "aerial_blocked_uav_700m": int((chem_ok & (P.near_settlement_uav | P.near_reserve_or_water_uav)).sum()),
+        "aerial_blocked_uav_700m": int((chem_ok & uav_block).sum()),
         "drone_spraying_allowed": int(drone.sum()),
         "ground_spot_treatment": int(ground.sum()),
         "mechanical_only": int((~drone & ~ground).sum()),
@@ -284,3 +331,21 @@ def summarize(P: gpd.GeoDataFrame) -> dict:
         out["near_children_300m"] = int((P.d_child_m <= 300).sum())
     assert out["drone_spraying_allowed"] + out["ground_spot_treatment"] + out["mechanical_only"] == len(P)
     return out
+
+
+def split_survey_units(gdf: gpd.GeoDataFrame, cell_m: float = 100.0) -> gpd.GeoDataFrame:
+    """Cut each stand into survey units no wider than `cell_m`. A 100 m cell is at most 1 ha."""
+    rows = []
+    for i, row in gdf.reset_index(drop=True).iterrows():
+        geom = row.geometry
+        minx, miny, maxx, maxy = geom.bounds
+        x0 = np.floor(minx / cell_m) * cell_m
+        y0 = np.floor(miny / cell_m) * cell_m
+        parent = row["hid"] if "hid" in gdf.columns else int(i)
+        for x in np.arange(x0, maxx, cell_m):
+            for y in np.arange(y0, maxy, cell_m):
+                piece = geom.intersection(box(x, y, x + cell_m, y + cell_m))
+                if piece.is_empty or piece.area < 1.0:
+                    continue
+                rows.append({"parent_hid": parent, "area_m2": float(piece.area), "geometry": piece})
+    return gpd.GeoDataFrame(rows, geometry="geometry", crs=gdf.crs)

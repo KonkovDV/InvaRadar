@@ -58,7 +58,7 @@ flowchart LR
 | `invaradar/samples.py` | находки и фон из iNaturalist |
 | `invaradar/layers.py` | общие слои: детские объекты и населённые пункты — одни для очереди и для нарядов |
 | `invaradar/priority.py` | приоритет очагов |
-| `invaradar/queue.py` | очаги → очередь, маршрут дня (общий код `pipeline.py` и `requeue.py`) |
+| `invaradar/queue.py` | кандидаты на осмотр → очередь, порядок обхода по прямой (общий код `pipeline.py` и `requeue.py`) |
 | `invaradar/management.py` | водоохранные зоны и рецепты работ по ВК РФ, СанПиН 2.1.3684-21 и 73-ФЗ; длина реки по сети водотоков |
 | `invaradar/inat_api.py` | сообщения жителей в окне карты через API iNaturalist, если выгрузки нет на диске |
 | `invaradar/drone.py` | сегментация ортофотоплана (DINOv2 + линейный классификатор, индекс цветения, TorchScript), фильтр nDSM, полигоны, полётное задание |

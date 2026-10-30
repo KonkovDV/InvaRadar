@@ -39,3 +39,7 @@ node_modules/
 /outputs/logs/
 /outputs/figures/drone_demo.png
 /outputs/figures/drone_demo.json
+# Skoltech Heracleum-Dataset frames: the set has no licence, so they are not redistributed
+/outputs/figures/drone_real.png
+/presentation/assets/drone_real_mavic.jpg
+/presentation/assets/drone_real_strip.jpg

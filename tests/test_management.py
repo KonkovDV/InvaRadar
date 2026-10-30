@@ -4,7 +4,14 @@ import numpy as np
 import pytest
 from shapely.geometry import LineString, Point, box
 
-from invaradar.management import prescribe, river_width_m, summarize, water_zones, watercourse_lengths
+from invaradar.management import (
+    prescribe,
+    river_width_m,
+    split_survey_units,
+    summarize,
+    water_zones,
+    watercourse_lengths,
+)
 
 CRS = 32637
 
@@ -117,6 +124,30 @@ def test_solidago_in_water_zone_is_mown_not_sprayed():
     assert p.water_zone_m[0] == 200 and p.method[0].startswith("покос дважды")
 
 
+def test_stream_width_follows_its_length_and_a_ditch_stays_narrow():
+    water = gpd.GeoDataFrame({"class": ["stream", "ditch"], "subtype": ["stream", "ditch"]},
+                             geometry=[line(0, 0, 15_000, 0), line(0, 500, 1_000, 500)], crs=CRS)
+    z = water_zones(water, CRS)
+    assert z.zone_m.iloc[0] == 100          # 15 km stream → 100 m, not a flat 50 m
+    assert z.zone_m.iloc[1] == 50           # ditch: caution until an official right-of-way exists
+    assert "ч. 9" in z.zone_note.iloc[1] and z.zone_note.iloc[0] == ""
+
+
+def test_herbicide_orders_name_apiaries_airspace_and_protective_clothing():
+    water = gpd.GeoDataFrame({"class": ["stream"], "subtype": ["stream"]}, geometry=[line(0, 0, 0, 100)], crs=CRS)
+    empty = gpd.GeoDataFrame({"class": [], "subtype": []}, geometry=[], crs=CRS)
+    places = gpd.GeoDataFrame({"basic_category": []}, geometry=[], crs=CRS)
+    far = gpd.GeoDataFrame(geometry=[Point(20_000, 0).buffer(10)], crs=CRS)
+    p = prescribe(far, "heracleum", water, empty, places)
+    assert "с дрона" in p.method[0]
+    assert "воздушного пространства" in p.method[0]
+    assert "перчатки" in p.method[0]
+    assert "пасек" in p.method[0] and "7 км" in p.method[0]
+    assert "2 недели" in p.method[0] or "герметичн" in p.method[0]
+    assert p.status[0] == "candidate"
+    assert p.follow_up_years[0] == 5
+
+
 def test_large_heracleum_stand_is_mown_not_dug_by_hand():
     water = gpd.GeoDataFrame({"class": [], "subtype": []}, geometry=[], crs=CRS)
     places = gpd.GeoDataFrame({"basic_category": []}, geometry=[], crs=CRS)
@@ -125,3 +156,43 @@ def test_large_heracleum_stand_is_mown_not_dug_by_hand():
     p = prescribe(hot, "heracleum", water, water, places)
     assert "многократный покос" in p.method[0] and "на краях очага" in p.method[0]
     assert "подрезка корневой шейки на 5–10 см" in p.method[1]
+
+
+def test_drinking_water_zone_and_a_farm_block_chemicals():
+    water = gpd.GeoDataFrame({"class": ["stream"], "subtype": ["stream"]}, geometry=[line(0, 0, 0, 80)], crs=CRS)
+    places = gpd.GeoDataFrame({"basic_category": []}, geometry=[], crs=CRS)
+    hot = gpd.GeoDataFrame(geometry=[Point(0, 0).buffer(8), Point(5_000, 0).buffer(8)], crs=CRS)
+    hot["area_m2"] = hot.area
+    zso = gpd.GeoDataFrame(geometry=[box(-30, -30, 30, 30)], crs=CRS)
+    farms = gpd.GeoDataFrame({"class": ["farmyard"], "subtype": ["farmyard"]},
+                             geometry=[Point(5_400, 0).buffer(20)], crs=CRS)
+    p = prescribe(hot, "heracleum", water, farms, places, zso=zso)
+    assert p.in_zso[0] and "санитарной охраны" in p.legal_basis[0]
+    assert "опрыск" not in p.method[0] and "с дрона" not in p.method[0]
+    assert p.near_farm_uav[1] and p.method[1].startswith("наземная точечная обработка")
+
+
+def test_moscow_list_is_verified_and_the_oblast_list_is_not():
+    empty = gpd.GeoDataFrame({"class": [], "subtype": []}, geometry=[], crs=CRS)
+    places = gpd.GeoDataFrame({"basic_category": []}, geometry=[], crs=CRS)
+    hot = gpd.GeoDataFrame(geometry=[Point(100, 100).buffer(5), Point(5_000, 100).buffer(5)], crs=CRS)
+    hot["area_m2"] = hot.area
+    regions = gpd.GeoDataFrame(
+        {"jurisdiction": ["moscow_city", "moscow_oblast"]},
+        geometry=[box(0, 0, 1_000, 1_000), box(4_000, 0, 8_000, 1_000)],
+        crs=CRS,
+    )
+    city = prescribe(hot.iloc[[0]], "heracleum", empty, empty, places, regions=regions)
+    oblast = prescribe(hot.iloc[[1]], "heracleum", empty, empty, places, regions=regions)
+    outside = prescribe(hot.iloc[[0]], "acer", empty, empty, places, regions=regions)
+    assert city.jurisdiction[0] == "moscow_city" and "369-ПП" in city.listed_species_act[0]
+    assert "не сверен" in oblast.listed_species_act[0]
+    assert outside.listed_species_act[0].startswith("вне обязательного перечня")
+
+
+def test_a_five_hectare_stand_splits_into_survey_units():
+    stand = gpd.GeoDataFrame({"hid": [1]}, geometry=[box(0, 0, 224, 224)], crs=CRS)
+    units = split_survey_units(stand, cell_m=100)
+    assert len(units) >= 5
+    assert units.parent_hid.eq(1).all()
+    assert abs(units.area_m2.sum() - stand.geometry.area.sum()) < 1.0

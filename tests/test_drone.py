@@ -7,7 +7,7 @@ import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 
-from invaradar.drone import BloomIndexSegmenter, polygonize, segment_orthomosaic, spray_mission
+from invaradar.drone import BloomIndexSegmenter, apply_height_gate, polygonize, segment_orthomosaic, spray_mission
 
 
 def make_ortho(path, n=1500, gsd=0.03, seed=0):
@@ -39,6 +39,15 @@ def test_pipeline(tmp_path):
     assert len(polys) == 2
     assert 0.5 < polys.area_m2.sum() / true_area < 1.5
     assert stats["tank_mix_l"] > 0
+
+
+def test_rosette_keeps_pixels_shorter_than_a_flowering_stem():
+    prob = np.ones(4, np.float32)
+    height = np.array([0.5, 1.0, 2.0, 6.0], np.float32)
+    rosette = apply_height_gate(prob, height, phenophase="rosette")
+    flowering = apply_height_gate(prob, height, phenophase="flowering")
+    assert np.allclose(rosette, 1.0)
+    assert flowering[0] == 0.0 and flowering[2] == 1.0 and flowering[3] == 0.0
 
 
 if __name__ == "__main__":

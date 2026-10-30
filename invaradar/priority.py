@@ -1,8 +1,8 @@
-"""Priority of hotspots: likelihood x human exposure x spread potential x size.
+"""Priority of hotspots: rank x human exposure x spread potential x size.
 
-Hotspots (connected components of the top 2 % of the landscape, >= 4 pixels) and the daily route (nearest
-neighbour + 2-opt) are computed by the Rust core; this module only scores them. Every factor is transparent:
-the operator sees each distance and multiplier in the survey queue.
+Hotspots (connected components of the top 2 % of the landscape, >= 4 pixels) and the straight-line order
+(nearest neighbour + 2-opt) are computed by the Rust core; this module scores them and splits three queues.
+Every factor is transparent: the operator sees each distance and multiplier in the survey queue.
 """
 from __future__ import annotations
 
@@ -46,4 +46,49 @@ def add_priority(gdf: gpd.GeoDataFrame, places, roads, water, infra, landuse=Non
     g["priority"] = 100 * g.mean_rank * (0.4 + 0.6 * exposure) * (0.6 + 0.4 * spread) * (0.5 + 0.5 * size)
     g = g.sort_values("priority", ascending=False).reset_index(drop=True)
     g["rank"] = np.arange(1, len(g) + 1)
+    return assign_queues(g)
+
+
+def _rank_positive(score: np.ndarray) -> np.ndarray:
+    """1..n for positive scores, 0 where the stand is not in that queue."""
+    rank = np.zeros(len(score), dtype=int)
+    order = np.argsort(-score, kind="stable")
+    place = 1
+    for i in order:
+        if score[i] <= 0:
+            break
+        rank[i] = place
+        place += 1
+    return rank
+
+
+def assign_queues(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Three queues. Safety ignores area. Containment prefers small isolated stands. Programme is the large stands.
+
+    The existing `priority` column is unchanged: published queues keep their old order until they are recomputed.
+    """
+    g = gdf.copy()
+    n = len(g)
+    if n == 0:
+        return g
+    cents = g.geometry.centroid
+    if n == 1:
+        isolation = np.array([np.inf])
+    else:
+        isolation = np.empty(n)
+        for i, centre in enumerate(cents):
+            isolation[i] = cents.drop(cents.index[i]).distance(centre).min()
+    g["isolation_m"] = isolation
+    exposure = g["exposure"].to_numpy() if "exposure" in g else np.ones(n)
+    spread = g["spread"].to_numpy() if "spread" in g else np.ones(n)
+    mean_rank = g["mean_rank"].to_numpy()
+    child = g["d_child_m"].to_numpy() if "d_child_m" in g else np.full(n, np.inf)
+    area = g["area_m2"].to_numpy()
+    g["safety_score"] = np.where(child <= 300.0, mean_rank * exposure, 0.0)
+    isolated = (area <= 10_000.0) & (isolation >= 500.0)
+    g["containment_score"] = np.where(isolated, mean_rank * spread * np.clip(isolation / 500.0, 0.0, 5.0), 0.0)
+    g["programme_score"] = np.where(area >= 10_000.0, exposure, 0.0)
+    g["safety_rank"] = _rank_positive(g["safety_score"].to_numpy())
+    g["containment_rank"] = _rank_positive(g["containment_score"].to_numpy())
+    g["programme_rank"] = _rank_positive(g["programme_score"].to_numpy())
     return g

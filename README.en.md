@@ -17,14 +17,14 @@
 
 # InvaRadar
 
-**The problem.** Since 1 March 2026, Russian federal law 294-ФЗ requires every holder of a land plot to find and destroy dangerous invasive plants, Sosnowsky's hogweed among them. Inaction is fined under art. 8.7 part 2 of the Code of Administrative Offences: 20–50 thousand roubles for a person, 400–700 thousand for a company. A stand has to be found before it can be removed. Flying a drone over the whole of Moscow is not an option: drone launches in the city have been restricted since May 2023.
+**The problem.** Since 1 March 2026, federal law 294-ФЗ requires land holders to control dangerous invasive plants. Regions set the lists. For Moscow that list is city government resolution 369-ПП of 3 March 2026: group I includes Sosnowsky's hogweed and the Canadian and giant goldenrods ([GARANT](https://base.garant.ru/413816164/)). The fine under art. 8.7 part 2 of the federal code is 20–50 thousand roubles for a person and 400–700 thousand for a company. Moscow also has art. 4.17 part 4 of the city code; those amounts still need the official text. Drone launches over the city have been restricted since May 2023.
 
-**What InvaRadar does.** It computes a 10 m likelihood map of Sosnowsky's hogweed and two invasive goldenrods from open satellite embeddings. It queues the likely stands by how close they are to children, roads and rivers. For every stand it writes a work order: the control method and the rule that allows that method in that place. A person signs the order. The map is not used to write a penalty notice.
+**What InvaRadar does.** From open satellite embeddings it computes a 10 m map of relative risk (a landscape percentile) for Sosnowsky's hogweed and two goldenrods. The top 2% of area, in patches of at least 400 m², goes into a queue for a visit. For each candidate it drafts a work order: which methods are allowed if the species is confirmed on site. A person signs the order.
 
 | Link | Question | InvaRadar |
 |---|---|---|
 | Satellite | where is it most likely to grow | a map of both species over 4,225 km² at 10 m |
-| Queue | where should the crew go first | likelihood × proximity to people × proximity to roads, rivers and power lines × stand size; a day route |
+| Queue | where should the crew go first | rank × proximity to people × proximity to roads, rivers and power lines × size; a straight-line order, not a road route |
 | Check | is it hogweed or wild angelica | a resident's photo → species classifier; a drone orthomosaic → stand outline |
 | **Work order** | **which method is lawful here** | **method and rule: Water Code art. 65, sanitary rules СанПиН 2.1.3684-21, heritage law 73-ФЗ** |
 | Follow-up | did it work | a revisit date in the order; the image after the work closes the loop in the 2027 season |
@@ -42,9 +42,9 @@ Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environm
 - **The drone module on 263 aerial photos** from the open Skoltech set: ROC AUC 0.948 with the capturing camera kept out of training. The dataset authors report 0.96 for their on-board network (Menshchikov et al., 2021).
 - **Rust inference matches LightGBM**: the largest difference is 8.9×10⁻¹⁶.
 
-![Sosnowsky's hogweed likelihood, 65 by 65 km window, 2025](outputs/figures/heracleum_city.png)
+![Sosnowsky's hogweed relative risk, 65 by 65 km window, 2025](outputs/figures/heracleum_city.png)
 
-<sub>Hogweed likelihood, 2025. The dark patches are the top percentiles of area, where a crew goes first.</sub>
+<sub>Landscape percentile, 2025. The dark patches are the top percentiles of area, where a visit goes first.</sub>
 
 ## Contents
 
@@ -97,16 +97,14 @@ The labels are residents' points with up to 50 m of coordinate error, often a pl
 
 Drone module, 263 aerial photos: at the scouting threshold (max F2, fit on the two other cameras) Dice is 0.71, hogweed is found on 216 of 251 frames, and individual stands 60% of the time. For area counts the max F1 threshold gives Dice 0.66. Per-camera numbers and the protocol are in the [experiment log](docs/EXPERIMENTS.md).
 
-![Aerial photo from the Moscow region: white outline is the botanists' mask, amber is InvaRadar](outputs/figures/drone_real.png)
-
-<sub>Open Skoltech set (Menshchikov et al., 2021). The camera that took this frame was not used in training.</sub>
+<sub>Frames from the Skoltech set are not in this repository: the set has no licence on GitHub. The numbers are in `outputs/drone/benchmark.json`.</sub>
 
 ## How it is built
 
 ```mermaid
 flowchart LR
   D["AlphaEarth 10 m<br/>iNaturalist, Overture,<br/>Copernicus DEM"] --> R["Rust core<br/>265 features, terrain"]
-  R --> M["LightGBM<br/>likelihood map"]
+  R --> M["LightGBM<br/>landscape percentile"]
   M --> H["Stands of 400 m² and up<br/>queue by people"]
   H --> W["Work order<br/>method and rule"]
   P["Resident's photo"] --> V["Species classifier"] --> W
@@ -115,9 +113,9 @@ flowchart LR
 ```
 
 1. **Features.** 64 dimensions of the AlphaEarth Foundations embedding at the 10 m cell and the means in windows of 50, 150 and 450 m. Log distance to major roads, minor roads, railways, water and power lines. Terrain: Priority-Flood depression filling, D8 flow, TWI and HAND. 265 features in all.
-2. **Model.** LightGBM, report against background. The background is 60,000 records of other vascular plants by the same observers in the same window.
+2. **Model.** LightGBM, a report against background. The background is 60,000 records of other vascular plants by any observer in the same window. That reduces the pull toward roads and parks. It does not remove it.
 3. **Test.** 5 × 5 km blocks and a forward-in-time split. Area of applicability after Meyer & Pebesma. A 250-point field sample over four likelihood strata.
-4. **Queue.** Connected patches of the top 2% of likelihood, 400 m² and up. Priority is likelihood × proximity to people × proximity to spread corridors × size. Route: nearest neighbour, then 2-opt.
+4. **Queue.** Connected patches of the top 2% of area, 400 m² and up. Three lists: near children area does not count, containment prefers a small isolated stand, stands of 1 ha and more are a separate programme. The order of the first points is a straight line, not a road route.
 5. **Work order.** The rules in `invaradar/management.py`, each with its own legal basis.
 
 Terrain stays on for hogweed and is off for goldenrod. The rule was set before the comparison: the share of new reports in the top 20% of area. Hogweed rose from 36.0% to 38.4%; goldenrod with terrain fell from 45.7% to 43.4%. Hogweed keeps to damp verges, abandoned fields and banks; on old fields goldenrod follows abandonment more than water.
@@ -137,8 +135,8 @@ Versions as of 30 October 2026: the Water Code as amended on 4 August 2026; sani
 | Grounds of a children's organisation: no pesticides | СанПиН 2.1.3684-21, item 273 | 105 |
 | School, kindergarten or playground within 100 m: no pesticides, first in the queue | a caution of this system; no statute sets this distance | 1,227 |
 | Protected areas and parks: mechanical methods | protected-area regimes, Mospriroda practice | 727 |
-| Heritage site within 50 m: no digging out of root collars | 73-ФЗ | 74 |
-| Ground treatment: notice 5 days ahead, signs, inside a settlement before 7:00 or after 22:00 in calm weather | СанПиН 2.1.3684-21, items 272–273 | every order |
+| Heritage site within 50 m: no digging | a caution of this system; art. 36 of 73-ФЗ requires clearance for earthworks, and the statute sets no 50 m distance | 74 |
+| Ground treatment: notice 5 days ahead and signs | СанПиН 2.1.3684-21, item 272 | every order |
 
 Hogweed totals: mechanical only 5,521 stands, ground spot treatment 10,367, drone spraying allowed 168, all outside settlements. Goldenrod: 7,406, 14,675 and 171.
 
@@ -148,7 +146,7 @@ Biology in the order: hogweed flowers once and dies, so umbels are cut before th
 
 | Observation | What InvaRadar does |
 |---|---|
-| Citizen records cluster along roads and in parks. Background drawn from other species recorded by the same people removes that bias (Phillips et al., 2009) | background of 60,000 records of other plants by the same observers |
+| Citizen records cluster along roads and in parks. Background from other plants in the same window reduces that bias. It does not remove it (Phillips et al., 2009) | background of 60,000 records of other plants by any observer |
 | A random split overstates a spatial model (Roberts et al., 2017) | 5 × 5 km blocks and a test on later years |
 | A map cannot be trusted where the features are far from training (Meyer & Pebesma, 2021) | a dissimilarity index; 3.7% of the area is outside the area of applicability for hogweed |
 | Map area and accuracy are estimated from a stratified random sample (Olofsson et al., 2014) | 250 points over four likelihood strata |

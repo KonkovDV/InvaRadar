@@ -1,4 +1,4 @@
-"""Hotspots → survey queue and the day route; shared by scripts/pipeline.py and scripts/requeue.py."""
+"""Hotspots → survey queue and a straight-line visiting order; shared by scripts/pipeline.py and scripts/requeue.py."""
 from __future__ import annotations
 
 import subprocess

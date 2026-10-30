@@ -99,9 +99,22 @@ class TorchSegmenter:
             return self.torch.sigmoid(self.m(t))[0, 0].cpu().numpy()
 
 
+def apply_height_gate(prob: np.ndarray, height: np.ndarray, height_range=(1.2, 4.5),
+                      phenophase: str = "rosette") -> np.ndarray:
+    """Keep the 1.2–4.5 m gate for flowering stems only. A spring rosette is shorter than 1 m."""
+    if phenophase != "flowering":
+        return prob
+    lo, hi = height_range
+    return prob * np.clip((height - lo + 0.5) / 0.5, 0, 1) * np.clip((hi + 1.0 - height) / 1.0, 0, 1)
+
+
 def segment_orthomosaic(path: str, segmenter, tile: int = 2048, overlap: int = 256, ndsm: str | None = None,
-                        height_range=(1.2, 4.5)) -> tuple[np.ndarray, rasterio.Affine, object]:
-    """Sliding-window inference with overlap blending; returns (probability, transform, crs)."""
+                        height_range=(1.2, 4.5), phenophase: str = "rosette") -> tuple[np.ndarray, rasterio.Affine, object]:
+    """Sliding-window inference with overlap blending; returns (score, transform, crs).
+
+    The 1.2–4.5 m height gate is for flowering stems. Spring rosettes are shorter than 1 m,
+    so the gate is off unless phenophase is \"flowering\".
+    """
     with rasterio.open(path) as ds:
         H, W = ds.height, ds.width
         prob = np.zeros((H, W), np.float32); wsum = np.zeros((H, W), np.float32)
@@ -116,11 +129,10 @@ def segment_orthomosaic(path: str, segmenter, tile: int = 2048, overlap: int = 2
                 prob[r0:r0 + h, c0:c0 + w] += p * ww; wsum[r0:r0 + h, c0:c0 + w] += ww
         prob /= np.maximum(wsum, 1e-6)
         transform, crs = ds.transform, ds.crs
-    if ndsm:
+    if ndsm and phenophase == "flowering":
         with rasterio.open(ndsm) as hs:
             z = hs.read(1, out_shape=(H, W), resampling=rasterio.enums.Resampling.bilinear)
-        lo, hi = height_range
-        prob *= np.clip((z - lo + 0.5) / 0.5, 0, 1) * np.clip((hi + 1.0 - z) / 1.0, 0, 1)
+        prob = apply_height_gate(prob, z, height_range, phenophase)
     return prob, transform, crs
 
 

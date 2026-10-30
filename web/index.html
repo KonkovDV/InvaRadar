@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ИнваРадар — карта очагов</title>
+<title>ИнваРадар — кандидаты на осмотр</title>
 <meta name="description" content="Приоритетные очаги борщевика Сосновского и золотарников в Москве с методом работ и правовым основанием. Модельная оценка ИнваРадара, 2025.">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -48,7 +48,7 @@
   <aside>
     <div class="kicker">Экологическая премия Москвы 2026</div>
     <h1>ИнваРадар</h1>
-    <p class="lead">Приоритетные очаги инвазивных растений Москвы и ближнего Подмосковья: для каждого — метод работ и правовое основание. Нажмите на точку.</p>
+    <p class="lead">Кандидаты на осмотр в Москве и ближнем Подмосковье: верхние 2% площади, для каждого — какой метод допустим, если вид подтвердят на месте. Нажмите на точку.</p>
     <div class="seg" role="group" aria-label="Вид">
       <button id="b-heracleum" aria-pressed="true">Борщевик</button>
       <button id="b-solidago" aria-pressed="false">Золотарник</button>
@@ -56,7 +56,7 @@
     <div class="kicker">Метод работ — фильтр</div>
     <div class="legend" id="legend"></div>
     <div class="note" id="note"></div>
-    <div class="note"><b>Как читать.</b> Показаны 3 000 очагов с наивысшим приоритетом: вероятность × близость людей × близость дорог, рек и ЛЭП × размер. Синяя линия — пример дневного маршрута бригады на юге Москвы. Карта — модельная оценка: она показывает, где обследование вероятнее всего найдёт куртину, и не является основанием для штрафа.</div>
+    <div class="note"><b>Как читать.</b> Показаны 3 000 точек с наивысшим рангом. Это кандидаты на осмотр, не подтверждённые очаги и не нарушение. Синяя линия — порядок обхода по прямой на юге Москвы, без дорожной сети. Зоны санитарной охраны водозаборов на карте не учтены. Текст метода на точках — расчёт 30 октября 2026 года: исходных слоёв в этом дереве нет, поэтому точки не пересчитывались.</div>
     <footer>
       Данные: AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist; Overture Maps, © участники OpenStreetMap; Copernicus DEM © DLR, Airbus. Результаты — CC BY 4.0, код — Apache-2.0.
       <a href="https://github.com/KonkovDV/InvaRadar">Код</a>.
@@ -97,7 +97,11 @@ function legend() {
   document.querySelectorAll("#legend input").forEach((el) => el.addEventListener("change", (e) => {
     e.target.checked ? hidden.delete(e.target.dataset.k) : hidden.add(e.target.dataset.k); filter();
   }));
-  document.getElementById("note").innerHTML = `<b>${SP[species]}:</b> ${fmt(s.hotspots ?? 0)} очагов от 400 м², из них ${fmt(s.near_children_100m ?? 0)} — ближе 100 м к школам, садам и площадкам. Числа в легенде — по всем очагам.`;
+  const note = document.getElementById("note");
+  note.replaceChildren();
+  const name = document.createElement("b");
+  name.textContent = SP[species] + ": ";
+  note.append(name, `${fmt(s.hotspots ?? 0)} кандидатов от 400 м², из них ${fmt(s.near_children_100m ?? 0)} — ближе 100 м к школам, садам и площадкам. Числа в легенде — по всем кандидатам. Это не подтверждённые очаги.`);
 }
 function filter() {
   const show = Object.keys(CLS).filter((k) => !hidden.has(k));
@@ -126,15 +130,39 @@ map.on("load", async () => {
       "circle-stroke-color": "#fff", "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 8, 0.3, 12, 1], "circle-opacity": 0.9 } });
     map.on("click", `h-${sp}`, (e) => {
       const p = e.features[0].properties, c = CLS[p.cls];
-      new maplibregl.Popup({ maxWidth: "340px" }).setLngLat(e.features[0].geometry.coordinates).setHTML(`
-        <div class="pp"><h3>${SP[sp]}: очаг № ${fmt(p.rank)} в очереди</h3>
-        <span class="tag" style="background:${c.color}">${c.name}</span>
-        <dl><dt>Приоритет</dt><dd>${String(p.priority).replace(".", ",")} из 100</dd>
-        <dt>Площадь</dt><dd>${fmt(p.area_m2)} м²</dd>
-        <dt>До детей</dt><dd>${fmt(p.d_child_m)} м</dd>
-        <dt>Водоохранная зона</dt><dd>${p.water_zone_m > 0 ? p.water_zone_m + " м" : "нет"}</dd>
-        <dt>Модель применима</dt><dd>${p.inside_aoa === true || p.inside_aoa === "true" ? "да" : "нет — нужна проверка"}</dd></dl>
-        <div class="m"><b>Метод:</b> ${p.method}</div><div class="b"><b>Основание:</b> ${p.basis}</div></div>`).addTo(map);
+      const root = document.createElement("div");
+      root.className = "pp";
+      const h = document.createElement("h3");
+      h.textContent = `${SP[sp]}: кандидат № ${fmt(p.rank)}`;
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.style.background = c.color;
+      tag.textContent = c.name;
+      const warn = document.createElement("p");
+      warn.textContent = "Кандидат на осмотр, не нарушение и не подтверждённый очаг.";
+      const rows = [
+        ["Ранг", `${String(p.priority).replace(".", ",")} из 100`],
+        ["Площадь", `${fmt(p.area_m2)} м²`],
+        ["До детей", `${fmt(p.d_child_m)} м`],
+        ["Водоохранная зона", p.water_zone_m > 0 ? `${p.water_zone_m} м` : "нет"],
+        ["Модель применима", p.inside_aoa === true || p.inside_aoa === "true" ? "да" : "нет — нужна проверка"],
+      ];
+      const dl = document.createElement("dl");
+      for (const [k, v] of rows) {
+        const dt = document.createElement("dt");
+        dt.textContent = k;
+        const dd = document.createElement("dd");
+        dd.textContent = v;
+        dl.append(dt, dd);
+      }
+      const method = document.createElement("div");
+      method.className = "m";
+      method.textContent = `Метод, если вид подтвердят: ${p.method}`;
+      const basis = document.createElement("div");
+      basis.className = "b";
+      basis.textContent = `Основание: ${p.basis}`;
+      root.append(h, tag, warn, dl, method, basis);
+      new maplibregl.Popup({ maxWidth: "340px" }).setLngLat(e.features[0].geometry.coordinates).setDOMContent(root).addTo(map);
     });
     map.on("mouseenter", `h-${sp}`, () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", `h-${sp}`, () => (map.getCanvas().style.cursor = ""));

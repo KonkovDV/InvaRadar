@@ -114,7 +114,7 @@ flowchart LR
 
 1. **Features.** 64 dimensions of the AlphaEarth Foundations embedding at the 10 m cell and the means in windows of 50, 150 and 450 m. Log distance to major roads, minor roads, railways, water and power lines. Terrain: Priority-Flood depression filling, D8 flow, TWI and HAND. 265 features in all.
 2. **Model.** LightGBM, a report against background. The background is 60,000 records of other vascular plants by any observer in the same window. That reduces the pull toward roads and parks. It does not remove it.
-3. **Test.** 5 × 5 km blocks and a forward-in-time split. Area of applicability after Meyer & Pebesma. A 250-point field sample over four likelihood strata.
+3. **Test.** 5 × 5 km blocks and a check on finds from later years. Area of applicability after Meyer & Pebesma. A 250-point field sample over four rank strata. The walk has not been done.
 4. **Queue.** Connected patches of the top 2% of area, 400 m² and up. Three lists: near children area does not count, containment prefers a small isolated stand, stands of 1 ha and more are a separate programme. The order of the first points is a straight line, not a road route.
 5. **Work order.** The rules in `invaradar/management.py`, each with its own legal basis.
 
@@ -149,7 +149,7 @@ Biology in the order: hogweed flowers once and dies, so umbels are cut before th
 | Citizen records cluster along roads and in parks. Background from other plants in the same window reduces that bias. It does not remove it (Phillips et al., 2009) | background of 60,000 records of other plants by any observer |
 | A random split overstates a spatial model (Roberts et al., 2017) | 5 × 5 km blocks and a test on later years |
 | A map cannot be trusted where the features are far from training (Meyer & Pebesma, 2021) | a dissimilarity index; 3.7% of the area is outside the area of applicability for hogweed |
-| Map area and accuracy are estimated from a stratified random sample (Olofsson et al., 2014) | 250 points over four likelihood strata |
+| Map area and accuracy are estimated from a stratified random sample (Olofsson et al., 2014) | 250 points over four rank strata; the field walk has not been done |
 | Without filling depressions, flow stops in every pit (Barnes et al., 2014); HAND measures height above the stream along the flow path (Rennó et al., 2008) | Priority-Flood, D8, TWI and HAND in the Rust core |
 | Open annual 10 m embeddings describe every pixel without labelling imagery (AlphaEarth Foundations, 2025) | 64 dimensions of the pixel and means in three windows |
 | A frozen DINOv2 transfers to a new task with a linear probe (Oquab et al., 2024) | drone module: a probe on the 14 × 14 patch and its 3 × 3 neighbourhood, weights under Apache-2.0 |

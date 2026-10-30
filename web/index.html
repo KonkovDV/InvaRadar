@@ -59,7 +59,7 @@
     <div class="note"><b>Как читать.</b> Показаны 3 000 очагов с наивысшим приоритетом: вероятность × близость людей × близость дорог, рек и ЛЭП × размер. Синяя линия — пример дневного маршрута бригады на юге Москвы. Карта — модельная оценка: она показывает, где обследование вероятнее всего найдёт куртину, и не является основанием для штрафа.</div>
     <footer>
       Данные: AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist; Overture Maps, © участники OpenStreetMap; Copernicus DEM © DLR, Airbus. Результаты — CC BY 4.0, код — Apache-2.0.
-      <a href="https://github.com/KonkovDV/InvaRadar">Код и границы применимости</a>.
+      <a href="https://github.com/KonkovDV/InvaRadar">Код</a>.
     </footer>
   </aside>
   <div id="map" role="region" aria-label="Карта очагов"></div>
@@ -85,7 +85,7 @@ const map = new maplibregl.Map({
                paint: { "raster-saturation": -1, "raster-opacity": 0.55, "raster-contrast": -0.15 } }] },
   center: [37.62, 55.75], zoom: 9.3, maxZoom: 17, minZoom: 8, attributionControl: { compact: true },
 });
-window.invaradarMap = map;  // for embedding and the demo recording
+window.invaradarMap = map;
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
 

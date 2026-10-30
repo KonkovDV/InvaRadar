@@ -126,6 +126,7 @@ ax.set_xlim(b.left, b.right); ax.set_ylim(b.bottom, b.top); clean(ax)
 scale_bar(ax, b.left + 2, b.bottom + 2, 10, "10 м", color="#F4F6F1")
 fig.savefig(fig_dir / "drone_demo.png", bbox_inches="tight", pad_inches=0, facecolor=PAPER)
 plt.close(fig)
-json.dump({"stands_found": int(len(polys)), "area_m2": round(float(polys.area_m2.sum()), 1), **stats},
+json.dump({"note": "эскиз на ортофотоплане из tests/test_drone.py, не аэрофото Сколтеха",
+           "stands_found": int(len(polys)), "area_m2": round(float(polys.area_m2.sum()), 1), **stats},
           open(fig_dir / "drone_demo.json", "w"), ensure_ascii=False, indent=1)
 print("drone demo", stats)

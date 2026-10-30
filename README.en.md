@@ -6,11 +6,9 @@
 
 Repository: [KonkovDV/InvaRadar](https://github.com/KonkovDV/InvaRadar). Map: [konkovdv.github.io/InvaRadar](https://konkovdv.github.io/InvaRadar/). [По-русски](README.md).
 
-If this page disagrees with [docs/LIMITS.md](docs/LIMITS.md) or with the JSON in `outputs/`, those win. Each headline number is sourced in [docs/CLAIMS.md](docs/CLAIMS.md).
-
 InvaRadar finds giant hogweed (*Heracleum sosnowskyi*) and invasive goldenrods (*Solidago canadensis*, *S. gigantea*) from satellite data and turns the map into a work order: where the stand is, which control method the law allows there, and in which order a crew should visit. A repeat image checks the result and becomes the next season's label.
 
-Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environmental solutions". Repository author: Konkov D. V. ([@KonkovDV](https://github.com/KonkovDV)). Names, phone and the video URL for the submission title page live in `presentation/team.json` and are not invented here.
+Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environmental solutions". Konkov D. V. ([@KonkovDV](https://github.com/KonkovDV)).
 
 ## Results for Moscow (4,225 km², 10 m, 42.25 M pixels)
 
@@ -22,9 +20,9 @@ Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environm
 | Hotspots / within 300 m of schools, kindergartens and playgrounds | 16,056 / 4,309 | 22,252 / 6,995 |
 | Drone spraying allowed / ground spot treatment / mechanical only | 168 / 10,367 / 5,521 | 171 / 14,675 / 7,406 |
 
-Citizen-photo verifier against look-alikes: hogweed precision 86.7 % at 86.5 % recall, goldenrod 88.7 % / 88.7 %. At confidence ≥ 0.9 the model closes 68.2 % of reports on its own, and 93.8 % of those answers are correct (accuracy on the auto-handled slice, not class precision).
+Citizen photos against look-alikes: hogweed precision 86.7 % at 86.5 % recall, goldenrod 88.7 % and 88.7 %. At confidence 0.9 and above the model closes 68 % of reports itself, and 93.8 % of those calls name the right species.
 
-UAV module on 263 real aerial photos from the Moscow region (open Skoltech dataset, three cameras, the test camera never seen in training): ROC AUC 0.948. At the scouting threshold (max F2, chosen on the other cameras only) Dice is 0.71 and hogweed is found in 216 of 251 images. At the balanced max-F1 threshold Dice is 0.66 (`make drone`, see `docs/EXPERIMENTS.md`).
+UAV module on 263 aerial photos from the Moscow region (open Skoltech set, three cameras, the test camera kept out of training): ROC AUC 0.948. At the scouting threshold, max F2 taken from the other cameras, Dice is 0.71 and hogweed shows up on 216 of 251 frames (`make drone`, `docs/EXPERIMENTS.md`).
 
 ## Method
 

@@ -57,8 +57,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python }}
-      # Ubuntu 24.04 marks /usr/bin/python3 as externally managed (PEP 668).
-      # setup-uv already created .venv; install and run inside it.
+      # The image Python refuses system pip. setup-uv already made .venv.
       - run: uv pip install -e ".[dev]"
       - run: uv run ruff check .
       - run: uv run pytest

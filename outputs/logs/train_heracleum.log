@@ -1,6 +1,0 @@
-[    20s] samples {0: 60000, 1: 1574}
-[    24s] features (61574, 128) landscape (40000, 128)
-[    61s] logreg {"n_pos": 1574, "n_bg": 60000, "roc_auc_vs_background": 0.67309971939856, "pr_auc_vs_background": 0.0512811813706273, "boyce": 0.989168074926922, "capture@1%area": 0.013341804320203304, "capture@5%area": 0.09212198221092757, "capture@10%area": 0.1963151207115629, "capture@20%area": 0.3811944091486658}
-[   155s] lgbm {"n_pos": 1574, "n_bg": 60000, "roc_auc_vs_background": 0.6746831956797967, "pr_auc_vs_background": 0.05631964626533206, "boyce": 0.9978066701050292, "capture@1%area": 0.04193138500635324, "capture@5%area": 0.1645489199491741, "capture@10%area": 0.27064803049555275, "capture@20%area": 0.4263024142312579}
-[   182s] temporal {"train": "reports <= 2024", "test": "new reports 2025-2026 (>100 m from any earlier report)", "n_new_presence": 383, "n_background": 17784, "roc_auc_vs_background": 0.6830144208012835, "capture@1%area": 0.031331592689295036, "capture@5%area": 0.12532637075718014, "capture@10%area": 0.2454308093994778, "capture@20%area": 0.4412532637075718}
-[   320s] saved /home/user/invaradar/outputs/heracleum

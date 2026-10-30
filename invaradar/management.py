@@ -102,9 +102,7 @@ def watercourse_lengths(lines: gpd.GeoDataFrame) -> np.ndarray:
     def longest(e: int, seen: set) -> float:
         if up[e] >= 0:
             return up[e]
-        # `seen` is the path from the current segment back to the source. It must be popped:
-        # a source shared by two branches would otherwise stay marked and the second branch
-        # would lose that upstream length, so a short spur can be chosen as the main stem.
+        # Pop the path on the way back: a source shared by two branches must stay visible to both.
         seen.add(e)
         try:
             prev = [longest(f, seen) for f in into.get(heads[e], []) if f not in seen]

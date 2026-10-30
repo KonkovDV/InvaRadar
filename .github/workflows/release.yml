@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release
+        working-directory: core-rs
+        env:
+          RUSTFLAGS: "-C target-cpu=x86-64-v3"
+      - run: cp core-rs/target/release/invaradar_core invaradar_core-linux-x86_64-v3
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: invaradar_core-linux-x86_64-v3
+          generate_release_notes: true

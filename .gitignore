@@ -1,0 +1,36 @@
+# data and caches (downloaded by the scripts, several GB)
+/data/
+/cache/
+/outputs/**/tmp/
+/outputs/variants/**/likelihood_*.tif
+/outputs/variants/**/hotspots_*.geojson
+/outputs/**/hotspots_*.geojson
+/outputs/**/likelihood_*.tif
+/outputs/**/hotspots_*.parquet
+/outputs/photo/emb_*.npy
+/dist/
+*.pt
+*.onnx
+/outputs/test_ortho.tif
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Rust
+/core-rs/target/
+
+# Node (deck build)
+node_modules/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# local submission bundles, internal audits, videos — not part of the public tree
+/_local_do_not_commit/

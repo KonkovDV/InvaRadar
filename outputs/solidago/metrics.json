@@ -1,0 +1,49 @@
+{
+  "taxon": "solidago",
+  "embedding_year": 2025,
+  "features": 265,
+  "terrain": false,
+  "samples": {
+    "presence": 1560,
+    "background": 60000
+  },
+  "spatial_cv": {
+    "roc_auc_vs_background": 0.689665844017094,
+    "capture@1%area": 0.07115384615384615,
+    "capture@5%area": 0.20961538461538462,
+    "capture@10%area": 0.325,
+    "capture@20%area": 0.49615384615384617
+  },
+  "temporal_test": {
+    "n_new_presence": 346,
+    "roc_auc_vs_background": 0.6717057046858143,
+    "capture@1%area": 0.03757225433526012,
+    "capture@5%area": 0.16184971098265896,
+    "capture@10%area": 0.2774566473988439,
+    "capture@20%area": 0.45664739884393063
+  },
+  "rust_parity_max_abs_diff": 8.881784197001252e-16,
+  "terrain_importance": {
+    "elevation": 0.0,
+    "slope": 0.0,
+    "twi": 0.0,
+    "hand": 0.0
+  },
+  "importance_share": {
+    "pixel": 0.194,
+    "50m": 0.223,
+    "150m": 0.274,
+    "450m": 0.27,
+    "corridors": 0.04,
+    "terrain": 0.0
+  },
+  "hotspots": {
+    "count": 22252,
+    "area_ha": 9183.4,
+    "within_100m_of_child_facility": 2025,
+    "within_300m_of_child_facility": 6995,
+    "within_300m_of_sensitive_place": 8421,
+    "route_top": 25,
+    "route_km": 211.4
+  }
+}

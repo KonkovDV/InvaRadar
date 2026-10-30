@@ -1,0 +1,88 @@
+{
+  "backbone": "yolo11s-cls.pt",
+  "n_images": 13000,
+  "classes": [
+    "heracleum",
+    "solidago",
+    "umbel_lookalike",
+    "yellow_lookalike"
+  ],
+  "confusion_matrix": [
+    [
+      3028,
+      93,
+      292,
+      87
+    ],
+    [
+      54,
+      3104,
+      173,
+      169
+    ],
+    [
+      325,
+      148,
+      2682,
+      345
+    ],
+    [
+      84,
+      153,
+      293,
+      1970
+    ]
+  ],
+  "report": {
+    "heracleum": {
+      "precision": 0.8673732454883988,
+      "recall": 0.8651428571428571,
+      "f1-score": 0.8662566156486912,
+      "support": 3500.0
+    },
+    "solidago": {
+      "precision": 0.8873642081189251,
+      "recall": 0.8868571428571429,
+      "f1-score": 0.887110603029437,
+      "support": 3500.0
+    },
+    "umbel_lookalike": {
+      "precision": 0.7796511627906977,
+      "recall": 0.7662857142857142,
+      "f1-score": 0.7729106628242075,
+      "support": 3500.0
+    },
+    "yellow_lookalike": {
+      "precision": 0.7662388175807079,
+      "recall": 0.788,
+      "f1-score": 0.7769670676395188,
+      "support": 2500.0
+    },
+    "accuracy": 0.8295384615384616,
+    "macro avg": {
+      "precision": 0.8251568584946823,
+      "recall": 0.8265714285714285,
+      "f1-score": 0.8258112372854636,
+      "support": 13000.0
+    },
+    "weighted avg": {
+      "precision": 0.829689015488065,
+      "recall": 0.8295384615384616,
+      "f1-score": 0.8295684811043825,
+      "support": 13000.0
+    },
+    "heracleum_binary": {
+      "precision": 0.8673732454883988,
+      "recall": 0.8651428571428571
+    },
+    "solidago_binary": {
+      "precision": 0.8873642081189251,
+      "recall": 0.8868571428571429
+    },
+    "auto_triage": {
+      "share_auto": 0.682,
+      "accuracy_on_auto": 0.9380780509812768
+    }
+  },
+  "split": "5-fold GroupKFold by observer_id (observer-disjoint)"
+}

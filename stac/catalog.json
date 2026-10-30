@@ -1,0 +1,19 @@
+{
+ "type": "Catalog",
+ "stac_version": "1.1.0",
+ "id": "invaradar",
+ "title": "InvaRadar release assets",
+ "description": "Cloud-optimised outputs of InvaRadar v1.2.0. Hrefs are relative: keep the JSON files next to the data files.",
+ "links": [
+  {
+   "rel": "root",
+   "href": "./catalog.json",
+   "type": "application/json"
+  },
+  {
+   "rel": "child",
+   "href": "./collection.json",
+   "type": "application/json"
+  }
+ ]
+}

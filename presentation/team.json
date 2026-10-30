@@ -1,0 +1,22 @@
+{
+  "_comment": "Перед подачей впишите ФИО (2–5 человек), телефон, e-mail и публичную ссылку на видео, затем пересоберите: node build_submission.js assets InvaRadar_Ecopremia2026_podacha.pptx. Поля в квадратных скобках выводятся в презентации янтарным как незаполненные. Видео: RuTube, VK Видео, YouTube или Google Drive с доступом по ссылке.",
+  "members": [
+    {
+      "name": "[Фамилия Имя Отчество]",
+      "role": "руководитель проекта, ML и ДЗЗ"
+    },
+    {
+      "name": "[Фамилия Имя Отчество]",
+      "role": "геоинформатика и Rust-ядро"
+    },
+    {
+      "name": "[Фамилия Имя Отчество]",
+      "role": "экология, право и партнёрства"
+    }
+  ],
+  "phone": "[+7 (___) ___-__-__]",
+  "email": "[e-mail]",
+  "repo": "https://github.com/KonkovDV/InvaRadar",
+  "map": "https://konkovdv.github.io/InvaRadar/",
+  "video": "[ссылка на видео]"
+}

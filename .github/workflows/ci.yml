@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust core
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: core-rs
+    env:
+      # the binary is reused by the Python jobs on other runners: no target-cpu=native from .cargo/config.toml
+      RUSTFLAGS: "-C target-cpu=x86-64-v3"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core-rs
+      - run: cargo fmt --check
+      - run: cargo clippy --release --all-targets -- -D warnings
+      - run: cargo test --release
+      - run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: invaradar_core-linux-x86_64
+          path: core-rs/target/release/invaradar_core
+
+  python:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    needs: rust
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: invaradar_core-linux-x86_64
+          path: core-rs/target/release
+      - run: chmod +x core-rs/target/release/invaradar_core
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv pip install --system -e ".[dev]"
+      - run: ruff check .
+      - run: pytest

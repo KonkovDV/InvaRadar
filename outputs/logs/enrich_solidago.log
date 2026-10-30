@@ -1,0 +1,11 @@
+[core] mosaic 6500x6500 in 2.3s
+[core] multiscale context in 7.0s
+[core] corridor distances in 15.6s
+[core] terrain in 15.6s
+[core] 422500 point features (265 each) in 4.83s
+[core] points done in 20.7s
+AOA {'threshold_DI': 0.531, 'share_area_inside_AOA': 0.957, 'method': 'Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, d̄ = mean pairwise distance, threshold = upper whisker of spatial-CV DI'}
+prescriptions {'hotspots': 22252, 'in_water_zone_no_aerial': 5048, 'water_zone_by_width_m': {'50': 2498, '100': 1240, '200': 1310}, 'in_protected_no_chemicals': 1639, 'near_children_no_pesticides': 2025, 'near_heritage_no_digging': 123, 'aerial_blocked_by_settlement_2km': 14845, 'drone_spraying_allowed': 1, 'ground_spot_treatment': 18909, 'mechanical_only': 3342, 'share_hotspots_inside_aoa': 0.989}
+[core] strata px [33637825, 6399242, 1234556, 978377]
+[core] strata done in 0.2s
+validation {'strata_percentile_bounds': [0, 0.8, 0.95, 0.98, 1.0], 'n_per_stratum': [50, 50, 60, 90], 'area_km2': [3363.8, 639.9, 123.5, 97.8], 'weights': [0.7962, 0.1515, 0.0292, 0.0232], 'estimator': 'stratified proportion p = sum W_h p_h, SE = sqrt(sum W_h^2 p_h (1-p_h)/(n_h-1))'}

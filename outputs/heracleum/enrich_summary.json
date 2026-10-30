@@ -1,0 +1,55 @@
+{
+ "aoa": {
+  "threshold_DI": 0.537,
+  "share_area_inside_AOA": 0.963,
+  "method": "Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, d̄ = mean pairwise distance, threshold = upper whisker of spatial-CV DI"
+ },
+ "prescriptions": {
+  "hotspots": 16056,
+  "in_water_zone_no_pesticides": 4456,
+  "water_zone_by_width_m": {
+   "50": 2675,
+   "100": 965,
+   "200": 816
+  },
+  "in_protected_mechanical": 727,
+  "child_org_territory": 105,
+  "near_children_100m": 1227,
+  "near_heritage_no_digging": 74,
+  "in_settlement": 10206,
+  "aerial_blocked_uav_700m": 10367,
+  "drone_spraying_allowed": 168,
+  "ground_spot_treatment": 10367,
+  "mechanical_only": 5521,
+  "share_hotspots_inside_aoa": 0.973,
+  "near_children_300m": 4309
+ },
+ "validation_design": {
+  "strata_percentile_bounds": [
+   0,
+   0.8,
+   0.95,
+   0.98,
+   1.0
+  ],
+  "n_per_stratum": [
+   50,
+   50,
+   60,
+   90
+  ],
+  "area_km2": [
+   3369.3,
+   644.2,
+   116.6,
+   94.9
+  ],
+  "weights": [
+   0.7975,
+   0.1525,
+   0.0276,
+   0.0225
+  ],
+  "estimator": "stratified proportion p = sum W_h p_h, SE = sqrt(sum W_h^2 p_h (1-p_h)/(n_h-1))"
+ }
+}

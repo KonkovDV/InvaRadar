@@ -1,0 +1,26 @@
+[core] mosaic 6500x6500 in 14.3s
+[core] multiscale context in 22.7s
+[core] corridor distances in 30.1s
+[core] terrain in 30.1s
+[core] 101560 point features (265 each) in 0.61s
+[core] points done in 30.9s
+[  49.6s] samples 1560 presence / 60000 background; features 265
+[ 112.9s] spatial CV {"roc_auc_vs_background": 0.689665844017094, "capture@1%area": 0.07115384615384615, "capture@5%area": 0.20961538461538462, "capture@10%area": 0.325, "capture@20%area": 0.49615384615384617}
+[ 116.4s] temporal {"n_new_presence": 346, "roc_auc_vs_background": 0.6717057046858143, "capture@1%area": 0.03757225433526012, "capture@5%area": 0.16184971098265896, "capture@10%area": 0.2774566473988439, "capture@20%area": 0.45664739884393063}
+[core] mosaic 6500x6500 in 5.4s
+[core] multiscale context in 7.0s
+[core] corridor distances in 12.9s
+[core] terrain in 12.9s
+[core] score done in 13.2s
+[ 133.9s] Rust vs LightGBM max |diff| 8.881784197001252e-16
+[core] mosaic 6500x6500 in 2.2s
+[core] multiscale context in 3.7s
+[core] corridor distances in 8.5s
+[core] terrain in 8.5s
+[core] predicted 42250000 px with 300 trees in 152.9s
+[core] predict done in 161.7s
+[ 296.3s] map written
+[core] 22252 hotspots (>= 4 px, rank >= 0.98)
+[core] hotspots done in 1.3s
+[core] route done in 0.0s
+[ 327.3s] done {"count": 22252, "area_ha": 9183.4, "within_300m_of_child_facility": 1951, "within_300m_of_sensitive_place": 4359, "route_top": 25, "route_km": 223.5}

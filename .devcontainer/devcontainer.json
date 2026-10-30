@@ -1,0 +1,12 @@
+{
+  "name": "InvaRadar",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "postCreateCommand": "pip install -e '.[dev]' && cd core-rs && cargo build --release",
+  "customizations": {
+    "vscode": { "extensions": ["rust-lang.rust-analyzer", "charliermarsh.ruff", "ms-python.python"] }
+  }
+}

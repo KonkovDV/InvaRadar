@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+title: "InvaRadar: early detection of invasive plants from satellite embeddings, drones and citizen photos"
+message: "If you use this software or its maps, please cite it as below."
+type: software
+authors:
+  - family-names: Konkov
+    given-names: Dmitrij V.
+    alias: KonkovDV
+version: 1.2.0
+date-released: 2026-10-30
+license: Apache-2.0
+keywords:
+  - invasive species
+  - Heracleum sosnowskyi
+  - Solidago
+  - remote sensing
+  - AlphaEarth Foundations
+  - species distribution model
+  - Rust
+abstract: >-
+  InvaRadar maps Heracleum sosnowskyi and Solidago spp. at 10 m over a 4,225 km² window
+  covering Moscow and the inner belt of Moscow Oblast from AlphaEarth Foundations
+  satellite embeddings, landscape context, spread corridors and terrain (Priority-Flood, D8, TWI, HAND), validated
+  with 5 km spatial blocks and a forward-in-time test. Hotspots are ranked by risk to people and receive treatment
+  prescriptions that follow the Water Code of the Russian Federation and sanitary rules. A Rust core computes
+  features, wall-to-wall inference, hotspots, routes and stratified validation samples.
+references:
+  - type: article
+    title: "Predicting into unknown space? Estimating the area of applicability of spatial prediction models"
+    authors: [{family-names: Meyer, given-names: Hanna}, {family-names: Pebesma, given-names: Edzer}]
+    journal: "Methods in Ecology and Evolution"
+    year: 2021
+  - type: article
+    title: "Priority-flood: An optimal depression-filling and watershed-labeling algorithm for digital elevation models"
+    authors: [{family-names: Barnes, given-names: Richard}, {family-names: Lehman, given-names: Clarence}, {family-names: Mulla, given-names: David}]
+    journal: "Computers & Geosciences"
+    year: 2014

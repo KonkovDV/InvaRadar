@@ -1,0 +1,49 @@
+{
+  "taxon": "heracleum",
+  "embedding_year": 2025,
+  "features": 265,
+  "terrain": true,
+  "samples": {
+    "presence": 1574,
+    "background": 60000
+  },
+  "spatial_cv": {
+    "roc_auc_vs_background": 0.6855224375264719,
+    "capture@1%area": 0.02477763659466328,
+    "capture@5%area": 0.12770012706480305,
+    "capture@10%area": 0.2503176620076239,
+    "capture@20%area": 0.4161372299872935
+  },
+  "temporal_test": {
+    "n_new_presence": 383,
+    "roc_auc_vs_background": 0.6814718308122183,
+    "capture@1%area": 0.018276762402088774,
+    "capture@5%area": 0.09138381201044386,
+    "capture@10%area": 0.185378590078329,
+    "capture@20%area": 0.3838120104438642
+  },
+  "rust_parity_max_abs_diff": 8.881784197001252e-16,
+  "terrain_importance": {
+    "elevation": 0.0132,
+    "slope": 0.0036,
+    "twi": 0.0092,
+    "hand": 0.0077
+  },
+  "importance_share": {
+    "pixel": 0.157,
+    "50m": 0.268,
+    "150m": 0.227,
+    "450m": 0.267,
+    "corridors": 0.047,
+    "terrain": 0.034
+  },
+  "hotspots": {
+    "count": 16056,
+    "area_ha": 9018.8,
+    "within_100m_of_child_facility": 1227,
+    "within_300m_of_child_facility": 4309,
+    "within_300m_of_sensitive_place": 5299,
+    "route_top": 25,
+    "route_km": 203.0
+  }
+}

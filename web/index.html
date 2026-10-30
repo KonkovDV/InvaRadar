@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ИнваРадар — карта очагов</title>
+<meta name="description" content="Приоритетные очаги борщевика Сосновского и золотарников в Москве с методом работ и правовым основанием. Модельная оценка ИнваРадара, 2025.">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  :root { --paper:#F4F6F1; --ink:#14231D; --forest:#0F2A22; --moss:#2F6B55; --muted:#5B6B63; --line:#DCE3DD;
+          --amber:#E0A030; --rust:#B4532A; --gold:#B8941C; --water:#2F6F95; --tint:#E8EEE9; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink);
+               font: 14px/1.45 Arial, "Helvetica Neue", sans-serif; }
+  #app { display: flex; height: 100%; }
+  aside { width: 360px; flex: none; overflow-y: auto; padding: 20px 20px 16px; border-right: 1px solid var(--line); background: var(--paper); }
+  #map { flex: 1; min-width: 0; }
+  .kicker { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--moss); }
+  h1 { font-size: 26px; margin: 6px 0 4px; color: var(--forest); }
+  p.lead { margin: 0 0 14px; color: var(--muted); }
+  .seg { display: flex; gap: 6px; margin: 8px 0 14px; }
+  .seg button { flex: 1; padding: 8px 6px; border: 1px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer;
+                font: inherit; color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--moss); border-color: var(--moss); color: #fff; font-weight: 700; }
+  .legend label { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+  .legend .n { margin-left: auto; font-weight: 700; color: var(--forest); font-variant-numeric: tabular-nums; }
+  .note { margin-top: 14px; padding: 10px 12px; background: var(--tint); border-radius: 8px; font-size: 12.5px; color: var(--ink); }
+  .note b { color: var(--forest); }
+  footer { margin-top: 14px; font-size: 11.5px; color: var(--muted); }
+  footer a { color: var(--moss); }
+  .maplibregl-popup-content { font: 13px/1.4 Arial, sans-serif; padding: 12px 14px; max-width: 320px; }
+  .pp h3 { margin: 0 0 4px; font-size: 14px; color: var(--forest); }
+  .pp .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; color: #fff; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+  .pp dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 6px 0; }
+  .pp dt { color: var(--muted); } .pp dd { margin: 0; }
+  .pp .m { margin-top: 6px; } .pp .b { margin-top: 6px; color: var(--muted); font-size: 12px; }
+  @media (max-width: 760px) {
+    #app { flex-direction: column-reverse; }
+    aside { width: 100%; height: 46%; border-right: 0; border-top: 1px solid var(--line); padding: 14px 16px; }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="kicker">Экологическая премия Москвы 2026</div>
+    <h1>ИнваРадар</h1>
+    <p class="lead">Приоритетные очаги инвазивных растений Москвы и ближнего Подмосковья: для каждого — метод работ и правовое основание. Нажмите на точку.</p>
+    <div class="seg" role="group" aria-label="Вид">
+      <button id="b-heracleum" aria-pressed="true">Борщевик</button>
+      <button id="b-solidago" aria-pressed="false">Золотарник</button>
+    </div>
+    <div class="kicker">Метод работ — фильтр</div>
+    <div class="legend" id="legend"></div>
+    <div class="note" id="note"></div>
+    <div class="note"><b>Как читать.</b> Показаны 3 000 очагов с наивысшим приоритетом: вероятность × близость людей × близость дорог, рек и ЛЭП × размер. Синяя линия — пример дневного маршрута бригады на юге Москвы. Карта — модельная оценка: она показывает, где обследование вероятнее всего найдёт куртину, и не является основанием для штрафа.</div>
+    <footer>
+      Данные: AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist; Overture Maps, © участники OpenStreetMap; Copernicus DEM © DLR, Airbus. Результаты — CC BY 4.0, код — Apache-2.0.
+      <a href="https://github.com/KonkovDV/InvaRadar">Код и границы применимости</a>.
+    </footer>
+  </aside>
+  <div id="map" role="region" aria-label="Карта очагов"></div>
+</div>
+<script>
+const CLS = {
+  mechanical: { name: "Только механика", color: "#B4532A", hint: "водоохранные зоны, ООПТ и парки, дети рядом" },
+  ground: { name: "Наземная точечная обработка", color: "#E0A030", hint: "населённый пункт: только наземная аппаратура" },
+  drone: { name: "Опрыскивание с дрона допустимо", color: "#2F6F95", hint: "вне населённых пунктов, дальше 700 м от жилья, вод и ООПТ" },
+};
+const SP = { heracleum: "Борщевик Сосновского", solidago: "Золотарник" };
+const fmt = (n) => Number(n).toLocaleString("ru-RU");
+let species = "heracleum", hidden = new Set(), summary = {};
+
+const map = new maplibregl.Map({
+  container: "map",
+  // OpenStreetMap standard tiles, no key; greyscale so the data stays in front (tile usage policy: light use, attribution)
+  style: { version: 8, sources: { osm: { type: "raster", tileSize: 256, maxzoom: 19,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">участники OpenStreetMap</a>' } },
+    layers: [{ id: "bg", type: "background", paint: { "background-color": "#F4F6F1" } },
+             { id: "osm", type: "raster", source: "osm",
+               paint: { "raster-saturation": -1, "raster-opacity": 0.55, "raster-contrast": -0.15 } }] },
+  center: [37.62, 55.75], zoom: 9.3, maxZoom: 17, minZoom: 8, attributionControl: { compact: true },
+});
+window.invaradarMap = map;  // for embedding and the demo recording
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
+
+function legend() {
+  const s = summary[species] || {};
+  document.getElementById("legend").innerHTML = Object.entries(CLS).map(([k, c]) => `
+    <label title="${c.hint}"><input type="checkbox" data-k="${k}" ${hidden.has(k) ? "" : "checked"}>
+      <span class="dot" style="background:${c.color}"></span><span>${c.name}</span><span class="n">${fmt(s[k] ?? 0)}</span></label>`).join("");
+  document.querySelectorAll("#legend input").forEach((el) => el.addEventListener("change", (e) => {
+    e.target.checked ? hidden.delete(e.target.dataset.k) : hidden.add(e.target.dataset.k); filter();
+  }));
+  document.getElementById("note").innerHTML = `<b>${SP[species]}:</b> ${fmt(s.hotspots ?? 0)} очагов от 400 м², из них ${fmt(s.near_children_100m ?? 0)} — ближе 100 м к школам, садам и площадкам. Числа в легенде — по всем очагам.`;
+}
+function filter() {
+  const show = Object.keys(CLS).filter((k) => !hidden.has(k));
+  for (const sp of Object.keys(SP)) {
+    map.setLayoutProperty(`h-${sp}`, "visibility", sp === species ? "visible" : "none");
+    map.setFilter(`h-${sp}`, ["in", ["get", "cls"], ["literal", show]]);
+  }
+}
+function setSpecies(sp) {
+  species = sp;
+  for (const k of Object.keys(SP)) document.getElementById(`b-${k}`).setAttribute("aria-pressed", String(k === sp));
+  legend(); filter();
+}
+
+map.on("load", async () => {
+  summary = await (await fetch("data/summary.json")).json();
+  map.addSource("route", { type: "geojson", data: "data/route_district.geojson" });
+  map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#2F6F95", "line-width": 2.5, "line-opacity": 0.85 } });
+  for (const sp of Object.keys(SP)) {
+    map.addSource(sp, { type: "geojson", data: `data/${sp}_top.geojson` });
+    map.addLayer({ id: `h-${sp}`, type: "circle", source: sp, paint: {
+      "circle-color": ["match", ["get", "cls"], "mechanical", CLS.mechanical.color, "ground", CLS.ground.color, CLS.drone.color],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, ["interpolate", ["linear"], ["get", "priority"], 40, 1.4, 100, 3.6],
+                        11, ["interpolate", ["linear"], ["get", "priority"], 40, 3, 100, 6],
+                        15, ["interpolate", ["linear"], ["get", "priority"], 40, 7, 100, 13]],
+      "circle-stroke-color": "#fff", "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 8, 0.3, 12, 1], "circle-opacity": 0.9 } });
+    map.on("click", `h-${sp}`, (e) => {
+      const p = e.features[0].properties, c = CLS[p.cls];
+      new maplibregl.Popup({ maxWidth: "340px" }).setLngLat(e.features[0].geometry.coordinates).setHTML(`
+        <div class="pp"><h3>${SP[sp]}: очаг № ${fmt(p.rank)} в очереди</h3>
+        <span class="tag" style="background:${c.color}">${c.name}</span>
+        <dl><dt>Приоритет</dt><dd>${String(p.priority).replace(".", ",")} из 100</dd>
+        <dt>Площадь</dt><dd>${fmt(p.area_m2)} м²</dd>
+        <dt>До детей</dt><dd>${fmt(p.d_child_m)} м</dd>
+        <dt>Водоохранная зона</dt><dd>${p.water_zone_m > 0 ? p.water_zone_m + " м" : "нет"}</dd>
+        <dt>Модель применима</dt><dd>${p.inside_aoa === true || p.inside_aoa === "true" ? "да" : "нет — нужна проверка"}</dd></dl>
+        <div class="m"><b>Метод:</b> ${p.method}</div><div class="b"><b>Основание:</b> ${p.basis}</div></div>`).addTo(map);
+    });
+    map.on("mouseenter", `h-${sp}`, () => (map.getCanvas().style.cursor = "pointer"));
+    map.on("mouseleave", `h-${sp}`, () => (map.getCanvas().style.cursor = ""));
+  }
+  document.getElementById("b-heracleum").onclick = () => setSpecies("heracleum");
+  document.getElementById("b-solidago").onclick = () => setSpecies("solidago");
+  setSpecies("heracleum");
+});
+</script>
+</body>
+</html>

@@ -16,6 +16,9 @@ Third-party data and works used by this project:
 * Copernicus DEM GLO-30: © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018,
   provided under COPERNICUS by the European Union and ESA; all rights reserved.
 * Fonts in presentation/fonts: Literata (© The Literata Project Authors), Golos Text (© The Golos Text Project
-  Authors), JetBrains Mono (© The JetBrains Mono Project Authors) — SIL Open Font License 1.1 (presentation/fonts/OFL.txt).
+  Authors), JetBrains Mono (© The JetBrains Mono Project Authors) — SIL Open Font License 1.1 (presentation/fonts/OFL.txt);
+  Montserrat (© 2024 The Montserrat.Git Project Authors), static instances of the Google Fonts variable font —
+  SIL Open Font License 1.1 (presentation/fonts/OFL-Montserrat.txt).
+* Deck colours follow the public palette of ecopremia.moscow; no logos or emblems of the Moscow Government are used.
 * Icons: Tabler Icons (MIT), rendered through react-icons (MIT).
 * Ultralytics YOLO11 weights used by scripts/train_photo_verifier.py are AGPL-3.0 and are not redistributed here.

@@ -1,14 +1,20 @@
 {
   "name": "invaradar-deck",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
-  "description": "Builds the InvaRadar PowerPoint deck from outputs/*.json and presentation/assets",
+  "description": "Builds both InvaRadar decks (submission A4 and full 16:9) from outputs/*.json in the Ecopremia Moscow palette",
   "scripts": {
     "icons": "node icons.js && node raster_icons.js",
-    "build": "node build_deck.js assets InvaRadar_Ecopremia2026.pptx"
+    "brand": "python3 brand_assets.py && python3 make_drone_scheme.py assets/umbel_leaves.jpg assets/drone_patches.jpg",
+    "build": "node build_deck.js assets InvaRadar_Ecopremia2026.pptx",
+    "build:submission": "node build_submission.js assets InvaRadar_Ecopremia2026_podacha.pptx",
+    "pdf": "soffice --headless --convert-to pdf InvaRadar_Ecopremia2026_podacha.pptx InvaRadar_Ecopremia2026.pptx",
+    "qa": "python3 qa/check_fonts.py InvaRadar_Ecopremia2026_podacha.pptx InvaRadar_Ecopremia2026.pptx && python3 qa/check_collisions.py InvaRadar_Ecopremia2026_podacha.pdf InvaRadar_Ecopremia2026.pdf",
+    "all": "npm run build:submission && npm run build && npm run pdf && npm run qa"
   },
   "license": "Apache-2.0",
   "dependencies": {
+    "image-size": "1.2.1",
     "jszip": "3.10.1",
     "pptxgenjs": "3.12.0",
     "qrcode": "1.5.4",

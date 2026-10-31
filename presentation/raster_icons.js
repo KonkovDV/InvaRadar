@@ -1,7 +1,10 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 const icons = JSON.parse(fs.readFileSync("icons.json"));
-const colors = { forest: "#0F2A22", moss: "#2F6B55", paper: "#F4F6F1", amber: "#E0A030", rust: "#B4532A" };
+// Фирменная палитра Экологической премии Москвы (ecopremia.moscow): изумрудный #00906A, мятный #2CA982,
+// фиолетовый акцент #8968AA. Имена слотов прежние: forest — тёмный, moss — основной, paper — на тёмном фоне,
+// amber — акцент на тёмном (лаймовый), rust — опасность (борщевик), purple — акцент на светлом.
+const colors = { forest: "#00664C", moss: "#00906A", paper: "#FFFFFF", amber: "#C9EC8A", rust: "#B4532A", purple: "#8968AA" };
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 300, height: 300 } });
   fs.mkdirSync("assets/icons", { recursive: true });

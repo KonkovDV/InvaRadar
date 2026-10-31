@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://konkovdv.github.io/InvaRadar/"><img alt="Hotspot map" src="https://img.shields.io/badge/map-GitHub_Pages-2F6B55?style=for-the-badge"></a>
   <a href="presentation/InvaRadar_Ecopremia2026_podacha.pdf"><img alt="Submission deck, PDF" src="https://img.shields.io/badge/submission-PDF%2C_10_pages-EC1C24?style=for-the-badge&logo=files&logoColor=white"></a>
-  <a href="presentation/InvaRadar_Ecopremia2026.pdf"><img alt="Full deck, PDF" src="https://img.shields.io/badge/27_slides-PDF-B7472A?style=for-the-badge&logo=files&logoColor=white"></a>
+  <a href="presentation/InvaRadar_Ecopremia2026.pdf"><img alt="Full deck, PDF" src="https://img.shields.io/badge/32_slides-PDF-B7472A?style=for-the-badge&logo=files&logoColor=white"></a>
 </p>
 
 <p align="center">

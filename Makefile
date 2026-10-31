@@ -64,7 +64,7 @@ HERACLEUM_DATASET ?= ../Heracleum-Dataset
 drone:
 	$(PY) scripts/drone_benchmark.py $(HERACLEUM_DATASET)
 
-# both decks: the 10-page A4 submission (Положение о премии) and the full 27-slide version; PDFs via LibreOffice
+# both decks: the 10-page A4 submission (Положение о премии) and the full 32-slide version; PDFs via LibreOffice
 deck:
 	cd presentation && npm ci && $(PY) prepare_assets.py \
 	  && node build_submission.js assets InvaRadar_Ecopremia2026_podacha.pptx \

@@ -7,8 +7,8 @@ from pptx import Presentation
 src, dst = sys.argv[1], sys.argv[2]
 prs = Presentation(src)
 out = ["# ИнваРадар — текст выступления", "",
-       "Заметки докладчика по каждому слайду полной версии презентации. Слайды 1–20 — основное выступление "
-       "(5–7 минут), 21–27 — приложение для вопросов. Файл создаётся из PPTX скриптом `export_notes.py`.", ""]
+       "Заметки докладчика по каждому слайду полной версии презентации. Слайды 1–24 — основное выступление "
+       "(8–9 минут), 25–32 — приложение для вопросов. Файл создаётся из PPTX скриптом `export_notes.py`.", ""]
 for i, slide in enumerate(prs.slides, 1):
     title = next((sh.text_frame.text for sh in slide.placeholders if sh.placeholder_format.type == 1), "") \
         if slide.placeholders else ""

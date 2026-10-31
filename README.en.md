@@ -203,7 +203,7 @@ Python 3.11+ and Rust. A full run downloads about 9 GB of open data: AlphaEarth 
 ```bash
 git clone https://github.com/KonkovDV/InvaRadar && cd InvaRadar
 pip install -e ".[dev]"
-make core test    # 6 Rust tests and 40 Python tests; 12 of them check the law on the orders and the map
+make core test    # 6 Rust tests and 45 Python tests; 12 of them check the law on the orders and the map
 make all          # data, both species, terrain variants, intervals, figures
 ```
 

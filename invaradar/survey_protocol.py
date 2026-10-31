@@ -10,22 +10,45 @@ import numpy as np
 from scipy import ndimage
 
 
-def local_relief(elevation_m: np.ndarray, res_m: float, window_m: float) -> np.ndarray:
-    """Elevation minus the local mean.
+def kernel_cells(res_m: float, window_m: float) -> int:
+    """Nearest odd cell count to `window_m / res_m`.
 
-    The KOZ-3 lidar branch uses this instead of a hillshade: a mound on a slope
-    stays a mound, and rotating the tile does not change the channels. `window_m`
-    is the side of the averaging square. At a 10 m grid, 80 m and 300 m are the
-    same physical idea as the 8 m and 30 m windows on a 0.5 m lidar DEM.
+    An even count has no center cell. On a tie the narrower window wins, so an
+    80 m request on a 10 m grid is 7 cells (70 m), not 9 cells (90 m).
     """
     if res_m <= 0 or window_m <= 0:
         raise ValueError("res_m and window_m must be positive")
-    cells = max(1, int(round(window_m / res_m)))
-    if cells % 2 == 0:
-        cells += 1
+    raw = window_m / res_m
+    nearest = max(1, int(round(raw)))
+    if nearest % 2 == 1:
+        return nearest
+    lower = max(1, nearest - 1)
+    upper = nearest + 1
+    if abs(lower - raw) <= abs(upper - raw):
+        return lower
+    return upper
+
+
+def local_relief(elevation_m: np.ndarray, res_m: float, window_m: float) -> np.ndarray:
+    """Elevation minus the local mean in a centered square.
+
+    The KOZ-3 lidar branch uses this instead of a hillshade: a mound on a slope
+    stays a mound, and a square kernel is unchanged by a quarter turn. Missing
+    heights stay missing and do not pull the mean toward zero.
+    """
+    cells = kernel_cells(res_m, window_m)
     z = np.asarray(elevation_m, dtype=np.float64)
-    mean = ndimage.uniform_filter(z, size=cells, mode="nearest")
-    return z - mean
+    valid = np.isfinite(z)
+    if valid.all():
+        mean = ndimage.uniform_filter(z, size=cells, mode="nearest")
+        return z - mean
+    filled = np.where(valid, z, 0.0)
+    total = ndimage.uniform_filter(filled, size=cells, mode="constant", cval=0.0)
+    count = ndimage.uniform_filter(valid.astype(np.float64), size=cells, mode="constant", cval=0.0)
+    mean = np.divide(total, count, out=np.full_like(total, np.nan), where=count > 0)
+    out = np.full_like(z, np.nan)
+    out[valid] = z[valid] - mean[valid]
+    return out
 
 
 def scene_percentile(scores: np.ndarray) -> np.ndarray:
@@ -48,8 +71,10 @@ def scene_percentile(scores: np.ndarray) -> np.ndarray:
 
 def best_fbeta_threshold(y: np.ndarray, scores: np.ndarray, beta: float = 1.0) -> tuple[float, float]:
     """Threshold on this set only, and the F-beta it reaches. Higher score is a positive."""
-    labels = np.asarray(y).astype(int)
-    p = np.asarray(scores, dtype=np.float64)
+    labels = np.asarray(y).astype(int).ravel()
+    p = np.asarray(scores, dtype=np.float64).ravel()
+    if labels.shape != p.shape:
+        raise ValueError("labels and scores must have the same length")
     if len(labels) == 0:
         return 0.5, 0.0
     best_t, best_f = float(np.max(p)), -1.0
@@ -63,7 +88,8 @@ def best_fbeta_threshold(y: np.ndarray, scores: np.ndarray, beta: float = 1.0) -
         recall = tp / (tp + fn) if tp + fn else 0.0
         denom = b2 * precision + recall
         f = (1.0 + b2) * precision * recall / denom if denom else 0.0
-        if f > best_f:
+        # Equal F keeps the higher threshold: fewer false positives, not more flags.
+        if f >= best_f:
             best_t, best_f = float(t), float(f)
     return best_t, best_f
 
@@ -83,15 +109,22 @@ def nested_thresholds(groups: dict[str, tuple[np.ndarray, np.ndarray]], beta: fl
         for other, (y, scores) in groups.items():
             if other == name:
                 continue
-            ys.append(np.asarray(y).astype(int))
-            ps.append(np.asarray(scores, dtype=np.float64))
+            labels = np.asarray(y).astype(int).ravel()
+            values = np.asarray(scores, dtype=np.float64).ravel()
+            if labels.shape != values.shape:
+                raise ValueError(f"group {other!r} has {len(labels)} labels and {len(values)} scores")
+            ys.append(labels)
+            ps.append(values)
         chosen[name] = best_fbeta_threshold(np.concatenate(ys), np.concatenate(ps), beta)[0]
     return chosen
 
 
 def fbeta_at(y: np.ndarray, scores: np.ndarray, threshold: float, beta: float = 1.0) -> float:
-    labels = np.asarray(y).astype(int)
-    pred = np.asarray(scores, dtype=np.float64) >= threshold
+    labels = np.asarray(y).astype(int).ravel()
+    values = np.asarray(scores, dtype=np.float64).ravel()
+    if labels.shape != values.shape:
+        raise ValueError("labels and scores must have the same length")
+    pred = values >= threshold
     tp = int(np.sum(pred & (labels == 1)))
     fp = int(np.sum(pred & (labels == 0)))
     fn = int(np.sum(~pred & (labels == 1)))

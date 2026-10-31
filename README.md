@@ -204,7 +204,7 @@ flowchart LR
 ```bash
 git clone https://github.com/KonkovDV/InvaRadar && cd InvaRadar
 pip install -e ".[dev]"
-make core test    # 6 тестов Rust и 40 тестов Python, из них 12 — закон на нарядах и карте
+make core test    # 6 тестов Rust и 45 тестов Python, из них 12 — закон на нарядах и карте
 make all          # данные, обе модели, варианты рельефа, интервалы, рисунки
 ```
 

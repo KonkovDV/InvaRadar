@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://konkovdv.github.io/InvaRadar/"><img alt="Карта очагов" src="https://img.shields.io/badge/%D0%BA%D0%B0%D1%80%D1%82%D0%B0-GitHub_Pages-2F6B55?style=for-the-badge"></a>
   <a href="https://github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4"><img alt="Видео о проекте" src="https://img.shields.io/badge/%D0%B2%D0%B8%D0%B4%D0%B5%D0%BE-%D0%BE_%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D0%B5-0F2A22?style=for-the-badge"></a>
-  <a href="presentation/InvaRadar_Ecopremia2026_podacha.pdf"><img alt="Презентация для подачи, PDF" src="https://img.shields.io/badge/%D0%BF%D0%BE%D0%B4%D0%B0%D1%87%D0%B0-PDF%2C_10_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86-EC1C24?style=for-the-badge&logo=files&logoColor=white"></a>
+  <a href="presentation/InvaRadar_Ecopremia2026_10.pdf"><img alt="Презентация для подачи, PDF" src="https://img.shields.io/badge/%D0%BF%D0%BE%D0%B4%D0%B0%D1%87%D0%B0-PDF%2C_10_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86-EC1C24?style=for-the-badge&logo=files&logoColor=white"></a>
   <a href="presentation/InvaRadar_Ecopremia2026.pdf"><img alt="Полная презентация, PDF" src="https://img.shields.io/badge/32_%D1%81%D0%BB%D0%B0%D0%B9%D0%B4%D0%B0-PDF-B7472A?style=for-the-badge&logo=files&logoColor=white"></a>
 </p>
 
@@ -74,7 +74,7 @@
 
 | Вы | Смотрите |
 |---|---|
-| Член жюри | [видео о проекте](https://github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4), [презентацию для подачи](presentation/InvaRadar_Ecopremia2026_podacha.pdf), карту, разделы «Цифры» и «Границы» ниже |
+| Член жюри | [видео о проекте](https://github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4), [презентацию для подачи](presentation/InvaRadar_Ecopremia2026_10.pdf), карту, разделы «Цифры» и «Границы» ниже |
 | Ботаник, эколог | [научное обоснование](docs/SCIENCE.md), [карточку модели](docs/MODEL_CARD.md), [журнал экспериментов](docs/EXPERIMENTS.md) |
 | Юрист, надзор | [право в наряде](docs/SCIENCE.md#7-право), `invaradar/management.py`, `tests/test_legal_invariants.py` |
 | ГИС-специалист | [карточку данных](docs/DATA_CARD.md), каталог `stac/`, `make release` |

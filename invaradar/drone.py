@@ -15,8 +15,9 @@ The segmentation backend is pluggable:
     works on leaves and rosettes, not only on flowers.
   * `TorchSegmenter` — any trained model (RF-DETR-Seg / SegFormer / U-Net exported to TorchScript or ONNX),
     trained on expert-verified masks from pilot flights.
-Optional canopy-height gating (photogrammetric or LiDAR nDSM): Heracleum stands are 1.5–4 m tall, far above lawn
-and meadow grass — the same "relief channels" idea that lifted LiDAR detection in the EXpedition pipeline.
+Optional canopy-height gating (photogrammetric or LiDAR nDSM) is off unless phenophase is flowering.
+InvaRadar does not use the lidar relief channels from expds-koz3; those are a separate tested function
+in invaradar.survey_protocol and are not part of this segmenter.
 """
 from __future__ import annotations
 

@@ -63,7 +63,7 @@
 40. Menshchikov A. et al. (2021). Real-Time Detection of Hogweed: UAV Platform Empowered by Deep Learning. IEEE Transactions on Computers 70(8) — https://colab.ws/articles/10.1109/TC.2021.3059819
 41. InvaDrone, SDU UAS Center — https://www.sdu.dk/en/test/tek/mmmi/mathilde/researchprojects/invadrone
 42. Random Forest в Google Earth Engine для борщевика — https://crm-en.ics.org.ru/journal/article/3281/
-43. EXpedition — https://github.com/EhimenNathan/EXpedition ; hogweed-ground-level-view — https://github.com/alexeyev/hogweed-ground-level-view
+43. Konkov D. V. expds-koz3, КОЗ №3 «Комплексирование» — https://github.com/KonkovDV/expds-koz3 . Публичное решение конкурента, код которого сюда не копируется: https://github.com/EhimenNathan/EXpedition . hogweed-ground-level-view — https://github.com/alexeyev/hogweed-ground-level-view
 
 ## Экономика
 

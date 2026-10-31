@@ -1,9 +1,10 @@
 """Presence / target-group-background samples from iNaturalist open data.
 
 Presence: research-grade observations of a target taxon with positional accuracy <= MAX_ACC metres.
-Background ("target-group"): research-grade observations of OTHER vascular plants made by the same kind of
-observers in the same places, so they share the observation bias (roads, parks, dachas) of the presences
-(Phillips et al. 2009). Background points within CLEAR_M of a presence are dropped (likely unlabelled presence).
+Background ("target-group"): research-grade observations of other vascular plants by any observer in the
+same window (Phillips et al. 2009). That reduces the pull toward roads, parks and dachas. It does not
+remove it, and it does not keep only the observers who recorded the target. Background points within
+CLEAR_M of a presence are dropped (likely unlabelled presence).
 """
 from __future__ import annotations
 

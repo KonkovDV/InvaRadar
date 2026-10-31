@@ -141,7 +141,7 @@ map.on("load", async () => {
       const warn = document.createElement("p");
       warn.textContent = "Кандидат на осмотр, не нарушение и не подтверждённый очаг.";
       const rows = [
-        ["Ранг", `${String(p.priority).replace(".", ",")} из 100`],
+        ["Балл", `${String(p.priority).replace(".", ",")} из 100`],
         ["Площадь", `${fmt(p.area_m2)} м²`],
         ["До детей", `${fmt(p.d_child_m)} м`],
         ["Водоохранная зона", p.water_zone_m > 0 ? `${p.water_zone_m} м` : "нет"],

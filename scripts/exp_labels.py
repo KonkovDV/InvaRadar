@@ -17,7 +17,7 @@ F = np.fromfile(tmp / "pts.f32", "<f4"); F = F.reshape(-1, F.size // (len(S) + 4
 X, XL = F[:len(S)], F[len(S):]
 ok = ~np.isnan(X[:, 0]); S, X = S[ok].reset_index(drop=True), X[ok]; XL = XL[~np.isnan(XL[:, 0])]
 y = S.label.to_numpy(); xy = S[["x", "y"]].to_numpy()
-# persistence: number of distinct observers reporting the taxon within 30 m (all grades, any accuracy <= 50 m)
+# persistence: distinct research-grade observers of this sample within 30 m (build() already dropped other grades)
 pos = S[y == 1]
 tree = cKDTree(pos[["x", "y"]].to_numpy())
 nb = tree.query_ball_point(pos[["x", "y"]].to_numpy(), 30)

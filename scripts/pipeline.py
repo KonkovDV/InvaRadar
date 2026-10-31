@@ -123,7 +123,10 @@ metrics = {"taxon": a.taxon, "embedding_year": a.year, "features": int(X.shape[1
            "spatial_cv": {"roc_auc_vs_background": float(roc_auc_score(y, oof)), **capture(rk[y == 1])}}
 log("spatial CV", json.dumps(metrics["spatial_cv"]))
 
-# forward-in-time: train on reports <= 2024, test on NEW 2025-26 reports (>100 m from all earlier reports)
+# Label split, not a forecast from an earlier image. Every point uses the same AlphaEarth year
+# (`--year`, default 2025). A 2025–2026 presence is "new" only when it is more than 100 m from a
+# presence with year <= 2024. Features still include the 450 m mean, so that buffer does not
+# separate the test point from training context. Stored metrics are this protocol.
 tr = yr <= 2024; te_pos = (yr >= 2025) & (y == 1)
 d, _ = cKDTree(xy[tr & (y == 1)]).query(xy[te_pos]); new = np.where(te_pos)[0][d > 100]
 te_bg = np.where((yr >= 2025) & (y == 0))[0]

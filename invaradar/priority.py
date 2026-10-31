@@ -65,11 +65,19 @@ def _rank_positive(score: np.ndarray) -> np.ndarray:
 def assign_queues(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Three queues. Safety ignores area. Containment prefers small isolated stands. Programme is the large stands.
 
-    The existing `priority` column is unchanged: published queues keep their old order until they are recomputed.
+    The existing `priority` column is unchanged. The straight-line route follows that score, which includes
+    area. `safety_rank` is a separate list and does not reorder the route.
     """
     g = gdf.copy()
     n = len(g)
     if n == 0:
+        g["isolation_m"] = np.array([], dtype=float)
+        g["safety_score"] = np.array([], dtype=float)
+        g["containment_score"] = np.array([], dtype=float)
+        g["programme_score"] = np.array([], dtype=float)
+        g["safety_rank"] = np.array([], dtype=int)
+        g["containment_rank"] = np.array([], dtype=int)
+        g["programme_rank"] = np.array([], dtype=int)
         return g
     cents = g.geometry.centroid
     if n == 1:

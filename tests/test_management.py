@@ -108,6 +108,8 @@ def test_prescription_follows_water_code_sanpin_and_heritage():
     # СанПиН п. 273: pesticides are banned on the territories of children's organisations
     assert p.child_org_territory[5] and not chem[5] and "п. 273" in p.legal_basis[5]
     assert p.in_settlement[6] and p.method[6].startswith("наземная точечная обработка")
+    assert "до 7:00" in p.method[6] and "после 22:00" in p.method[6]
+    assert "до 7:00" not in p.method[4]
     assert not p.in_settlement[7] and p.method[7].startswith("точечное опрыскивание с дрона")
     assert (p.follow_up_years == 5).all()
     s = summarize(p)
@@ -129,8 +131,31 @@ def test_stream_width_follows_its_length_and_a_ditch_stays_narrow():
                              geometry=[line(0, 0, 15_000, 0), line(0, 500, 1_000, 500)], crs=CRS)
     z = water_zones(water, CRS)
     assert z.zone_m.iloc[0] == 100          # 15 km stream → 100 m, not a flat 50 m
-    assert z.zone_m.iloc[1] == 50           # ditch: caution until an official right-of-way exists
-    assert "ч. 9" in z.zone_note.iloc[1] and z.zone_note.iloc[0] == ""
+    assert z.zone_m.iloc[1] == 50           # ditch: a caution of this system, not art. 65 part 9
+    assert "ч. 9" not in z.zone_note.iloc[1] and z.zone_note.iloc[0] == ""
+
+
+def test_a_long_canal_keeps_the_right_of_way_rule_and_not_a_river_width():
+    water = gpd.GeoDataFrame({"class": ["canal"], "subtype": ["canal"]},
+                             geometry=[line(0, 0, 60_000, 0)], crs=CRS)
+    z = water_zones(water, CRS)
+    assert z.zone_m.iloc[0] == 0
+    assert "ч. 9" in z.zone_note.iloc[0] and "полосе отвода" in z.zone_note.iloc[0]
+
+
+def test_a_short_first_segment_does_not_steal_the_main_stem():
+    """71 km stem (40 + 1 + 30) and a 5 km tributary longer than the 1 km piece.
+
+    Choosing the longest next segment would follow the tributary and give every reach 100 m.
+    Water Code art. 65 part 4 needs 200 m on the stem and 50 m on the tributary.
+    """
+    segs = [line(0, 0, 40_000, 0), line(40_000, 0, 41_000, 0), line(41_000, 0, 71_000, 0),
+            line(40_000, 0, 40_000, 5_000)]
+    g = gpd.GeoDataFrame({"class": ["river"] * 4}, geometry=segs, crs=CRS)
+    L = watercourse_lengths(g)
+    assert np.allclose(L[:3], 71_000)
+    assert np.isclose(L[3], 5_000)
+    assert river_width_m(L[0]) == 200 and river_width_m(L[3]) == 50
 
 
 def test_herbicide_orders_name_apiaries_airspace_and_protective_clothing():
@@ -144,8 +169,10 @@ def test_herbicide_orders_name_apiaries_airspace_and_protective_clothing():
     assert "перчатки" in p.method[0]
     assert "пасек" in p.method[0] and "7 км" in p.method[0]
     assert "2 недели" in p.method[0] or "герметичн" in p.method[0]
-    assert p.status[0] == "candidate"
+    assert p.status[0] == "candidate" and p.signed_by[0] == ""
     assert p.follow_up_years[0] == 5
+    assert "наблюдение 5 сезонов" in p.method[0]
+    assert p.listed_species_act[0] == "юрисдикция не определена"
 
 
 def test_large_heracleum_stand_is_mown_not_dug_by_hand():

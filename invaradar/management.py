@@ -16,7 +16,9 @@ is advisory: a person signs the work order.
     - sources of rivers and streams (part 5): 50 m radius; technical water (pools, wastewater, sewage basins) has no
       zone; rivers in closed collectors have no zone (part 10) — this case is not separated, so a collector may
       still receive a zone;
-    - ditches and drains stay at 50 m as a caution until an official right-of-way is known (part 9).
+    - canals (part 9): the zone equals the canal's right-of-way. This repository has no right-of-way layer, so a
+      canal is not given a river-length width;
+    - ditches and drains stay at 50 m as a caution of this system. Part 9 does not name them.
   Production should replace this with the State Water Register and the zone boundaries approved for Moscow.
 * Aerial application of pesticides keeps at least 2 km (manned aircraft) or 700 m (unmanned aircraft systems) from
   settlements, drinking-water sources, nature reserves, national parks, zakazniks and fishery water bodies
@@ -25,11 +27,12 @@ is advisory: a person signs the work order.
   stands, and a ground crew treats them. Settlements: locality boundaries plus residential land use
   (invaradar.layers); water bodies with a protection zone stand in for fishery water bodies.
 * Ground application: residents are notified through the media at least 5 calendar days ahead and warning signs stand
-  at the entrances (item 272). A clock time of "before 7:00 or after 22:00" was not found in the open text of
-  item 273, so the work order does not state it.
+  at the entrances (item 272). Inside a settlement, item 273(4) also requires the treatment before 07:00 or after
+  22:00, in calm weather. That clock time is written into the order.
 * Children: pesticides are banned on the territories of children's organisations (СанПиН item 273(2));
   playgrounds and anything within 100 m of a kindergarten, school or playground are a precaution of this system,
-  not a statutory distance → no pesticides, first in the queue.
+  not a statutory distance → no pesticides. Their place in the safety queue is a separate rank. The straight-line
+  visit order follows the combined priority score, which still includes area.
 * Protected natural areas: ООПТ regimes restrict chemicals, and Mosprirodа mows Heracleum on Moscow's ООПТ up to
   10 times a season → mechanical methods only. Parks get the same treatment as a precaution of this system. Proxy
   here: Overture parks, natural monuments and nature reserves; production uses the official ООПТ layer.
@@ -63,9 +66,10 @@ LAKE_MIN_KM2 = 0.5
 CONNECT_M = 30.0
 
 RIVER_LINES = {"river"}
-LENGTH_LINES = {"river", "stream", "canal"}  # Water Code art. 65 part 4: width follows length
-DITCH_LINES = {"ditch", "drain"}             # 50 m as a caution; art. 65 part 9 is the right-of-way strip
-STANDING = {"lake", "reservoir", "pond", "oxbow", "water", "bay", "lagoon", "river", "canal", "stream", "moat"}
+LENGTH_LINES = {"river", "stream"}  # Water Code art. 65 part 4: width follows length. Canals are part 9, not this set.
+CANAL_CLASS = {"canal"}             # art. 65 part 9: zone width is the right-of-way, which these layers do not carry
+DITCH_LINES = {"ditch", "drain"}    # 50 m as a caution of this system; part 9 does not name ditches
+STANDING = {"lake", "reservoir", "pond", "oxbow", "water", "bay", "lagoon", "river", "stream", "moat"}
 NO_ZONE = {"swimming_pool", "reflecting_pool", "wastewater", "sewage", "basin", "water_storage", "fountain"}
 
 FARM_LANDUSE = {"farmyard", "animal_keeping", "farm"}
@@ -88,8 +92,9 @@ def watercourse_lengths(lines: gpd.GeoDataFrame) -> np.ndarray:
 
     OSM-derived waterways are digitised in the direction of flow, so lines form a directed network. At every
     confluence the incoming branch with the longest path to its source continues the main stem (Hack's rule of
-    thumb); the others end there as tributaries. A watercourse is a chain of segments joined this way, and every
-    segment gets the total length of its chain. Rivers cut by the study-area edge get a lower bound.
+    thumb); the others end there as tributaries. At a fork the main stem follows the outgoing branch with the
+    longest path down to a mouth, not the longest first segment. A watercourse is a chain of segments joined this
+    way, and every segment gets the total length of its chain. Rivers cut by the study-area edge get a lower bound.
     """
     from shapely import get_coordinates
 
@@ -125,13 +130,28 @@ def watercourse_lengths(lines: gpd.GeoDataFrame) -> np.ndarray:
     out_of: dict = {}
     for e in range(n):
         out_of.setdefault(heads[e], []).append(e)
-    # follow each segment downstream while it is the main stem at the next confluence
+    down_len = np.full(n, -1.0)  # longest path from this segment down to a mouth, including itself
+
+    def down_longest(e: int, seen: set) -> float:
+        if down_len[e] >= 0:
+            return down_len[e]
+        seen.add(e)
+        try:
+            nxts = [down_longest(f, seen) for f in out_of.get(tails[e], []) if f not in seen]
+            down_len[e] = length[e] + (max(nxts) if nxts else 0.0)
+            return down_len[e]
+        finally:
+            seen.discard(e)
+
+    for e in range(n):
+        down_longest(e, set())
+    # The main incoming continues downstream. At a fork, take the branch with the longest remaining path.
     nxt = np.full(n, -1)
     for e in range(n):
         if main_in.get(tails[e]) == e:
             down = out_of.get(tails[e], [])
             if down:
-                nxt[e] = max(down, key=lambda f: length[f])
+                nxt[e] = max(down, key=lambda f: down_len[f])
     has_parent = np.zeros(n, bool)
     has_parent[nxt[nxt >= 0]] = True
     total = np.zeros(n)
@@ -155,16 +175,20 @@ def water_zones(water: gpd.GeoDataFrame, crs) -> gpd.GeoDataFrame:
     is_line = w.geom_type.str.contains("Line")
     zone = np.zeros(len(w))
 
-    # rivers, streams and canals: width from the length of the watercourse
+    # rivers and streams: width from the length of the watercourse (art. 65 part 4)
     net = w[is_line & cls.isin(LENGTH_LINES)]
     if len(net):
         lengths = watercourse_lengths(net)
         zone[net.index.to_numpy()] = [river_width_m(x) for x in lengths]
-    # ditches and drains: 50 m until an official right-of-way is available (Water Code art. 65 part 9)
+    # ditches and drains: 50 m as a caution of this system. Part 9 names canals, not ditches.
     ditch = (is_line & cls.isin(DITCH_LINES)).to_numpy()
     zone[ditch] = 50.0
     note = np.full(len(w), "", dtype=object)
-    note[ditch] = "правило осторожности; ВК РФ ст. 65 ч. 9 — ширина по полосе отвода, официальной полосы в данных нет"
+    note[ditch] = "правило осторожности системы: 50 м, пока нет официальной полосы; норма о полосе отвода канала сюда не относится"
+    # canals: art. 65 part 9. No right-of-way in the layer, so no river-length width and no invented width.
+    canal = cls.isin(CANAL_CLASS).to_numpy()
+    note[canal] = ("ВК РФ ст. 65 ч. 9: ширина равна полосе отвода; официальной полосы в данных нет, "
+                   "ширина по длине реки не назначается")
     zone[((w.geom_type == "Point") & (cls == "spring")).to_numpy()] = 50.0
 
     # standing water and river areas: a river's width if connected to it, 50 m for lakes ≥ 0.5 km², else none
@@ -247,7 +271,8 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
         if r.child_org_territory:
             b.append("СанПиН 2.1.3684-21 п. 273: территория детской организации, пестициды запрещены")
         elif r.near_children:
-            b.append("дети ≤100 м: без пестицидов (правило осторожности системы), первым в очереди")
+            b.append("дети ≤100 м: без пестицидов (правило осторожности системы); "
+                     "ранг очереди безопасности отдельный, порядок объезда — по общему баллу")
         if r.in_zso:
             b.append("зона санитарной охраны водозабора: пестициды запрещены, пока режим пояса не уточнён по акту ЗСО")
         if r.in_protected:
@@ -255,13 +280,18 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
         if chem_ok and not aerial_ok:
             where = "в населённом пункте" if r.in_settlement else "ближе 700 м к жилью, водоёму или ООПТ"
             b.append(f"СанПиН 2.1.3684-21 п. 282, 273: {where} обработка с дрона запрещена, только наземная")
+        if chem_ok and r.in_settlement:
+            b.append("СанПиН 2.1.3684-21 п. 273: очаговая обработка в населённом пункте до 7:00 или после 22:00, "
+                     "в безветренную погоду")
         if r.near_heritage:
             b.append("73-ФЗ ст. 36: земляные работы на объекте наследия требуют согласования; 50 м — правило осторожности системы, в законе этого расстояния нет")
         chem_tail = ("препарат только из Государственного каталога, с регламентом для несельскохозяйственных земель; "
                      "норма, кратность и срок выхода людей — по регламенту; оповещение владельцев пасек в радиусе 7 км "
                      "(ст. 16 490-ФЗ); ")
+        hours = ("СанПиН 2.1.3684-21 п. 273: в населённом пункте очаговая обработка до 7:00 или после 22:00, "
+                 "в безветренную погоду; ") if r.in_settlement else ""
         ground = ("наземная точечная обработка ранцевым опрыскивателем по контуру очага (СанПиН п. 272: "
-                  "оповещение за 5 дней, знаки); " + chem_tail)
+                  "оповещение за 5 дней, знаки); " + hours + chem_tail)
         ppe = ("; СИЗ: влагонепроницаемая одежда, перчатки, защита глаз; работать в пасмурную погоду или вечером; "
                "при попадании сока — смыть водой с мылом, кожу беречь от солнца 48 ч; "
                "зонтики — в герметичных мешках и вывезти; после работ подсеять злаки")
@@ -275,7 +305,7 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
                 m = "подрезка корневой шейки на 5–10 см ниже земли + " + cut
             else:
                 m = cut + " + укрывной материал, без перекопки"
-            m += ppe
+            m += ppe + "; наблюдение 5 сезонов"
             if aerial_ok:
                 m = ("точечное опрыскивание с дрона по контурам, если регламент препарата допускает БАС, есть "
                      "разрешение на использование воздушного пространства и люди с животными не ближе 700 м; "
@@ -295,7 +325,10 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
         basis.append("; ".join(b) if b else "ограничений по открытым слоям не найдено; вид подтвердить на месте")
     g["method"] = methods
     g["legal_basis"] = basis
+    # A person signs the order. The program only marks a draft and leaves the signer empty.
+    # 369-ПП is written by listed_act only when a jurisdiction polygon is passed in `regions`.
     g["status"] = "candidate"
+    g["signed_by"] = ""
     g["follow_up_years"] = 5
     return g
 

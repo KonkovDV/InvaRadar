@@ -14,8 +14,10 @@ from .priority import add_priority
 
 CORE = core_binary()
 DEPOT_LONLAT = (37.6176, 55.7520)  # route start: centre of Moscow
+# `rank` follows `priority` (area still counts). The three queue ranks are separate columns, not the route.
 QUEUE_COLS = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "max_rank", "d_sensitive_m", "d_child_m",
-              "d_road_m", "d_rail_m", "d_water_m", "d_power_m"]
+              "d_road_m", "d_rail_m", "d_water_m", "d_power_m",
+              "safety_rank", "containment_rank", "programme_rank"]
 
 
 def load_context():

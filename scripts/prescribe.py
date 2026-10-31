@@ -33,13 +33,15 @@ H["inside_aoa"] = H["dissimilarity"] <= thr
 ov = DATA / "overture"
 layers = {k: gpd.read_parquet(ov / f"{k}.parquet") for k in ("water", "landuse", "places")}
 loc = ov / "settlements.parquet"
+# No Moscow/oblast boundary is loaded. `listed_species_act` therefore stays
+# "юрисдикция не определена"; 369-ПП is attached only when the caller passes `regions`.
 P = prescribe(H, a.taxon, layers["water"], layers["landuse"], layers["places"],
               gpd.read_parquet(loc) if loc.exists() else None)
 P.to_crs(4326).to_file(od / f"hotspots_prescribed_{a.year}.geojson", driver="GeoJSON")
 P.to_crs(4326).to_parquet(od / f"hotspots_prescribed_{a.year}.parquet", compression="zstd")
 cols = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "inside_aoa", "water_zone_m", "in_protected",
         "child_org_territory", "near_children", "d_child_m", "near_heritage", "in_settlement", "in_zso",
-        "jurisdiction", "listed_species_act", "status", "method", "legal_basis"]
+        "jurisdiction", "listed_species_act", "status", "signed_by", "follow_up_years", "method", "legal_basis"]
 P.sort_values("priority", ascending=False)[cols].head(200).round(3) \
     .to_csv(od / f"work_orders_top200_{a.year}.csv", index=False)
 

@@ -5,8 +5,9 @@ folds) and attaches 95 % intervals:
 
 * spatial CV — cluster bootstrap over the 5 km blocks (presences inside one block are not independent, so
   whole blocks are resampled; 2 000 replicates, percentile intervals);
-* forward-in-time test — Wilson score interval for a binomial proportion (the new reports are scattered across
-  the city and are at least 100 m from any earlier report).
+* forward-in-time test — Wilson score interval for a binomial proportion. The split is on observation
+  year only: both sides use one AlphaEarth year (the map year). A new report is at least 100 m from any
+  earlier report, while the feature vector still includes a 450 m window.
 
 Also reports the lift over random search (capture / area share) with the same intervals.
 usage: uncertainty.py heracleum

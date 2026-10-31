@@ -50,6 +50,7 @@ def test_no_digging_near_heritage(taxon):
     for r in orders(taxon):
         if flag(r["near_heritage"]):
             assert "ниже земли" not in r["method"] and "выборка корневищ" not in r["method"], r["rank"]
+            assert "корневой шейки" not in r["method"], r["rank"]
 
 
 @pytest.mark.parametrize("taxon", TAXA)

@@ -20,12 +20,12 @@ flowchart LR
     STR[стратифицированная выборка]
   end
   subgraph Python
-    TRAIN[LightGBM: блоки 5 км,<br/>тест во времени, ДИ]
+    TRAIN[LightGBM: блоки 5 км,<br/>год метки на снимке 2025, ДИ]
     PRI[приоритет]
     LAW[правила: ВК РФ, СанПиН, 73-ФЗ]
     AOA[область применимости]
     VER[классификатор фото]
-    UAV[модуль БПЛА:<br/>DINOv2 + классификатор, nDSM, полётное задание]
+    UAV[библиотека БПЛА:<br/>DINOv2, nDSM, полётное задание<br/>в наряд не пишется]
   end
   AEF --> MOS --> CTX --> INF
   OV --> EDT --> INF
@@ -37,9 +37,7 @@ flowchart LR
   HOT --> RT --> WO
   INF --> STR --> VAL[полевая выборка]
   TRAIN --> AOA
-  PH --> VER --> WO
-  UAV --> WO
-  WO -->|результат контроля| TRAIN
+  PH --> VER
 ```
 
 ## Почему так
@@ -61,7 +59,7 @@ flowchart LR
 | `invaradar/queue.py` | кандидаты на осмотр → очередь, порядок обхода по прямой (общий код `pipeline.py` и `requeue.py`) |
 | `invaradar/management.py` | водоохранные зоны и рецепты работ по ВК РФ, СанПиН 2.1.3684-21 и 73-ФЗ; длина реки по сети водотоков |
 | `invaradar/inat_api.py` | сообщения жителей в окне карты через API iNaturalist, если выгрузки нет на диске |
-| `invaradar/drone.py` | сегментация ортофотоплана (DINOv2 + линейный классификатор, индекс цветения, TorchScript), фильтр nDSM, полигоны, полётное задание |
+| `invaradar/drone.py` | библиотека: DINOv2, индекс цветения, TorchScript, фильтр nDSM, полигоны, полётное задание. Пайплайн наряда её не вызывает |
 | `scripts/drone_benchmark.py` | проверка модуля БПЛА на 263 реальных аэрофото, камера исключается из обучения |
 | `invaradar/style.py` | палитра и шрифты рисунков |
 | `scripts/fetch_aef_index.py`, `fetch_inat.py`, `fetch_dem.py`, `fetch_overture.py`, `prefetch_aef.py`, `prep_dem.py` | загрузка и подготовка открытых данных |

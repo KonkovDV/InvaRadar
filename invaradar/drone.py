@@ -1,5 +1,11 @@
 """UAV module: orthomosaic → per-pixel invasive-plant mask → georeferenced polygons → spot-spraying mission.
 
+This module is not called by the work-order pipeline (`scripts/pipeline.py`, `scripts/requeue.py`,
+`scripts/prescribe.py`). `DinoProbeSegmenter` and `spray_mission` do not write a method, a route, or a
+signature into a work order. The published ROC AUC is the leave-one-camera-out figure in
+`outputs/drone/benchmark.json`. The probe file saved for deployment is fit on all cameras. Tests in
+`tests/test_drone.py` exercise `BloomIndexSegmenter` on a synthetic image, not DINOv2.
+
 The segmentation backend is pluggable:
   * `BloomIndexSegmenter` — training-free baseline for the flowering window (Heracleum: white compound umbels,
     late June–July; Solidago: yellow panicles, August–September), the approach shown to work on ordinary RGB

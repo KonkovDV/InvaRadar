@@ -1,5 +1,6 @@
 <p align="center">
   <a href="https://konkovdv.github.io/InvaRadar/"><img alt="Hotspot map" src="https://img.shields.io/badge/map-GitHub_Pages-2F6B55?style=for-the-badge"></a>
+  <a href="https://github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4"><img alt="Project video" src="https://img.shields.io/badge/video-about_the_project-0F2A22?style=for-the-badge"></a>
   <a href="presentation/InvaRadar_Ecopremia2026_podacha.pdf"><img alt="Submission deck, PDF" src="https://img.shields.io/badge/submission-PDF%2C_10_pages-EC1C24?style=for-the-badge&logo=files&logoColor=white"></a>
   <a href="presentation/InvaRadar_Ecopremia2026.pdf"><img alt="Full deck, PDF" src="https://img.shields.io/badge/32_slides-PDF-B7472A?style=for-the-badge&logo=files&logoColor=white"></a>
 </p>
@@ -65,13 +66,15 @@ Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environm
 
 The 3,000 highest-priority stands of each species, with the method and the rule on click: [konkovdv.github.io/InvaRadar](https://konkovdv.github.io/InvaRadar/).
 
+Project video: [github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4](https://github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4).
+
 [![InvaRadar web map: priority hogweed stands coloured by control method](docs/assets/web_map.jpg)](https://konkovdv.github.io/InvaRadar/)
 
 <sub>Rust: mechanical only. Amber: ground spot treatment. Blue: drone spraying allowed. Basemap © OpenStreetMap contributors. The interface is in Russian.</sub>
 
 | You are | Read |
 |---|---|
-| A jury member | the [submission deck](presentation/InvaRadar_Ecopremia2026_podacha.pdf), the map, then "Numbers" and "Limits" below |
+| A jury member | the [project video](https://github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_video.mp4), the [submission deck](presentation/InvaRadar_Ecopremia2026_podacha.pdf), the map, then "Numbers" and "Limits" below |
 | A botanist or ecologist | the [science note](docs/SCIENCE.md), the [model card](docs/MODEL_CARD.md), the [experiment log](docs/EXPERIMENTS.md) (in Russian) |
 | A lawyer or inspector | [the law section](docs/SCIENCE.md#7-право), `invaradar/management.py`, `tests/test_legal_invariants.py` |
 | A GIS specialist | the [data card](docs/DATA_CARD.md), the `stac/` catalogue, `make release` |

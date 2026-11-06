@@ -36,7 +36,7 @@ S, X = S[ok].reset_index(drop=True), X[ok]
 XL = XL[~np.isnan(XL[:, 0])]
 y = S.label.to_numpy()
 xy = S[["x", "y"]].to_numpy()
-yr = S.year.fillna(0).to_numpy()
+yr = S.year.to_numpy()
 
 P = dict(objective="binary", learning_rate=0.05, num_leaves=15, min_child_samples=20, subsample=0.8,
          subsample_freq=1, colsample_bytree=0.5, reg_lambda=1.0, verbose=-1, n_jobs=4)

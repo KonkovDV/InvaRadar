@@ -78,7 +78,10 @@ def segments():
                         continue
                     c = (xy[:, 0] - w) / RES; r = (n - xy[:, 1]) / RES
                     q.append(np.c_[c[:-1], r[:-1], c[1:], r[1:]])
-            np.concatenate(q).astype("<f4").tofile(p)
+            if q:
+                np.concatenate(q).astype("<f4").tofile(p)
+            else:
+                p.write_bytes(b"")
         out.append(str(p))
     return out
 
@@ -103,7 +106,7 @@ F = np.fromfile(tmp / "pts.f32", "<f4").reshape(len(xy_all), -1)
 X, XL = F[:len(S)], F[len(S):]
 ok = ~np.isnan(X[:, 0]); S, X = S[ok].reset_index(drop=True), X[ok]
 XL = XL[~np.isnan(XL[:, 0])]
-y = S.label.to_numpy(); xy = S[["x", "y"]].to_numpy(); yr = S.year.fillna(0).to_numpy()
+y = S.label.to_numpy(); xy = S[["x", "y"]].to_numpy(); yr = S.year.to_numpy()
 log("samples", int(y.sum()), "presence /", int((y == 0).sum()), "background; features", X.shape[1])
 
 P = dict(objective="binary", learning_rate=0.05, num_leaves=15, min_child_samples=20, subsample=0.8,

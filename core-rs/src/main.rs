@@ -971,7 +971,11 @@ fn cmd_predict(a: &[String]) -> Result<()> {
     let g = read_grid(&a[0])?;
     let forest = load_forest(&a[1])?;
     let mut land = read_f64(&a[2])?;
-    land.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    land.retain(|v| v.is_finite());
+    if land.is_empty() {
+        anyhow::bail!("landscape scores are empty");
+    }
+    land.sort_by(|left, right| left.total_cmp(right));
     let ctx = build_context(&g)?;
     let t = Instant::now();
     let (h, w) = (g.height, g.width);

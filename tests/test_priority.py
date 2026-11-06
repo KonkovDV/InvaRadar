@@ -38,6 +38,19 @@ def test_playground_territory_counts_as_child_facility():
     assert with_lu.priority[0] > without.priority[0]
 
 
+def test_isolation_is_the_nearest_other_centroid():
+    g = gpd.GeoDataFrame(
+        {"mean_rank": [1, 1, 1], "area_m2": [100, 100, 100], "d_child_m": [1e9, 1e9, 1e9],
+         "exposure": [0, 0, 0], "spread": [0, 0, 0]},
+        geometry=[Point(0, 0), Point(300, 0), Point(300, 400)],
+        crs=CRS,
+    )
+    q = assign_queues(g)
+    assert q.isolation_m[0] == 300
+    assert q.isolation_m[1] == 300
+    assert q.isolation_m[2] == 400
+
+
 def test_safety_ignores_area_and_containment_prefers_a_small_isolated_stand():
     g = gpd.GeoDataFrame(
         {

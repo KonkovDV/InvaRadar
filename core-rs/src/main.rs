@@ -4,6 +4,8 @@
 //!   points   <grid.json> <points.f64> <out.f32>          features at UTM points (N x F, NaN row = no data)
 //!   predict  <grid.json> <model.json> <land.f64> <out.u8> wall-to-wall landscape-percentile map (x250, 255 = no data)
 //!   score    <grid.json> <model.json> <points.f64> <out.f64> raw GBDT scores at points (parity check vs LightGBM)
+//!   scoremap <grid.json> <model.json> <chk.f64> <chk.f64 out> <land.f64> <map.u8>
+//!            one context build for the parity scores and the map
 //!   hotspots <grid.json> <map.u8> <thr> <min_px> <labels.i32> <stats.csv>
 //!   route    <points.f64> <out.txt>                       open tour from the first point (NN + 2-opt)
 //!
@@ -145,11 +147,15 @@ fn mosaic(g: &Grid) -> Result<Vec<i8>> {
         rows.par_iter()
             .zip(mrows.into_par_iter())
             .for_each(|(&(br, _), row)| {
-                for c in c0..c1 {
-                    let bc = (c as i64 - left) as usize;
-                    let px = &mut row[c * B..(c + 1) * B];
-                    for b in 0..B {
-                        px[b] = d[(b * BLK + br) * BLK + bc] as i8;
+                // Same bytes as a per-pixel gather. Each band of this block row is contiguous
+                // in the npy, so read it in order and scatter into the interleaved mosaic.
+                let bc0 = (c0 as i64 - left) as usize;
+                let width = c1 - c0;
+                for b in 0..B {
+                    let base = (b * BLK + br) * BLK + bc0;
+                    let src = &d[base..base + width];
+                    for i in 0..width {
+                        row[(c0 + i) * B + b] = src[i] as i8;
                     }
                 }
             });
@@ -331,10 +337,7 @@ fn cached_terrain(dem: &str, g: &Grid) -> Result<Vec<f32>> {
         return read_f32(&cache);
     }
     let t = terrain(&read_f32(dem)?, g.height, g.width, g.res as f32);
-    write_bytes(
-        &cache,
-        &t.iter().flat_map(|v| v.to_le_bytes()).collect::<Vec<u8>>(),
-    )?;
+    write_bytes(&cache, f32_as_bytes(&t))?;
     Ok(t)
 }
 
@@ -439,9 +442,10 @@ fn build_context(g: &Grid) -> Result<Ctx> {
         "[core] multiscale context in {:.1}s",
         t.elapsed().as_secs_f32()
     );
+    // Five corridor layers, same order as the feature block. Parallel load does not reorder them.
     let dist = g
         .segments
-        .iter()
+        .par_iter()
         .map(|p| edt_cached(p, g.height, g.width, g.res as f32))
         .collect::<Result<Vec<_>>>()?;
     eprintln!(
@@ -533,10 +537,7 @@ impl Ctx {
 // ---------------------------------------------------------------- terrain & hydrology
 
 fn read_f32(p: &str) -> Result<Vec<f32>> {
-    let b = fs::read(p).with_context(|| p.to_string())?;
-    Ok(b.chunks_exact(4)
-        .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
-        .collect())
+    read_f32_exact(p, file_f32_len(p)?)
 }
 
 const NB8: [(i64, i64, f32); 8] = [
@@ -803,10 +804,14 @@ impl Forest {
 // ---------------------------------------------------------------- helpers
 
 fn read_f64(p: &str) -> Result<Vec<f64>> {
-    let b = fs::read(p).with_context(|| p.to_string())?;
-    Ok(b.chunks_exact(8)
-        .map(|c| f64::from_le_bytes(c.try_into().unwrap()))
-        .collect())
+    let mut f = fs::File::open(p).with_context(|| p.to_string())?;
+    let n = f.metadata().with_context(|| p.to_string())?.len();
+    if n % 8 != 0 {
+        bail!("{p}: length {n} is not a multiple of 8");
+    }
+    let mut v = vec![0f64; (n / 8) as usize];
+    std::io::Read::read_exact(&mut f, f64_as_bytes_mut(&mut v)).with_context(|| p.to_string())?;
+    Ok(v)
 }
 
 fn write_bytes(p: &str, b: &[u8]) -> Result<()> {
@@ -821,6 +826,43 @@ fn bytes_of_i8(v: &[i8]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len()) }
 }
 
+// Float caches are little-endian, which is the native layout of the x86-64 machines this core targets.
+const _: () = assert!(cfg!(target_endian = "little"));
+
+fn f32_as_bytes(v: &[f32]) -> &[u8] {
+    // SAFETY: f32 is 4 bytes, the slice is aligned, and the target is little-endian, so these
+    // bits are exactly what `to_le_bytes` would write.
+    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 4) }
+}
+
+fn f32_as_bytes_mut(v: &mut [f32]) -> &mut [u8] {
+    // SAFETY: same layout as `f32_as_bytes`; the caller fills every byte before reading the floats.
+    unsafe { std::slice::from_raw_parts_mut(v.as_mut_ptr().cast::<u8>(), v.len() * 4) }
+}
+
+fn f64_as_bytes(v: &[f64]) -> &[u8] {
+    // SAFETY: f64 is 8 bytes and the target is little-endian, matching `to_le_bytes`.
+    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 8) }
+}
+
+fn f64_as_bytes_mut(v: &mut [f64]) -> &mut [u8] {
+    // SAFETY: same layout as `f64_as_bytes`.
+    unsafe { std::slice::from_raw_parts_mut(v.as_mut_ptr().cast::<u8>(), v.len() * 8) }
+}
+
+fn i32_as_bytes(v: &[i32]) -> &[u8] {
+    // SAFETY: i32 is 4 bytes and the target is little-endian, matching `to_le_bytes`.
+    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 4) }
+}
+
+fn file_f32_len(path: &str) -> Result<usize> {
+    let n = fs::metadata(path).with_context(|| path.to_string())?.len();
+    if n % 4 != 0 {
+        bail!("{path}: length {n} is not a multiple of 4");
+    }
+    Ok((n / 4) as usize)
+}
+
 fn read_i8_exact(path: &str, n: usize) -> Result<Vec<i8>> {
     let mut f = fs::File::open(path).with_context(|| path.to_string())?;
     let mut m = vec![0i8; n];
@@ -833,13 +875,15 @@ fn read_i8_exact(path: &str, n: usize) -> Result<Vec<i8>> {
 }
 
 fn read_f32_exact(path: &str, n: usize) -> Result<Vec<f32>> {
-    let b = fs::read(path).with_context(|| path.to_string())?;
-    if b.len() != n * 4 {
-        bail!("{path}: expected {} bytes, got {}", n * 4, b.len());
+    let mut f = fs::File::open(path).with_context(|| path.to_string())?;
+    let got = f.metadata().with_context(|| path.to_string())?.len();
+    if got != (n * 4) as u64 {
+        bail!("{path}: expected {} bytes, got {got}", n * 4);
     }
-    Ok(b.chunks_exact(4)
-        .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
-        .collect())
+    let mut v = vec![0f32; n];
+    std::io::Read::read_exact(&mut f, f32_as_bytes_mut(&mut v))
+        .with_context(|| path.to_string())?;
+    Ok(v)
 }
 
 /// Identity of one input file: length and modification time. None if the file cannot be stamped.
@@ -903,8 +947,8 @@ fn cached_f32(
         }
     }
     let v = compute()?;
-    let bytes: Vec<u8> = v.iter().flat_map(|x| x.to_le_bytes()).collect();
-    match write_bytes(cache, &bytes).and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into))
+    match write_bytes(cache, f32_as_bytes(&v))
+        .and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into))
     {
         Ok(()) => {}
         Err(e) => eprintln!("[core] cache write skipped: {cache} ({e:#})"),
@@ -938,8 +982,7 @@ fn cmd_points(a: &[String]) -> Result<()> {
     let xy = read_f64(&a[1])?;
     let t = Instant::now();
     let f = points_features(&g, &ctx, &xy);
-    let bytes: Vec<u8> = f.iter().flat_map(|v| v.to_le_bytes()).collect();
-    write_bytes(&a[2], &bytes)?;
+    write_bytes(&a[2], f32_as_bytes(&f))?;
     eprintln!(
         "[core] {} point features ({} each) in {:.2}s",
         xy.len() / 2,
@@ -949,14 +992,9 @@ fn cmd_points(a: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn cmd_score(a: &[String]) -> Result<()> {
-    let g = read_grid(&a[0])?;
-    let forest = load_forest(&a[1])?;
-    let ctx = build_context(&g)?;
-    let xy = read_f64(&a[2])?;
-    let f = points_features(&g, &ctx, &xy);
-    let s: Vec<f64> = f
-        .par_chunks(F)
+fn score_xy(g: &Grid, ctx: &Ctx, forest: &Forest, xy: &[f64]) -> Vec<f64> {
+    let f = points_features(g, ctx, xy);
+    f.par_chunks(F)
         .map(|x| {
             if x[0].is_nan() {
                 f64::NAN
@@ -964,25 +1002,19 @@ fn cmd_score(a: &[String]) -> Result<()> {
                 forest.raw(x)
             }
         })
-        .collect();
-    write_bytes(
-        &a[3],
-        &s.iter().flat_map(|v| v.to_le_bytes()).collect::<Vec<u8>>(),
-    )?;
+        .collect()
+}
+
+fn sorted_landscape(land: &mut Vec<f64>) -> Result<()> {
+    land.retain(|v| v.is_finite());
+    if land.is_empty() {
+        bail!("landscape scores are empty");
+    }
+    land.sort_by(|left, right| left.total_cmp(right));
     Ok(())
 }
 
-fn cmd_predict(a: &[String]) -> Result<()> {
-    let g = read_grid(&a[0])?;
-    let forest = load_forest(&a[1])?;
-    let mut land = read_f64(&a[2])?;
-    land.retain(|v| v.is_finite());
-    if land.is_empty() {
-        anyhow::bail!("landscape scores are empty");
-    }
-    land.sort_by(|left, right| left.total_cmp(right));
-    let ctx = build_context(&g)?;
-    let t = Instant::now();
+fn predict_ranks(g: &Grid, ctx: &Ctx, forest: &Forest, land: &[f64]) -> Vec<u8> {
     let (h, w) = (g.height, g.width);
     let mut out = vec![255u8; h * w];
     out.par_chunks_mut(w).enumerate().for_each(|(r, orow)| {
@@ -1007,15 +1039,67 @@ fn cmd_predict(a: &[String]) -> Result<()> {
                 continue;
             }
             let s = forest.raw(&feat);
-            let rank = land.partition_point(|&v| v < s) as f64 / land.len() as f64;
-            orow[c] = (rank * 250.0).round() as u8;
+            orow[c] = (landscape_rank(land, s) * 250.0).round() as u8;
         }
     });
+    out
+}
+
+fn cmd_score(a: &[String]) -> Result<()> {
+    let g = read_grid(&a[0])?;
+    let forest = load_forest(&a[1])?;
+    let ctx = build_context(&g)?;
+    let xy = read_f64(&a[2])?;
+    let s = score_xy(&g, &ctx, &forest, &xy);
+    write_bytes(&a[3], f64_as_bytes(&s))?;
+    Ok(())
+}
+
+/// Fraction of a sorted reference strictly below `score`. A tie takes the lower rank.
+fn landscape_rank(sorted: &[f64], score: f64) -> f64 {
+    sorted.partition_point(|&v| v < score) as f64 / sorted.len() as f64
+}
+
+/// Hotspot byte. 0.98 of the landscape is byte 245.
+fn hotspot_byte(percentile: f64) -> u8 {
+    (percentile * 250.0).ceil() as u8
+}
+
+fn cmd_predict(a: &[String]) -> Result<()> {
+    let g = read_grid(&a[0])?;
+    let forest = load_forest(&a[1])?;
+    let mut land = read_f64(&a[2])?;
+    sorted_landscape(&mut land)?;
+    let ctx = build_context(&g)?;
+    let t = Instant::now();
+    let (h, w) = (g.height, g.width);
+    let out = predict_ranks(&g, &ctx, &forest, &land);
     write_bytes(&a[3], &out)?;
     eprintln!(
         "[core] predicted {} px with {} trees in {:.1}s",
         h * w,
         forest.roots.len(),
+        t.elapsed().as_secs_f32()
+    );
+    Ok(())
+}
+
+fn cmd_scoremap(a: &[String]) -> Result<()> {
+    let g = read_grid(&a[0])?;
+    let forest = load_forest(&a[1])?;
+    let ctx = build_context(&g)?;
+    let xy = read_f64(&a[2])?;
+    let scores = score_xy(&g, &ctx, &forest, &xy);
+    write_bytes(&a[3], f64_as_bytes(&scores))?;
+    let mut land = read_f64(&a[4])?;
+    sorted_landscape(&mut land)?;
+    let t = Instant::now();
+    let out = predict_ranks(&g, &ctx, &forest, &land);
+    write_bytes(&a[5], &out)?;
+    eprintln!(
+        "[core] scoremap {} check points and {} px in {:.1}s",
+        xy.len() / 2,
+        g.height * g.width,
         t.elapsed().as_secs_f32()
     );
     Ok(())
@@ -1027,7 +1111,7 @@ fn cmd_hotspots(a: &[String]) -> Result<()> {
     let thr: f64 = a[2].parse()?;
     let min_px: usize = a[3].parse()?;
     let (h, w) = (g.height, g.width);
-    let t8 = (thr * 250.0).ceil() as u8;
+    let t8 = hotspot_byte(thr);
     let hot = |i: usize| map[i] != 255 && map[i] >= t8;
     // union-find, 8-connectivity
     let mut parent: Vec<u32> = (0..(h * w) as u32).collect();
@@ -1118,16 +1202,17 @@ fn cmd_hotspots(a: &[String]) -> Result<()> {
     for (root, id) in &ids {
         label_of[*root as usize] = *id;
     }
-    let mut labels = std::io::BufWriter::new(fs::File::create(&a[4])?);
-    for r in &root_of {
-        let v = if *r == u32::MAX {
-            0
-        } else {
-            label_of[*r as usize]
-        };
-        labels.write_all(&v.to_le_bytes())?;
-    }
-    labels.flush()?;
+    let packed: Vec<i32> = root_of
+        .iter()
+        .map(|r| {
+            if *r == u32::MAX {
+                0
+            } else {
+                label_of[*r as usize]
+            }
+        })
+        .collect();
+    fs::File::create(&a[4])?.write_all(i32_as_bytes(&packed))?;
     let mut f = fs::File::create(&a[5])?;
     writeln!(f, "hid,n_px,mean_rank,max_rank,cx,cy")?;
     for (k, s) in &keep {
@@ -1267,13 +1352,14 @@ fn cmd_route(a: &[String]) -> Result<()> {
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        bail!("usage: invaradar_core <points|predict|score|hotspots|route|strata> ...");
+        bail!("usage: invaradar_core <points|predict|score|scoremap|hotspots|route|strata> ...");
     }
     let t = Instant::now();
     let r = match args[1].as_str() {
         "points" => cmd_points(&args[2..]),
         "predict" => cmd_predict(&args[2..]),
         "score" => cmd_score(&args[2..]),
+        "scoremap" => cmd_scoremap(&args[2..]),
         "hotspots" => cmd_hotspots(&args[2..]),
         "route" => cmd_route(&args[2..]),
         "strata" => cmd_strata(&args[2..]),
@@ -1296,6 +1382,41 @@ mod tests {
         *seed ^= *seed >> 7;
         *seed ^= *seed << 17;
         (*seed >> 11) as f64 / (1u64 << 53) as f64
+    }
+
+    #[test]
+    fn float_files_keep_every_bit_including_nan_and_signed_zero() {
+        let dir = std::env::temp_dir();
+        let p32 = dir.join("invaradar_f32_rt.bin");
+        let p64 = dir.join("invaradar_f64_rt.bin");
+        let v32 = [0.0f32, -0.0, 1.5, f32::NAN, f32::MIN_POSITIVE, -12.25];
+        write_bytes(p32.to_str().unwrap(), f32_as_bytes(&v32)).unwrap();
+        let back = read_f32_exact(p32.to_str().unwrap(), v32.len()).unwrap();
+        for (a, b) in v32.iter().zip(&back) {
+            assert_eq!(a.to_bits(), b.to_bits());
+        }
+        assert!(read_f32_exact(p32.to_str().unwrap(), v32.len() + 1).is_err());
+        let v64 = [0.0f64, -0.0, 1.5, f64::NAN, 1.1102230246251565e-15];
+        write_bytes(p64.to_str().unwrap(), f64_as_bytes(&v64)).unwrap();
+        let back = read_f64(p64.to_str().unwrap()).unwrap();
+        for (a, b) in v64.iter().zip(&back) {
+            assert_eq!(a.to_bits(), b.to_bits());
+        }
+        let packed = [0i32, 1, -2, i32::MIN];
+        let mut expect = Vec::new();
+        for v in packed {
+            expect.extend(v.to_le_bytes());
+        }
+        assert_eq!(i32_as_bytes(&packed), expect.as_slice());
+    }
+
+    #[test]
+    fn landscape_rank_counts_values_strictly_below_and_the_hotspot_byte_is_245() {
+        let land = [0.1_f64, 0.2, 0.2, 0.9];
+        assert!((landscape_rank(&land, 0.2) - 0.25).abs() < 1e-12);
+        assert!((landscape_rank(&land, 0.9) - 0.75).abs() < 1e-12);
+        assert!((landscape_rank(&land, 1.0) - 1.0).abs() < 1e-12);
+        assert_eq!(hotspot_byte(0.98), 245);
     }
 
     #[test]

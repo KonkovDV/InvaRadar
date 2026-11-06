@@ -56,6 +56,7 @@ from shapely.geometry import box
 
 from .layers import child_facilities, child_organisations, settlements
 from .legal import listed_act
+from .priority import SAFETY_CHILD_M
 
 CHILD_M = 100.0
 AERIAL_UAV_M = 700.0          # СанПиН 2.1.3684-21 item 282 for unmanned aircraft systems (since 10.03.2026)
@@ -278,20 +279,21 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
         if r.child_org_territory:
             b.append("СанПиН 2.1.3684-21 п. 273: территория детской организации, пестициды запрещены")
         elif r.near_children:
-            b.append("дети ≤100 м: без пестицидов (правило осторожности системы); "
+            b.append(f"дети ≤{CHILD_M:.0f} м: без пестицидов (правило осторожности системы); "
                      "ранг очереди безопасности отдельный, порядок объезда — по общему баллу")
         if r.in_zso:
             b.append("зона санитарной охраны водозабора: пестициды запрещены, пока режим пояса не уточнён по акту ЗСО")
         if r.in_protected:
             b.append("ООПТ / парк: только механические методы")
         if chem_ok and not aerial_ok:
-            where = "в населённом пункте" if r.in_settlement else "ближе 700 м к жилью, водоёму или ООПТ"
+            where = "в населённом пункте" if r.in_settlement else (
+                f"ближе {AERIAL_UAV_M:.0f} м к жилью, водоёму со статусной зоной или ООПТ")
             b.append(f"СанПиН 2.1.3684-21 п. 282, 273: {where} обработка с дрона запрещена, только наземная")
         if chem_ok and r.in_settlement:
             b.append("СанПиН 2.1.3684-21 п. 273: очаговая обработка в населённом пункте до 7:00 или после 22:00, "
                      "в безветренную погоду")
         if r.near_heritage:
-            b.append("73-ФЗ ст. 36: земляные работы на объекте наследия требуют согласования; 50 м — правило осторожности системы, в законе этого расстояния нет")
+            b.append(f"73-ФЗ ст. 36: земляные работы на объекте наследия требуют согласования; {HERITAGE_M:.0f} м — правило осторожности системы, в законе этого расстояния нет")
         chem_tail = ("препарат только из Государственного каталога, с регламентом для несельскохозяйственных земель; "
                      "норма, кратность и срок выхода людей — по регламенту; оповещение владельцев пасек в радиусе 7 км "
                      "(ст. 16 490-ФЗ); ")
@@ -315,7 +317,7 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
             m += ppe + "; наблюдение 5 сезонов"
             if aerial_ok:
                 m = ("точечное опрыскивание с дрона по контурам, если регламент препарата допускает БАС, есть "
-                     "разрешение на использование воздушного пространства и люди с животными не ближе 700 м; "
+                     f"разрешение на использование воздушного пространства и люди с животными не ближе {AERIAL_UAV_M:.0f} м; "
                      + chem_tail + m)
             elif chem_ok:
                 m = ground + m
@@ -325,7 +327,7 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
                 m += "; выборка корневищ на малых куртинах"
             if aerial_ok:
                 m = ("точечная обработка по контурам (с дрона — только при допуске БАС в регламенте, разрешении "
-                     "на использование воздушного пространства и дистанции 700 м до людей и животных); " + chem_tail + m)
+                     f"на использование воздушного пространства и дистанции {AERIAL_UAV_M:.0f} м до людей и животных); " + chem_tail + m)
             elif chem_ok:
                 m = "при необходимости " + ground + m
         methods.append(m + "; осмотр до работ: уничтожение только после подтверждения вида")
@@ -340,10 +342,29 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
     return g
 
 
+def method_class(text: str) -> str:
+    """One label for an order: drone, ground or mechanical.
+
+    The web map and the published counts both use this, so a phrase change cannot
+    put a stand in two classes or in different classes on the two surfaces.
+    """
+    wording = str(text)
+    drone = "с дрона" in wording
+    ground = "наземная точечная" in wording
+    if drone and ground:
+        raise ValueError("an order cannot name both a drone spray and a ground spray")
+    if drone:
+        return "drone"
+    if ground:
+        return "ground"
+    return "mechanical"
+
+
 def summarize(P: gpd.GeoDataFrame) -> dict:
     """Counts for the report and the deck; every hotspot falls into exactly one of the three method classes."""
-    drone = P.method.str.contains("с дрона")
-    ground = P.method.str.contains("наземная точечная")
+    classes = P.method.map(method_class)
+    drone = classes.eq("drone")
+    ground = classes.eq("ground")
     chem_ok = ~(P.in_water_zone | P.in_protected | P.near_children)
     if "in_zso" in P.columns:
         chem_ok = chem_ok & ~P.in_zso
@@ -368,7 +389,7 @@ def summarize(P: gpd.GeoDataFrame) -> dict:
     if "inside_aoa" in P:
         out["share_hotspots_inside_aoa"] = round(float(P.inside_aoa.mean()), 3)
     if "d_child_m" in P:
-        out["near_children_300m"] = int((P.d_child_m <= 300).sum())
+        out["near_children_300m"] = int((P.d_child_m <= SAFETY_CHILD_M).sum())
     assert out["drone_spraying_allowed"] + out["ground_spot_treatment"] + out["mechanical_only"] == len(P)
     return out
 

@@ -17,12 +17,20 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import lightgbm as lgb
 import numpy as np
 
 from invaradar.config import OUT, TAXA
+from invaradar.model import fit_map
 from invaradar.samples import build, load_obs, plant_taxa
-from invaradar.splits import block_groups, iter_spatial_folds, landscape_percentile, temporal_sets
+from invaradar.splits import (
+    CAPTURE_LEVELS,
+    above_area_share,
+    block_groups,
+    iter_spatial_folds,
+    landscape_percentile,
+    read_rank_cache,
+    temporal_sets,
+)
 
 taxon = sys.argv[1]
 od = OUT / taxon
@@ -38,28 +46,22 @@ y = S.label.to_numpy()
 xy = S[["x", "y"]].to_numpy()
 yr = S.year.to_numpy()
 
-P = dict(objective="binary", learning_rate=0.05, num_leaves=15, min_child_samples=20, subsample=0.8,
-         subsample_freq=1, colsample_bytree=0.5, reg_lambda=1.0, verbose=-1, n_jobs=4)
-
-
-def fit(Xt, yt):
-    return lgb.train({**P, "scale_pos_weight": (yt == 0).sum() / max(yt.sum(), 1)}, lgb.Dataset(Xt, yt), 300)
-
-
-KS = (1, 5, 10, 20)
+KS = CAPTURE_LEVELS
 groups = block_groups(xy)
-rk = np.full(len(y), np.nan)
-for tr, te in iter_spatial_folds(xy, y):
-    if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
-        continue
-    m = fit(X[tr], y[tr])
-    land = np.sort(m.predict(XL, raw_score=True))
-    rk[te] = landscape_percentile(land, m.predict(X[te], raw_score=True))
+rk = read_rank_cache(tmp / "oof_rank.f64", len(y), tmp / "pts.f32")
+if rk is None:
+    rk = np.full(len(y), np.nan)
+    for tr, te in iter_spatial_folds(xy, y):
+        if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
+            continue
+        m = fit_map(X[tr], y[tr])
+        land = np.sort(m.predict(XL, raw_score=True))
+        rk[te] = landscape_percentile(land, m.predict(X[te], raw_score=True))
 
 pos = (y == 1) & np.isfinite(rk)
 r_pos, g_pos = rk[pos], groups[pos]
 blocks, inv = np.unique(g_pos, return_inverse=True)
-hits = {k: np.bincount(inv, weights=(r_pos >= 1 - k / 100), minlength=len(blocks)) for k in KS}
+hits = {k: np.bincount(inv, weights=above_area_share(r_pos, k).astype(float), minlength=len(blocks)) for k in KS}
 cnt = np.bincount(inv, minlength=len(blocks))
 rng = np.random.default_rng(20261029)
 boot = {k: [] for k in KS}
@@ -85,9 +87,11 @@ out = {"taxon": taxon, "n_presence": int((y == 1).sum()), "n_scored": int(pos.su
 tr, new, _te_bg = temporal_sets(xy, y, yr)
 if len(new) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
     raise SystemExit("temporal split has no new presences or no training class")
-m = fit(X[tr], y[tr])
-land = np.sort(m.predict(XL, raw_score=True))
-r_new = landscape_percentile(land, m.predict(X[new], raw_score=True))
+r_new = read_rank_cache(tmp / "temporal_rank.f64", len(new), tmp / "pts.f32")
+if r_new is None:
+    m = fit_map(X[tr], y[tr])
+    land = np.sort(m.predict(XL, raw_score=True))
+    r_new = landscape_percentile(land, m.predict(X[new], raw_score=True))
 
 
 def wilson(x, n, z=1.959964):
@@ -97,8 +101,8 @@ def wilson(x, n, z=1.959964):
     return c - h, c + h
 
 
-out["temporal_test"] = {f"capture@{k}%area": ci((r_new >= 1 - k / 100).mean(),
-                                                 *wilson((r_new >= 1 - k / 100).sum(), len(r_new)), k)
+out["temporal_test"] = {f"capture@{k}%area": ci(above_area_share(r_new, k).mean(),
+                                                 *wilson(above_area_share(r_new, k).sum(), len(r_new)), k)
                         for k in KS}
 n_cand = int(((yr >= 2025) & (y == 1)).sum())
 out["temporal_test"]["n_new_candidates"] = n_cand

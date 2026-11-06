@@ -14,7 +14,7 @@ import pandas as pd
 from pyproj import Transformer
 
 from .config import EPSG
-from .samples import MAX_ACC
+from .samples import MAX_ACC, study_pixel
 
 API = "https://api.inaturalist.org/v1/observations"
 
@@ -43,5 +43,6 @@ def reports_in_window(taxon_ids, ext_utm, d2: str | None = None) -> pd.DataFrame
     d = pd.DataFrame(rows, columns=["lon", "lat", "observed_on"])
     x, y = Transformer.from_crs(4326, EPSG, always_xy=True).transform(d.lon.to_numpy(), d.lat.to_numpy())
     d = d.assign(x=x, y=y)
-    d = d.assign(px=(d.x // 10).astype("int64"), py=(d.y // 10).astype("int64")).drop_duplicates(["px", "py"])
+    px, py = study_pixel(d.x.to_numpy(), d.y.to_numpy())
+    d = d.assign(px=px, py=py).drop_duplicates(["px", "py"])
     return d[["x", "y", "observed_on"]].reset_index(drop=True)

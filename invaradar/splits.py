@@ -15,6 +15,8 @@ different folds. The ring is wider than the 450 m feature window.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 from scipy.spatial import cKDTree
 
@@ -133,6 +135,23 @@ def iter_spatial_folds(xy: np.ndarray, y: np.ndarray, n_splits: int = 5, block_m
         yield prepare_fold(xy, y, train, test, purge_m, clear_m)
 
 
+CAPTURE_LEVELS = (1, 5, 10, 20)
+
+
+def above_area_share(ranks, percent: float) -> np.ndarray:
+    """True where a finite landscape percentile falls in the top `percent` of area."""
+    return np.isfinite(ranks) & (np.asarray(ranks, dtype=float) >= 1 - percent / 100)
+
+
+def capture_rates(ranks, levels=CAPTURE_LEVELS) -> dict:
+    """Share of finite ranks in the top 1, 5, 10 and 20 percent of the map."""
+    finite = np.asarray(ranks, dtype=float)
+    finite = finite[np.isfinite(finite)]
+    if len(finite) == 0:
+        return {f"capture@{k}%area": None for k in levels}
+    return {f"capture@{k}%area": float(above_area_share(finite, k).mean()) for k in levels}
+
+
 def landscape_percentile(reference, scores) -> np.ndarray:
     """Share of a sorted reference strictly below each score.
 
@@ -224,3 +243,26 @@ def temporal_sets(xy: np.ndarray, y: np.ndarray, year: np.ndarray,
     te_bg = te_bg[_farther_than(xy[te_bg], xy[y == 1], clear_m)] if len(te_bg) else te_bg
     te_bg = te_bg[_farther_than(xy[te_bg], xy[old_pos], purge_m)] if len(te_bg) else te_bg
     return train, new, te_bg
+
+
+def read_rank_cache(path, n: int, newer_than=None) -> np.ndarray | None:
+    """Little-endian f64 ranks written by pipeline.py.
+
+    None if the file is missing, a different length, or older than `newer_than` (the feature dump).
+    Uncertainty then fits the forest itself.
+    """
+    p = Path(path)
+    try:
+        rk = np.fromfile(p, "<f8")
+    except OSError:
+        return None
+    if rk.shape != (int(n),):
+        return None
+    if newer_than is not None:
+        src = Path(newer_than)
+        try:
+            if src.is_file() and src.stat().st_mtime > p.stat().st_mtime:
+                return None
+        except OSError:
+            return None
+    return rk

@@ -8,11 +8,16 @@ from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
+from scipy.spatial import cKDTree
 
 from .layers import child_facilities
 
 HOT_PCT = 0.98         # pixel must outrank 98 % of the study area
 MIN_PX = 4             # >= 400 m^2
+SAFETY_CHILD_M = 300.0          # safety queue; the pesticide ban is management.CHILD_M (100 m)
+CONTAINMENT_MAX_M2 = 10_000.0   # at most 1 ha
+CONTAINMENT_GAP_M = 500.0       # away from the nearest other stand
+PROGRAMME_MIN_M2 = 10_000.0     # at least 1 ha
 SENSITIVE = {"preschool", "place_of_learning", "education", "specialty_school", "college_university", "hospital",
              "health_care", "outpatient_care_facility", "park", "playground", "sport_or_fitness_facility",
              "sports_and_recreation", "social_or_community_service", "campground", "beach"}
@@ -89,19 +94,20 @@ def assign_queues(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     if n == 1:
         isolation = np.array([np.inf])
     else:
-        isolation = np.empty(n)
-        for i, centre in enumerate(cents):
-            isolation[i] = cents.drop(cents.index[i]).distance(centre).min()
+        # Nearest other centroid. The second neighbour is the first that is not the point itself.
+        xy = np.column_stack([cents.x.to_numpy(), cents.y.to_numpy()])
+        isolation = cKDTree(xy).query(xy, k=2)[0][:, 1]
     g["isolation_m"] = isolation
     exposure = g["exposure"].to_numpy() if "exposure" in g else np.ones(n)
     spread = g["spread"].to_numpy() if "spread" in g else np.ones(n)
     mean_rank = g["mean_rank"].to_numpy()
     child = g["d_child_m"].to_numpy() if "d_child_m" in g else np.full(n, np.inf)
     area = g["area_m2"].to_numpy()
-    g["safety_score"] = np.where(child <= 300.0, mean_rank * exposure, 0.0)
-    isolated = (area <= 10_000.0) & (isolation >= 500.0)
-    g["containment_score"] = np.where(isolated, mean_rank * spread * np.clip(isolation / 500.0, 0.0, 5.0), 0.0)
-    g["programme_score"] = np.where(area >= 10_000.0, exposure, 0.0)
+    g["safety_score"] = np.where(child <= SAFETY_CHILD_M, mean_rank * exposure, 0.0)
+    isolated = (area <= CONTAINMENT_MAX_M2) & (isolation >= CONTAINMENT_GAP_M)
+    g["containment_score"] = np.where(
+        isolated, mean_rank * spread * np.clip(isolation / CONTAINMENT_GAP_M, 0.0, 5.0), 0.0)
+    g["programme_score"] = np.where(area >= PROGRAMME_MIN_M2, exposure, 0.0)
     g["safety_rank"] = _rank_positive(g["safety_score"].to_numpy())
     g["containment_rank"] = _rank_positive(g["containment_score"].to_numpy())
     g["programme_rank"] = _rank_positive(g["programme_score"].to_numpy())

@@ -97,7 +97,7 @@ A 65 × 65 km window, 4,225 km², 10 m cells. It covers Moscow and the inner bel
 
 Intervals are a bootstrap over 5 km blocks, 2,000 replicates, and a Wilson interval for the year split. A random search finds a share of reports equal to the share of area it covers.
 
-The labels are residents' points with up to 50 m of coordinate error, often a plant smaller than the pixel. The measure is the share of known points in the upper part of the map. Hogweed points with a second research-grade observer within 30 m fall in the top 10% of area 31.6% of the time (n = 133), from a separate run in `scripts/exp_labels.py` (3 folds, 150 trees). The deployed model uses 5 folds and 300 trees. The figure is in `outputs/heracleum/exp_labels.json`.
+The labels are residents' points with up to 50 m of coordinate error, often a plant smaller than the pixel. The measure is the share of known points in the upper part of the map. Hogweed points with a second research-grade observer within 30 m fall in the top 10% of area 39.1% of the time (n = 133), from a separate run in `scripts/exp_labels.py` (3 folds, 150 trees, the same L2 penalty as the map). The deployed model uses 5 folds and 300 trees. The figure is in `outputs/heracleum/exp_labels.json`.
 
 Drone module, 263 aerial photos: the probe does not train on the camera that took the frame. At the scouting setting Dice is 0.71 and hogweed is found on 216 of 251 frames. For area counts the max F1 setting gives Dice 0.66. Per-camera numbers are in the [experiment log](docs/EXPERIMENTS.md). The frames are not in this repository.
 
@@ -175,7 +175,7 @@ InvaRadar computes the map, the visit queue and a draft work order. The city env
 | Area | Now | Next |
 |---|---|---|
 | Field check | 250 points laid out over four rank strata | the walk in the 2027 pilot |
-| Water-protection zones | river length from the network inside the window, a lower bound; queues and map are the 6 November 2026 run | boundaries from the State Water Register; rerun with `make requeue` |
+| Water-protection zones | river length inside the window is a lower bound; a ditch is a 50 m caution and is not the 700 m aerial buffer; queues and map are the 6 November 2026 run | boundaries from the State Water Register; rerun with `make requeue` |
 | Protected areas | parks, natural monuments and reserves from Overture | the official protected-area layer |
 | Drone | 263 spring frames from Skoltech: leaves and rosettes | summer flights over Moscow under a city contract, a bloom index |
 | Follow-up | a revisit date in the order | an image after the work, feeding the next season's labels |
@@ -189,7 +189,7 @@ InvaRadar computes the map, the visit queue and a draft work order. The city env
 |---|---|---|
 | How to read the top 10% | It is the share of known points inside 10% of the area, on districts the model never saw: 2.3 times a random search for hogweed and 3.3 times for goldenrod | [model card](docs/MODEL_CARD.md) |
 | What AUC shows | AUC measures how a report separates from background over the whole area. A crew uses the top of the queue, where reports are denser than in a random walk of the same area | [experiment log](docs/EXPERIMENTS.md) |
-| Can a drone spray in Moscow? | Inside a settlement only ground equipment is allowed, and a pesticide drone must stay 700 m from housing, water and protected areas. In this run that leaves 154 and 125 stands, all outside settlements | [law](docs/SCIENCE.md#7-право) |
+| Can a drone spray in Moscow? | Inside a settlement only ground equipment is allowed, and a pesticide drone must stay 700 m from housing, a water body with a statutory zone, and protected areas. A ditch is not that buffer. In this run that leaves 170 and 149 stands, all outside settlements | [law](docs/SCIENCE.md#7-право) |
 | Does the AI issue fines? | No. The map is a risk indicator. The order is a draft with an empty signer field. An inspector writes any protocol under art. 8.7 | [model card](docs/MODEL_CARD.md) |
 | Why terrain for hogweed only? | The rule was set before the comparison. Terrain raised the share of new hogweed reports and lowered it for goldenrod | [experiment log](docs/EXPERIMENTS.md) |
 | Why is *H. mantegazzianum* in the hogweed labels? | In central Russia records under that name on iNaturalist are almost always Sosnowsky's hogweed. Dropping them would drop real stands | [model card](docs/MODEL_CARD.md) |
@@ -205,7 +205,7 @@ Python 3.11+ and Rust. A full run downloads about 9 GB of open data: AlphaEarth 
 ```bash
 git clone https://github.com/KonkovDV/InvaRadar && cd InvaRadar
 pip install -e ".[dev]"
-make core test    # 6 Rust tests and 53 Python tests; 12 of them check the law on the orders and the map
+make core test    # 9 Rust tests and 69 Python tests; 16 of them check the law on the orders and the map
 make all          # data, both species, terrain variants, intervals, figures
 ```
 
@@ -213,7 +213,7 @@ Without make, Windows included: `cargo test --release` inside `core-rs`, then `p
 
 | Command | What it does |
 |---|---|
-| `make requeue` | rebuilds queues and work orders after a change to rules or layers, without retraining |
+| `make requeue` | rebuilds queues, work orders and the web map after a change to rules or layers, without retraining |
 | `make drone` | the drone benchmark on the Skoltech set (`pip install -e ".[drone]"`, the set cloned next to the repository) |
 | `make release` | wall-to-wall 10 m maps (COG), stand GeoParquet, the STAC catalogue and `SHA256SUMS` in `dist/release/` |
 | `make deck` | both decks from `outputs/*.json` |

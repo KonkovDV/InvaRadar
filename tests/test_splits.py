@@ -1,19 +1,97 @@
 """The check must sit outside the feature window, and a test plant must not edit the training set."""
+import json
+import os
+
 import numpy as np
 import pandas as pd
 from pyproj import Transformer
 
-from invaradar.samples import build
+from invaradar.config import OUT
+from invaradar.samples import CLEAR_M, build
 from invaradar.splits import (
+    BLOCK_M,
+    CAPTURE_LEVELS,
     PURGE_M,
+    WINDOW_M,
     boyce_index,
     boyce_ratios,
     iter_spatial_folds,
     landscape_percentile,
     prepare_fold,
     presence_spacing,
+    read_rank_cache,
     temporal_sets,
 )
+
+
+def test_a_rank_cache_is_used_only_when_it_matches_this_sample(tmp_path):
+    p = tmp_path / "rk.f64"
+    assert read_rank_cache(p, 3) is None
+    np.array([0.1, np.nan, -0.0], "<f8").tofile(p)
+    got = read_rank_cache(p, 3)
+    assert got is not None and got[0] == 0.1 and np.isnan(got[1]) and np.signbit(got[2])
+    assert read_rank_cache(p, 2) is None
+    newer = tmp_path / "pts.f32"
+    newer.write_bytes(b"x")
+    # The feature dump is newer than the ranks, so the ranks belong to an older run.
+    os.utime(newer, (p.stat().st_mtime + 10, p.stat().st_mtime + 10))
+    assert read_rank_cache(p, 3, newer) is None
+
+
+def test_the_southern_edge_of_a_cell_belongs_to_the_cell_south_of_it():
+    from invaradar.config import STUDY_BOX
+    from invaradar.samples import study_pixel
+    west, _south, _east, north = STUDY_BOX
+    _col, row_inside = study_pixel(west + 5, north - 5)
+    _col, row_edge = study_pixel(west + 5, north - 10)
+    _col, row_south = study_pixel(west + 5, north - 10 - 1e-6)
+    assert int(row_inside) == 0 and int(row_edge) == 1 and int(row_south) == 1
+
+
+def test_one_forest_serves_the_map_and_the_intervals_and_capture_is_the_top_share():
+    from invaradar.model import MAP_PARAMS, MAP_TREES
+    from invaradar.splits import capture_rates
+    assert MAP_TREES == 300 and MAP_PARAMS["learning_rate"] == 0.05 and MAP_PARAMS["num_leaves"] == 15
+    rates = capture_rates([0.5, 0.99, np.nan])
+    assert rates["capture@1%area"] == 0.5 and rates["capture@10%area"] == 0.5
+    assert capture_rates([])["capture@10%area"] is None
+
+
+def test_the_published_map_uses_this_protocol_and_the_top_bin_is_the_capture():
+    for taxon in ("heracleum", "solidago"):
+        metrics = json.loads((OUT / taxon / "metrics.json").read_text(encoding="utf-8"))
+        protocol = metrics["protocol"]
+        assert protocol["block_m"] == BLOCK_M
+        assert protocol["purge_m"] == PURGE_M
+        assert protocol["window_m"] == WINDOW_M
+        assert protocol["clear_m"] == CLEAR_M
+        assert PURGE_M > WINDOW_M
+        capture = metrics["spatial_cv"]["capture@10%area"]
+        top_bin = metrics["spatial_cv"]["boyce_ratio"][-1]
+        assert top_bin == round(capture / 0.10, 3)
+
+
+def test_the_interval_file_is_the_same_run_as_the_map():
+    for taxon in ("heracleum", "solidago"):
+        metrics = json.loads((OUT / taxon / "metrics.json").read_text(encoding="utf-8"))
+        intervals = json.loads((OUT / taxon / "uncertainty.json").read_text(encoding="utf-8"))
+        assert intervals["n_presence"] == metrics["samples"]["presence"]
+        temporal = metrics["temporal_test"]
+        assert temporal["n_new_presence"] + temporal["n_new_inside_ring"] == temporal["n_new_candidates"]
+        for key in ("n_new_presence", "n_new_candidates", "n_new_inside_ring"):
+            assert intervals["temporal_test"][key] == temporal[key]
+        ratios = metrics["spatial_cv"]["boyce_ratio"]
+        assert abs(sum(ratios) - 10) < 0.01
+        assert abs(sum(metrics["importance_share"].values()) - 1) < 0.01
+        if metrics["terrain"]:
+            assert metrics["importance_share"]["terrain"] > 0
+        else:
+            assert metrics["importance_share"]["terrain"] == 0
+        for k in CAPTURE_LEVELS:
+            for block in ("spatial_cv", "temporal_test"):
+                published = intervals[block][f"capture@{k}%area"]
+                assert published["estimate"] == round(metrics[block][f"capture@{k}%area"], 4)
+                assert published["lift"] == round(published["estimate"] / (k / 100), 2)
 
 
 def test_a_missing_score_is_not_reported_as_the_top_of_the_map():

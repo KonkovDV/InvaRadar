@@ -11,7 +11,8 @@ from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
 
 from .config import DATA, EPSG, core_binary
-from .priority import add_priority
+from .management import CHILD_M
+from .priority import SAFETY_CHILD_M, add_priority
 
 CORE = core_binary()
 DEPOT_LONLAT = (37.6176, 55.7520)  # route start: centre of Moscow
@@ -62,7 +63,7 @@ def build_queue(hs: gpd.GeoDataFrame, od: Path, year: int, top: int, ctx: dict) 
     gpd.GeoDataFrame({"length_km": [length / 1000]}, geometry=[line], crs=EPSG).to_crs(4326) \
         .to_file(od / f"route_top{top}_{year}.geojson", driver="GeoJSON")
     return {"count": int(len(hs)), "area_ha": round(float(hs.area_m2.sum() / 1e4), 1),
-            "within_100m_of_child_facility": int((hs.d_child_m <= 100).sum()),
-            "within_300m_of_child_facility": int((hs.d_child_m <= 300).sum()),
+            "within_100m_of_child_facility": int((hs.d_child_m <= CHILD_M).sum()),
+            "within_300m_of_child_facility": int((hs.d_child_m <= SAFETY_CHILD_M).sum()),
             "within_300m_of_sensitive_place": int((hs.d_sensitive_m <= 300).sum()),
             "route_top": top, "route_km": round(length / 1000, 1)}

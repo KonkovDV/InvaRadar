@@ -22,12 +22,15 @@ from rasterio.transform import from_origin
 from scipy.spatial import cKDTree
 from sklearn.decomposition import PCA
 from sklearn.model_selection import GroupKFold
-from invaradar.config import EPSG, OUT, STUDY_BOX, TAXA, core_binary
+from invaradar.config import EPSG, OUT, SCRATCH, STUDY_BOX, TAXA, core_binary
 from invaradar.samples import build, load_obs, plant_taxa
 from invaradar.splits import clear_training_mask
 
 taxon = sys.argv[1]
 od = OUT / taxon; tmp = od / "tmp"
+# The 100 m feature dump is about 450 MB. Keep it on the cache disk, not next to the small outputs.
+work = SCRATCH / "work" / taxon
+work.mkdir(parents=True, exist_ok=True)
 CORE = core_binary()
 w, s, e, n = STUDY_BOX
 summary_path = od / "enrich_summary.json"
@@ -69,13 +72,13 @@ q1, q3 = np.percentile(di_cv, [25, 75]); thr = float(di_cv[di_cv <= q3 + 1.5 * (
 step = 100.0
 xs = np.arange(w + step / 2, e, step); ys = np.arange(n - step / 2, s, -step)
 gx, gy = np.meshgrid(xs, ys)
-pts = np.c_[gx.ravel(), gy.ravel()].astype("<f8"); pts.tofile(tmp / "aoa.f64")
-subprocess.run([str(CORE), "points", str(tmp / "grid_2025.json"), str(tmp / "aoa.f64"), str(tmp / "aoa.f32")], check=True)
-G = np.fromfile(tmp / "aoa.f32", "<f4").reshape(len(pts), nf)
+pts = np.c_[gx.ravel(), gy.ravel()].astype("<f8"); pts.tofile(work / "aoa.f64")
+subprocess.run([str(CORE), "points", str(tmp / "grid_2025.json"), str(work / "aoa.f64"), str(work / "aoa.f32")], check=True)
+G = np.fromfile(work / "aoa.f32", "<f4").reshape(len(pts), nf)
 valid = ~np.isnan(G[:, 0])
 di = np.full(len(pts), np.nan, np.float32)
 di[valid] = cKDTree(Zt).query(pca.transform((G[valid] - mu) / sd * np.sqrt(wts)))[0] / dbar
-(tmp / "aoa.f32").unlink()
+(work / "aoa.f32").unlink()
 inside = di[valid] <= thr
 di_img = di.reshape(gx.shape)
 with rasterio.open(od / "dissimilarity_index_100m.tif", "w", driver="GTiff", width=gx.shape[1], height=gx.shape[0],
@@ -91,7 +94,12 @@ print("AOA", summary["aoa"], flush=True)
 
 # ---------- 3. stratified field-validation sample (Rust)
 thr_s, nh = "0.80,0.95,0.98", "50,50,60,90"
-subprocess.run([str(CORE), "strata", str(tmp / "grid_2025.json"), str(tmp / "map.u8"), str(od / "validation_sample.csv"),
+map_raw = tmp / "map.u8"
+if not map_raw.exists():
+    import rasterio
+    with rasterio.open(od / "likelihood_2025.tif") as ds:
+        ds.read(1).tofile(map_raw)
+subprocess.run([str(CORE), "strata", str(tmp / "grid_2025.json"), str(map_raw), str(od / "validation_sample.csv"),
                 "20261029", thr_s, nh], check=True)
 V = pd.read_csv(od / "validation_sample.csv")
 lon, lat = Transformer.from_crs(EPSG, 4326, always_xy=True).transform(V.x.to_numpy(), V.y.to_numpy())

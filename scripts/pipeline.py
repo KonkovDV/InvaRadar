@@ -8,7 +8,6 @@ import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import geopandas as gpd
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import rasterio
@@ -19,6 +18,7 @@ from sklearn.metrics import roc_auc_score
 
 from invaradar.aef import AEFIndex, BlockCache, block_jobs
 from invaradar.config import AEF_CACHE, AEF_INDEX, DATA, EPSG, OUT, STUDY_BOX, TAXA, TERRAIN_FEATURES, core_binary
+from invaradar.model import fit_map
 from invaradar.priority import HOT_PCT, MIN_PX
 from invaradar.queue import build_queue, load_context
 from invaradar.samples import build, load_obs, plant_taxa
@@ -28,6 +28,7 @@ from invaradar.splits import (
     WINDOW_M,
     boyce_index,
     boyce_ratios,
+    capture_rates,
     clear_training_mask,
     iter_spatial_folds,
     landscape_percentile,
@@ -113,23 +114,6 @@ XL = XL[~np.isnan(XL[:, 0])]
 y = S.label.to_numpy(); xy = S[["x", "y"]].to_numpy(); yr = S.year.to_numpy()
 log("samples", int(y.sum()), "presence /", int((y == 0).sum()), "background; features", X.shape[1])
 
-P = dict(objective="binary", learning_rate=0.05, num_leaves=15, min_child_samples=20, subsample=0.8,
-         subsample_freq=1, colsample_bytree=0.5, reg_lambda=1.0, verbose=-1, n_jobs=4)
-NR = 300
-
-
-def fit(Xt, yt):
-    return lgb.train({**P, "scale_pos_weight": (yt == 0).sum() / max(yt.sum(), 1)}, lgb.Dataset(Xt, yt), NR)
-
-
-def capture(ranks):
-    ranks = np.asarray(ranks, dtype=float)
-    ranks = ranks[np.isfinite(ranks)]
-    if len(ranks) == 0:
-        return {f"capture@{k}%area": None for k in (1, 5, 10, 20)}
-    return {f"capture@{k}%area": float((ranks >= 1 - k / 100).mean()) for k in (1, 5, 10, 20)}
-
-
 # Checkerboard of 5 km blocks, then a 500 m ring around test presences only.
 # The ring is wider than the 450 m embedding window. Background within 30 m is cleared per side.
 oof = np.full(len(y), np.nan)
@@ -137,10 +121,12 @@ rk = np.full(len(y), np.nan)
 for tr, te in iter_spatial_folds(xy, y):
     if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
         continue
-    m = fit(X[tr], y[tr])
+    m = fit_map(X[tr], y[tr])
     oof[te] = m.predict(X[te], raw_score=True)
     land = np.sort(m.predict(XL, raw_score=True))
     rk[te] = landscape_percentile(land, oof[te])
+# The same ranks, so the interval script does not fit these folds a second time.
+rk.astype("<f8").tofile(tmp / "oof_rank.f64")
 scored = np.isfinite(oof)
 auc = None
 if scored.sum() and len(np.unique(y[scored])) > 1:
@@ -157,7 +143,7 @@ metrics = {"taxon": a.taxon, "embedding_year": a.year, "features": int(X.shape[1
            "spatial_cv": {"roc_auc_vs_background": auc, "n_scored": int(scored.sum()),
                           "boyce": None if boyce is None else round(boyce, 3),
                           "boyce_ratio": None if ratios is None else [round(float(v), 3) for v in ratios],
-                          **capture(presence_ranks)}}
+                          **capture_rates(presence_ranks)}}
 log("spatial CV", json.dumps(metrics["spatial_cv"]))
 
 # Not a forecast from an earlier image: both sides still use one AlphaEarth year. A 2025–2026
@@ -166,27 +152,32 @@ log("spatial CV", json.dumps(metrics["spatial_cv"]))
 tr, new, te_bg = temporal_sets(xy, y, yr)
 n_new_candidates = int(((yr >= 2025) & (y == 1)).sum())
 if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():
-    m = fit(X[tr], y[tr])
+    m = fit_map(X[tr], y[tr])
     land = np.sort(m.predict(XL, raw_score=True))
     pp, pb = m.predict(X[new], raw_score=True), m.predict(X[te_bg], raw_score=True)
+    r_new = landscape_percentile(land, pp)
+    r_new.astype("<f8").tofile(tmp / "temporal_rank.f64")
     temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
                 "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
                 "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
-                **capture(landscape_percentile(land, pp))}
+                **capture_rates(r_new)}
 else:
+    stale = tmp / "temporal_rank.f64"
+    if stale.exists():
+        stale.unlink()
     temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
                 "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
-                "roc_auc_vs_background": None, **capture([])}
+                "roc_auc_vs_background": None, **capture_rates([])}
 metrics["temporal_test"] = temporal
 log("temporal", json.dumps(metrics["temporal_test"]))
 
 # Deployed model sees every presence and only the background that is not within 30 m of one.
 keep = clear_training_mask(xy, y)
-final = fit(X[keep], y[keep])
+final = fit_map(X[keep], y[keep])
 json.dump(final.dump_model(), open(tmp / "model.json", "w", encoding="utf-8"))
 land = final.predict(XL, raw_score=True); land.astype("<f8").tofile(tmp / "land.f64")
 chk = xy[:2000].astype("<f8"); chk.tofile(tmp / "chk.f64")
-core("score", gpath, tmp / "model.json", tmp / "chk.f64", tmp / "chk_score.f64")
+core("scoremap", gpath, tmp / "model.json", tmp / "chk.f64", tmp / "chk_score.f64", tmp / "land.f64", tmp / "map.u8")
 rs = np.fromfile(tmp / "chk_score.f64", "<f8"); ps = final.predict(X[:2000], raw_score=True)
 metrics["rust_parity_max_abs_diff"] = float(np.nanmax(np.abs(rs - ps)))
 log("Rust vs LightGBM max |diff|", metrics["rust_parity_max_abs_diff"])
@@ -196,8 +187,7 @@ imp = final.feature_importance("gain"); grp = {"pixel": imp[:64].sum(), "50m": i
 metrics["terrain_importance"] = {k: round(float(v / imp.sum()), 4) for k, v in zip(TERRAIN_FEATURES, imp[261:265])}
 metrics["importance_share"] = {k: round(float(v / imp.sum()), 3) for k, v in grp.items()}
 
-# ---- wall-to-wall map (Rust) → GeoTIFF
-core("predict", gpath, tmp / "model.json", tmp / "land.f64", tmp / "map.u8")
+# The map was written by scoremap, in the same context build as the parity scores.
 img = np.fromfile(tmp / "map.u8", np.uint8).reshape(H, W)
 prof = dict(driver="COG", width=W, height=H, count=1, dtype="uint8", nodata=255, crs=f"EPSG:{EPSG}",
             transform=from_origin(w, n, RES, RES), compress="ZSTD", predictor=2, blocksize=512,

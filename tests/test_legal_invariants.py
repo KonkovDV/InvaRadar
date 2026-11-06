@@ -29,13 +29,49 @@ def load(path):
     return json.loads((path).read_text(encoding="utf-8"))
 
 
+def chemistry_banned(r) -> bool:
+    """Water, protected land, children, a children's territory, or a sanitary zone: no pesticide."""
+    zso = r["in_zso"] if "in_zso" in r else False
+    return float(r["water_zone_m"]) > 0 or flag(r["in_protected"]) or flag(r["child_org_territory"]) \
+        or flag(r["near_children"]) or flag(zso)
+
+
+def assert_law(r, where):
+    if chemistry_banned(r):
+        assert not any(w in str(r["method"]) for w in CHEM), where
+    if "in_settlement" in r and flag(r["in_settlement"]):
+        assert "с дрона" not in str(r["method"]), where
+    if flag(r["near_heritage"]):
+        text = str(r["method"])
+        assert "ниже земли" not in text and "выборка корневищ" not in text and "корневой шейки" not in text, where
+    if "status" in r:
+        assert r["status"] == "candidate" and str(r["signed_by"]) == "", where
+    if "in_water_zone" in r:
+        assert flag(r["in_water_zone"]) == (float(r["water_zone_m"]) > 0), where
+    if "follow_up_years" in r:
+        assert int(float(r["follow_up_years"])) == 5, where
+    if "d_child_m" in r and "near_children" in r:
+        distance = float(r["d_child_m"])
+        if distance == distance:
+            from invaradar.management import CHILD_M
+            assert flag(r["near_children"]) == (distance <= CHILD_M), where
+
+
 @pytest.mark.parametrize("taxon", TAXA)
 def test_no_chemistry_where_the_law_or_children_forbid_it(taxon):
     for r in orders(taxon):
-        banned = float(r["water_zone_m"]) > 0 or flag(r["in_protected"]) or flag(r["child_org_territory"]) \
-            or flag(r["near_children"])
-        if banned:
-            assert not any(w in r["method"] for w in CHEM), (r["rank"], r["method"])
+        assert_law(r, (r["rank"], r["method"]))
+
+
+@pytest.mark.parametrize("taxon", TAXA)
+def test_the_child_flag_matches_the_distance_and_the_class_matches_the_wording(taxon):
+    from invaradar.management import CHILD_M, method_class
+    for r in orders(taxon):
+        near = flag(r["near_children"])
+        distance = float(r["d_child_m"])
+        assert near == (distance <= CHILD_M)
+        assert method_class(r["method"]) == (
+            "drone" if "с дрона" in r["method"] else "ground" if "наземная точечная" in r["method"] else "mechanical")
 
 
 @pytest.mark.parametrize("taxon", TAXA)
@@ -87,5 +123,21 @@ def test_web_map_matches_the_results(taxon):
     assert len(pts) == w["shown"]
     for f in pts:
         q = f["properties"]
+        if q["water_zone_m"] > 0 or q["d_child_m"] < 100:
+            assert q["cls"] == "mechanical"
         if q["water_zone_m"] > 0:
-            assert q["cls"] == "mechanical" and "ВК РФ ст. 65" in q["basis"]
+            assert "ВК РФ ст. 65" in q["basis"]
+        if q["cls"] == "drone":
+            assert "запрещена" not in q["basis"] and q["water_zone_m"] == 0
+
+
+@pytest.mark.parametrize("taxon", TAXA)
+def test_the_full_prescription_table_obeys_the_same_rules(taxon):
+    path = OUT / taxon / "hotspots_prescribed_2025.parquet"
+    if not path.exists():
+        pytest.skip("the full table is local; git keeps the top 200 and the web map")
+    import pandas as pd
+    table = pd.read_parquet(path)
+    for row in table.itertuples(index=False):
+        rec = row._asdict()
+        assert_law(rec, getattr(row, "rank", "?"))

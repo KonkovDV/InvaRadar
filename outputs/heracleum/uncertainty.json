@@ -103,8 +103,8 @@
     2.06
    ]
   },
-  "n_new_presence": 216,
   "n_new_candidates": 504,
+  "n_new_presence": 216,
   "n_new_inside_ring": 288
  },
  "temporal_method": "Wilson score 95% CI"

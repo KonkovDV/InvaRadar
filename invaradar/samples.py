@@ -47,6 +47,20 @@ def in_box(d: pd.DataFrame, box=STUDY_BOX, margin=0.0) -> pd.DataFrame:
     return d[(d.x >= w + margin) & (d.x < e - margin) & (d.y >= s + margin) & (d.y < n - margin)]
 
 
+def study_pixel(x, y, box=STUDY_BOX, res: float = 10.0):
+    """Column and row of the study grid, the same cell the Rust core scores.
+
+    Column is floor((x − west) / res). Row is floor((north − y) / res). A point exactly on
+    the southern edge of a cell belongs to the cell south of it, as in `xy_to_rc`.
+    """
+    west, _south, _east, north = box
+    xx = np.asarray(x, dtype=np.float64)
+    yy = np.asarray(y, dtype=np.float64)
+    col = np.floor((xx - west) / res).astype(np.int64)
+    row = np.floor((north - yy) / res).astype(np.int64)
+    return col, row
+
+
 def build(d: pd.DataFrame, target_ids, plants: set[int], box=STUDY_BOX, grades=("research",),
           max_bg: int = 60000, seed: int = 0) -> pd.DataFrame:
     """→ DataFrame deduplicated to one record per 10 m pixel and label. Presence owns the pixel."""
@@ -58,8 +72,7 @@ def build(d: pd.DataFrame, target_ids, plants: set[int], box=STUDY_BOX, grades=(
     pos = d[tid.isin(target_ids) & d.quality_grade.isin(grades)].assign(label=1)
     bg = d[~tid.isin(target_ids) & tid.isin(plants) & (d.quality_grade == "research")].assign(label=0)
     s = pd.concat([pos, bg], ignore_index=True)
-    s["px"] = (s.x // 10).astype(np.int64)
-    s["py"] = (s.y // 10).astype(np.int64)
+    s["px"], s["py"] = study_pixel(s.x.to_numpy(), s.y.to_numpy(), box)
     s = s.sort_values("observed_on").drop_duplicates(["px", "py", "label"], keep="first")
     planted = pd.MultiIndex.from_frame(s.loc[s.label == 1, ["px", "py"]])
     on_plant = (s.label == 0) & pd.MultiIndex.from_frame(s[["px", "py"]]).isin(planted)

@@ -10,16 +10,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import geopandas as gpd
 
 from invaradar.config import OUT, ROOT
+from invaradar.management import method_class
 
 ap = argparse.ArgumentParser(); ap.add_argument("--top", type=int, default=3000)
 a = ap.parse_args()
 web = ROOT / "web" / "data"; web.mkdir(parents=True, exist_ok=True)
-
-
-def method_class(m: str) -> str:
-    if "с дрона" in m:
-        return "drone"
-    return "ground" if "наземная точечная" in m else "mechanical"
 
 
 summary = {}

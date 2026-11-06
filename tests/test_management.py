@@ -21,6 +21,15 @@ def line(x0, y0, x1, y1, n=10):
     return LineString(list(zip(xs, ys)))
 
 
+def test_an_order_is_drone_or_ground_or_mechanical():
+    from invaradar.management import method_class
+    assert method_class("точечное опрыскивание с дрона по контурам") == "drone"
+    assert method_class("наземная точечная обработка ранцевым опрыскивателем") == "ground"
+    assert method_class("покос не реже 1 раза в 2 недели") == "mechanical"
+    with pytest.raises(ValueError):
+        method_class("с дрона, а если нельзя — наземная точечная обработка")
+
+
 @pytest.mark.parametrize("length,width", [(3_000, 50), (9_999, 50), (10_000, 100), (49_000, 100), (50_000, 200)])
 def test_river_width_follows_water_code(length, width):
     assert river_width_m(length) == width

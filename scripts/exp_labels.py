@@ -3,10 +3,10 @@ import sys
 import json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import lightgbm as lgb
 import numpy as np
 from scipy.spatial import cKDTree
 from invaradar.config import OUT, TAXA
+from invaradar.model import fit_map
 from invaradar.samples import build, load_obs, plant_taxa
 from invaradar.splits import iter_spatial_folds, landscape_percentile
 taxon = sys.argv[1]
@@ -24,8 +24,6 @@ nb = tree.query_ball_point(pos[["x", "y"]].to_numpy(), 30)
 nobs = np.array([pos.observer_id.iloc[i].nunique() for i in nb])
 persist = np.zeros(len(S), bool); persist[np.where(y == 1)[0][nobs >= 2]] = True
 print("presences", int(y.sum()), "persistent (>=2 observers within 30 m)", int(persist.sum()))
-P = dict(objective="binary", learning_rate=0.08, num_leaves=15, min_child_samples=20, subsample=0.8, subsample_freq=1,
-         colsample_bytree=0.5, verbose=-1, n_jobs=4)
 def run(cols, mask_train_pos=None, name=""):
     rk = np.full(len(y), np.nan)
     for tr, te in iter_spatial_folds(xy, y, n_splits=3):
@@ -33,7 +31,8 @@ def run(cols, mask_train_pos=None, name=""):
             tr = tr[(y[tr] == 0) | mask_train_pos[tr]]
         if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
             continue
-        m = lgb.train({**P, "scale_pos_weight": (y[tr] == 0).sum() / y[tr].sum()}, lgb.Dataset(X[tr][:, cols], y[tr]), 150)
+        # Same leaves and subsampling as the map. Fewer trees and a higher rate: this is not the published forest.
+        m = fit_map(X[tr][:, cols], y[tr], trees=150, learning_rate=0.08)
         land = np.sort(m.predict(XL[:, cols], raw_score=True))
         rk[te] = landscape_percentile(land, m.predict(X[te][:, cols], raw_score=True))
     out = {}

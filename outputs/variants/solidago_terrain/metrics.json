@@ -20,21 +20,33 @@
     "roc_auc_vs_background": 0.694550233735576,
     "n_scored": 59345,
     "boyce": 1.0,
+    "boyce_ratio": [
+      0.167,
+      0.256,
+      0.391,
+      0.513,
+      0.66,
+      0.821,
+      0.981,
+      1.192,
+      1.808,
+      3.212
+    ],
     "capture@1%area": 0.06794871794871794,
     "capture@5%area": 0.2012820512820513,
     "capture@10%area": 0.3211538461538462,
     "capture@20%area": 0.5019230769230769
   },
   "temporal_test": {
+    "n_new_candidates": 446,
     "n_new_presence": 188,
+    "n_new_inside_ring": 258,
     "n_background": 10973,
     "roc_auc_vs_background": 0.6942853929664883,
     "capture@1%area": 0.015957446808510637,
     "capture@5%area": 0.11170212765957446,
     "capture@10%area": 0.20212765957446807,
-    "capture@20%area": 0.35638297872340424,
-    "n_new_candidates": 446,
-    "n_new_inside_ring": 258
+    "capture@20%area": 0.35638297872340424
   },
   "rust_parity_max_abs_diff": 8.881784197001252e-16,
   "terrain_importance": {

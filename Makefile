@@ -40,14 +40,16 @@ enrich:
 	$(PY) scripts/enrich.py solidago
 	$(PY) scripts/prescribe.py heracleum
 	$(PY) scripts/prescribe.py solidago
+	$(PY) scripts/export_web.py
 	$(PY) scripts/exp_labels.py heracleum
 
-# after a change of context layers, priority or legal rules: rebuild queues and work orders without retraining
+# after a change of context layers, priority or legal rules: queues, work orders and the web map, without retraining
 requeue: core
 	$(PY) scripts/requeue.py heracleum
 	$(PY) scripts/requeue.py solidago
 	$(PY) scripts/prescribe.py heracleum
 	$(PY) scripts/prescribe.py solidago
+	$(PY) scripts/export_web.py
 	$(PY) scripts/render_maps.py heracleum
 
 uncertainty:

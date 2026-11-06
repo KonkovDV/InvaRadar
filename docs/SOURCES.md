@@ -83,3 +83,9 @@
 51. BioCLIP 2 (Imageomics, NeurIPS 2025), MIT — https://github.com/Imageomics/bioclip-2 ; RF-DETR (Roboflow), Apache-2.0 — https://github.com/roboflow/rf-detr
 52. Ленинградская область: единая база и цифровой сервис по борщевику, 49,5 млн ₽ на обработку 6,46 тыс. га (2026) — https://peterburg2.ru/news/v-lenoblasti-zapuskayut-cifrovuyu-platformu-dlya-borby-s-borschevikom-231346.html
 53. SDM борщевика для Литвы — https://github.com/makarlozenko/heracleum-sosnowskyi-species-distribution-model ; elapid — https://github.com/earth-chris/elapid ; CAST — https://github.com/HannaMeyer/CAST
+54. blockCV: пространственные блоки и буфер для проверки моделей распространения. Для присутствия и фона буфер строится вокруг находок — https://search.r-project.org/CRAN/refmans/blockCV/html/cv_buffer.html ; https://mlr3spatiotempcv.mlr-org.com/reference/mlr_resamplings_spcv_block.html (проверка 06.11.2026)
+55. Hirzel A. H., Le Lay G., Helfer V., Randin C., Guisan A. (2006). Evaluating the ability of habitat suitability models to predict species presences. Ecological Modelling 199:142–152. Непрерывный индекс Бойса
+56. Мониторинг борщевика Сосновского мультиспектром с БПЛА, Московская область, 146 площадок, 2020–2022. Agronomy 14:2451 (2024). doi:10.3390/agronomy14102451
+57. Automated Detection of Sosnowsky’s Hogweed Using Sentinel-2 Imagery and Machine Learning. Annals of Computer Science and Information Systems, 2026. doi:10.15439/2026f9420. Бинарная точность 92,6% на зарегистрированных точках Латвии, не сплошная карта
+58. Сравнение AlphaEarth и TESSERA на видах деревьев Дании. arXiv:2609.03480 (2026). OlmoEarth v1.3 заявляет выигрыш у обоих на своём наборе задач — arXiv:2610.32294
+59. EuroSAT-Embed: среднее по окну эмбеддинга проигрывает сводке min/max/mean/std на пространственном разрезе. arXiv:2603.02080 (2026)

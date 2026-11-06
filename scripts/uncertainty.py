@@ -5,9 +5,9 @@ folds) and attaches 95 % intervals:
 
 * spatial CV — cluster bootstrap over the 5 km blocks (presences inside one block are not independent, so
   whole blocks are resampled; 2 000 replicates, percentile intervals);
-* forward-in-time test — Wilson score interval for a binomial proportion. The split is on observation
-  year only: both sides use one AlphaEarth year (the map year). A new report is at least 100 m from any
-  earlier report, while the feature vector still includes a 450 m window.
+* forward-in-time test — Wilson score interval for a binomial proportion. Both sides use one
+  AlphaEarth year. A new report must sit outside the 450 m feature window of an older one (500 m),
+  and training rows inside that window are dropped. See invaradar.splits.
 
 Also reports the lift over random search (capture / area share) with the same intervals.
 usage: uncertainty.py heracleum
@@ -19,11 +19,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import lightgbm as lgb
 import numpy as np
-from scipy.spatial import cKDTree
-from sklearn.model_selection import GroupKFold
 
 from invaradar.config import OUT, TAXA
 from invaradar.samples import build, load_obs, plant_taxa
+from invaradar.splits import block_groups, iter_spatial_folds, temporal_sets
 
 taxon = sys.argv[1]
 od = OUT / taxon
@@ -48,14 +47,16 @@ def fit(Xt, yt):
 
 
 KS = (1, 5, 10, 20)
-groups = (xy[:, 0] // 5000).astype(int) * 100003 + (xy[:, 1] // 5000).astype(int)
-rk = np.zeros(len(y))
-for tr, te in GroupKFold(5).split(X, y, groups):
+groups = block_groups(xy)
+rk = np.full(len(y), np.nan)
+for tr, te in iter_spatial_folds(xy, y):
+    if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
+        continue
     m = fit(X[tr], y[tr])
     land = np.sort(m.predict(XL, raw_score=True))
     rk[te] = np.searchsorted(land, m.predict(X[te], raw_score=True)) / len(land)
 
-pos = y == 1
+pos = (y == 1) & np.isfinite(rk)
 r_pos, g_pos = rk[pos], groups[pos]
 blocks, inv = np.unique(g_pos, return_inverse=True)
 hits = {k: np.bincount(inv, weights=(r_pos >= 1 - k / 100), minlength=len(blocks)) for k in KS}
@@ -75,15 +76,15 @@ def ci(est, lo, hi, k):
                                                                     round(float(hi / (k / 100)), 2)]}
 
 
-out = {"taxon": taxon, "n_presence": int(pos.sum()), "n_blocks_with_presence": int(len(blocks)),
+out = {"taxon": taxon, "n_presence": int((y == 1).sum()), "n_scored": int(pos.sum()),
+       "n_blocks_with_presence": int(len(blocks)),
        "spatial_cv": {f"capture@{k}%area": ci(hits[k].sum() / cnt.sum(), *np.percentile(boot[k], [2.5, 97.5]), k)
                       for k in KS},
-       "spatial_cv_method": "cluster bootstrap over 5 km blocks, 2000 replicates, percentile 95% CI"}
+       "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only, cluster bootstrap, 2000 replicates"}
 
-tr = yr <= 2024
-te_pos = (yr >= 2025) & (y == 1)
-d, _ = cKDTree(xy[tr & (y == 1)]).query(xy[te_pos])
-new = np.where(te_pos)[0][d > 100]
+tr, new, _te_bg = temporal_sets(xy, y, yr)
+if len(new) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
+    raise SystemExit("temporal split has no new presences or no training class")
 m = fit(X[tr], y[tr])
 land = np.sort(m.predict(XL, raw_score=True))
 r_new = np.searchsorted(land, m.predict(X[new], raw_score=True)) / len(land)

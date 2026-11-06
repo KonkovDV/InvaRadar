@@ -333,10 +333,71 @@ fn cached_terrain(dem: &str, g: &Grid) -> Result<Vec<f32>> {
     Ok(t)
 }
 
+fn cache_dir(g: &Grid) -> Option<std::path::PathBuf> {
+    if let Some(dem) = &g.dem {
+        return std::path::Path::new(dem).parent().map(|p| p.to_path_buf());
+    }
+    g.blocks
+        .first()
+        .and_then(|(p, _, _)| std::path::Path::new(p).parent().map(|d| d.to_path_buf()))
+}
+
+fn path_str(p: &std::path::Path) -> Result<String> {
+    p.to_str()
+        .map(|s| s.to_string())
+        .context("cache path is not utf-8")
+}
+
+/// Interleaved mosaic, reused by points / score / predict. The stamp is the grid and every block
+/// file's length and modification time, so a new download rebuilds it. Delete the `.i8` to force that.
+fn mosaic_cached(g: &Grid) -> Result<Vec<i8>> {
+    let n = g.height * g.width * B;
+    let Some(dir) = cache_dir(g) else {
+        return mosaic(g);
+    };
+    let cache = path_str(&dir.join(format!("invaradar-mosaic-{}x{}.i8", g.height, g.width)))?;
+    let stamp_path = path_str(&dir.join(format!("invaradar-mosaic-{}x{}.stamp", g.height, g.width)))?;
+    let mut stamp = format!(
+        "v1\t{}\t{}\t{}\t{}\t{}\n",
+        g.height,
+        g.width,
+        g.res.to_bits(),
+        g.w.to_bits(),
+        g.n.to_bits()
+    );
+    for (p, x0, y0) in &g.blocks {
+        let Some(id) = file_stamp(p) else {
+            return mosaic(g);
+        };
+        stamp.push_str(&id);
+        stamp.push('\t');
+        stamp.push_str(&format!("{}\t{}\n", x0.to_bits(), y0.to_bits()));
+    }
+    let hit = stamp_matches(&stamp_path, &stamp) && cache_len_ok(&cache, n);
+    let v = cached_i8(&cache, &stamp_path, &stamp, n, || mosaic(g))?;
+    if hit {
+        eprintln!("[core] mosaic cache hit");
+    }
+    Ok(v)
+}
+
+fn edt_cached(segment: &str, h: usize, w: usize, res: f32) -> Result<Vec<f32>> {
+    let n = h * w;
+    let cache = format!("{segment}.edt-v1-{h}x{w}.f32");
+    let stamp_path = format!("{segment}.edt-v1-{h}x{w}.stamp");
+    let Some(id) = file_stamp(segment) else {
+        return Ok(edt(&rasterize_segments(segment, h, w)?, h, w, res));
+    };
+    let stamp = format!("v1\t{h}\t{w}\t{}\t{id}\n", res.to_bits());
+    cached_f32(&cache, &stamp_path, &stamp, n, || {
+        Ok(edt(&rasterize_segments(segment, h, w)?, h, w, res))
+    })
+}
+
 fn build_context(g: &Grid) -> Result<Ctx> {
     let t = Instant::now();
     let lut = lut();
-    let m = mosaic(g)?;
+    let m = mosaic_cached(g)?;
     eprintln!(
         "[core] mosaic {}x{} in {:.1}s",
         g.width,
@@ -353,14 +414,7 @@ fn build_context(g: &Grid) -> Result<Ctx> {
     let dist = g
         .segments
         .iter()
-        .map(|p| {
-            Ok(edt(
-                &rasterize_segments(p, g.height, g.width)?,
-                g.height,
-                g.width,
-                g.res as f32,
-            ))
-        })
+        .map(|p| edt_cached(p, g.height, g.width, g.res as f32))
         .collect::<Result<Vec<_>>>()?;
     eprintln!(
         "[core] corridor distances in {:.1}s",
@@ -676,6 +730,20 @@ fn load_forest(p: &str) -> Result<Forest> {
 impl Forest {
     #[inline]
     fn raw(&self, x: &[f32]) -> f64 {
+        // The wall-to-wall map asks for every feature at every node. Promote the 265 values once;
+        // a shorter vector (the unit test) keeps the old per-node cast and the same panic.
+        if x.len() == F {
+            let mut xd = [0f64; F];
+            for i in 0..F {
+                xd[i] = x[i] as f64;
+            }
+            return self.walk(|feat| xd[feat]);
+        }
+        self.walk(|feat| x[feat] as f64)
+    }
+
+    #[inline]
+    fn walk(&self, v_at: impl Fn(usize) -> f64) -> f64 {
         let mut s = 0f64;
         for &root in &self.roots {
             let mut i = root as usize;
@@ -685,7 +753,7 @@ impl Forest {
                     s += n.thr;
                     break;
                 }
-                let v = x[n.feat as usize] as f64;
+                let v = v_at(n.feat as usize);
                 let go_left = if v.is_nan() {
                     match n.missing {
                         2 => n.default_left,
@@ -718,6 +786,91 @@ fn write_bytes(p: &str, b: &[u8]) -> Result<()> {
     fs::write(&tmp, b)?;
     fs::rename(tmp, p)?;
     Ok(())
+}
+
+fn bytes_of_i8(v: &[i8]) -> &[u8] {
+    // SAFETY: i8 and u8 are the same size and alignment; this only reinterprets the bits.
+    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len()) }
+}
+
+fn read_i8_exact(path: &str, n: usize) -> Result<Vec<i8>> {
+    let mut f = fs::File::open(path).with_context(|| path.to_string())?;
+    let mut m = vec![0i8; n];
+    // SAFETY: the buffer is n bytes and i8 has the same layout as u8.
+    std::io::Read::read_exact(
+        &mut f,
+        unsafe { std::slice::from_raw_parts_mut(m.as_mut_ptr().cast::<u8>(), n) },
+    )
+    .with_context(|| path.to_string())?;
+    Ok(m)
+}
+
+fn read_f32_exact(path: &str, n: usize) -> Result<Vec<f32>> {
+    let b = fs::read(path).with_context(|| path.to_string())?;
+    if b.len() != n * 4 {
+        bail!("{path}: expected {} bytes, got {}", n * 4, b.len());
+    }
+    Ok(b.chunks_exact(4)
+        .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
+        .collect())
+}
+
+/// Identity of one input file: length and modification time. None if the file cannot be stamped.
+fn file_stamp(path: &str) -> Option<String> {
+    let m = fs::metadata(path).ok()?;
+    let d = m.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?;
+    Some(format!("{}\t{}\t{}", m.len(), d.as_secs(), d.subsec_nanos()))
+}
+
+fn stamp_matches(path: &str, body: &str) -> bool {
+    fs::read_to_string(path).ok().is_some_and(|s| s == body)
+}
+
+fn cache_len_ok(path: &str, bytes: usize) -> bool {
+    fs::metadata(path).is_ok_and(|m| m.len() as usize == bytes)
+}
+
+/// Read a cached blob when `stamp_path` still describes the inputs. On a miss, `compute`, then
+/// try to store the blob. A failed write does not fail the caller: the value is still returned.
+fn cached_i8(
+    cache: &str,
+    stamp_path: &str,
+    stamp: &str,
+    n: usize,
+    compute: impl FnOnce() -> Result<Vec<i8>>,
+) -> Result<Vec<i8>> {
+    if stamp_matches(stamp_path, stamp) && cache_len_ok(cache, n) {
+        if let Ok(v) = read_i8_exact(cache, n) {
+            return Ok(v);
+        }
+    }
+    let v = compute()?;
+    match write_bytes(cache, bytes_of_i8(&v)).and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into)) {
+        Ok(()) => {}
+        Err(e) => eprintln!("[core] cache write skipped: {cache} ({e:#})"),
+    }
+    Ok(v)
+}
+
+fn cached_f32(
+    cache: &str,
+    stamp_path: &str,
+    stamp: &str,
+    n: usize,
+    compute: impl FnOnce() -> Result<Vec<f32>>,
+) -> Result<Vec<f32>> {
+    if stamp_matches(stamp_path, stamp) && cache_len_ok(cache, n * 4) {
+        if let Ok(v) = read_f32_exact(cache, n) {
+            return Ok(v);
+        }
+    }
+    let v = compute()?;
+    let bytes: Vec<u8> = v.iter().flat_map(|x| x.to_le_bytes()).collect();
+    match write_bytes(cache, &bytes).and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into)) {
+        Ok(()) => {}
+        Err(e) => eprintln!("[core] cache write skipped: {cache} ({e:#})"),
+    }
+    Ok(v)
 }
 
 fn xy_to_rc(g: &Grid, x: f64, y: f64) -> Option<(usize, usize)> {
@@ -848,20 +1001,27 @@ fn cmd_hotspots(a: &[String]) -> Result<()> {
             if !hot(i) {
                 continue;
             }
-            let mut nb = Vec::with_capacity(4);
+            // Same neighbour order as before (west, then the row above). A stack array avoids
+            // a heap allocation on every hot pixel.
+            let mut nb = [0usize; 4];
+            let mut nn = 0usize;
             if c > 0 {
-                nb.push(i - 1);
+                nb[nn] = i - 1;
+                nn += 1;
             }
             if r > 0 {
-                nb.push(i - w);
+                nb[nn] = i - w;
+                nn += 1;
                 if c > 0 {
-                    nb.push(i - w - 1);
+                    nb[nn] = i - w - 1;
+                    nn += 1;
                 }
                 if c + 1 < w {
-                    nb.push(i - w + 1);
+                    nb[nn] = i - w + 1;
+                    nn += 1;
                 }
             }
-            for j in nb {
+            for j in nb[..nn].iter().copied() {
                 if hot(j) {
                     let (a1, b1) = (find(&mut parent, i as u32), find(&mut parent, j as u32));
                     if a1 != b1 {
@@ -909,18 +1069,18 @@ fn cmd_hotspots(a: &[String]) -> Result<()> {
         .enumerate()
         .map(|(i, (k, _))| (*k, i as i32 + 1))
         .collect();
-    let labels: Vec<u8> = root_of
-        .iter()
-        .map(|r| {
-            if *r == u32::MAX {
-                0
-            } else {
-                *ids.get(r).unwrap_or(&0)
-            }
-        })
-        .flat_map(|v: i32| v.to_le_bytes())
-        .collect();
-    write_bytes(&a[4], &labels)?;
+    // Roots are pixel indices, so a flat table replaces a hash lookup on every cell.
+    // Components smaller than min_px stay 0, the same as a missing hash entry.
+    let mut label_of = vec![0i32; h * w];
+    for (root, id) in &ids {
+        label_of[*root as usize] = *id;
+    }
+    let mut labels = std::io::BufWriter::new(fs::File::create(&a[4])?);
+    for r in &root_of {
+        let v = if *r == u32::MAX { 0 } else { label_of[*r as usize] };
+        labels.write_all(&v.to_le_bytes())?;
+    }
+    labels.flush()?;
     let mut f = fs::File::create(&a[5])?;
     writeln!(f, "hid,n_px,mean_rank,max_rank,cx,cy")?;
     for (k, s) in &keep {
@@ -1205,6 +1365,14 @@ mod tests {
             -1.0,
             "NaN goes to the default (right) branch"
         );
+        // The map passes a full feature vector, which takes the one-shot f64 promotion.
+        let mut full = [0f32; F];
+        full[0] = 0.2;
+        assert_eq!(f.raw(&full), 1.0);
+        full[0] = f32::NAN;
+        assert_eq!(f.raw(&full), -1.0);
+        full[0] = 0.0;
+        assert_eq!(f.raw(&full), 1.0);
     }
 
     #[test]

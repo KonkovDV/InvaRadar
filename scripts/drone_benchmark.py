@@ -5,8 +5,9 @@ github.com/DLopatkin/Heracleum-Dataset) — 263 aerial photos of Heracleum sosno
 taken by three cameras (DJI Mavic Pro FC220, DJI Phantom 3 FC300S, Xiaomi Yi), with per-pixel masks.
 The images are not redistributed; clone the dataset and pass its folder.
 
-Protocol (no leakage): every camera is held out in turn, the probe and its thresholds are fitted on the other two
-cameras only (max F1 — balanced; max F2 — scouting, a missed stand costs more than an extra check). Metrics: patch ROC AUC and AP, pixel IoU / Dice /
+Protocol: every camera is held out. The threshold is read from out-of-fold scores of the other
+cameras (a probe that did not train on the camera being scored), then a new probe is fit on all of
+them and applied to the held-out camera. Max F1 is balanced; max F2 is scouting. Metrics: patch ROC AUC and AP, pixel IoU / Dice /
 precision / recall of the upsampled probability map, image-level detection, object recall for stands ≥ 0.05% frame.
 
     python scripts/drone_benchmark.py /path/to/Heracleum-Dataset
@@ -92,16 +93,45 @@ def fbeta_threshold(y, p, beta):
     return float(th[np.argmax(f[:-1])])
 
 
-def fit(X, y, seed=0):
-    """Logistic probe; thresholds max F1 (balanced) and max F2 (scouting: a missed stand costs more than a check)."""
+def fit_probe(X, y, seed=0):
+    """Logistic probe. The caller chooses the threshold on scores this probe did not train on."""
     rng = np.random.default_rng(seed)
     pos = np.flatnonzero(y); neg = np.flatnonzero(~y)
     neg = rng.choice(neg, min(len(neg), 4 * len(pos)), replace=False)
     idx = np.concatenate([pos, neg])
     clf = LogisticRegression(C=2.0, class_weight="balanced", max_iter=3000)
     clf.fit(X[idx], y[idx])
+    return clf
+
+
+def fit(X, y, seed=0):
+    """Probe plus in-sample thresholds. Kept for the deployed file; the reported camera does not use these."""
+    clf = fit_probe(X, y, seed)
     p = clf.predict_proba(X)[:, 1]
     return clf, {"f1": fbeta_threshold(y, p, 1.0), "f2": fbeta_threshold(y, p, 2.0)}
+
+
+def oof_thresholds(packs):
+    """Thresholds for a held-out camera.
+
+    `packs` is one (X, y) per remaining camera. Each camera is scored by a probe fit on the
+    other cameras only; the threshold is read from those out-of-fold scores, not from the
+    camera that will be reported and not from in-sample probabilities of the final probe.
+    """
+    if len(packs) < 2:
+        X, y = packs[0]
+        return fit(X, y)[1], False
+    ys, ps = [], []
+    for i, (X_cal, y_cal) in enumerate(packs):
+        others = [p for j, p in enumerate(packs) if j != i]
+        X_tr = np.concatenate([p[0] for p in others])
+        y_tr = np.concatenate([p[1] for p in others])
+        clf = fit_probe(X_tr, y_tr, seed=i)
+        ys.append(y_cal)
+        ps.append(clf.predict_proba(X_cal)[:, 1])
+    y = np.concatenate(ys)
+    p = np.concatenate(ps)
+    return {"f1": fbeta_threshold(y, p, 1.0), "f2": fbeta_threshold(y, p, 2.0)}, True
 
 
 def upsample(p, hp, wp):
@@ -147,14 +177,19 @@ def main(root):
     res = {"dataset": "Heracleum dataset, Moscow region (Menshchikov et al. 2021), 263 aerial photos, 3 cameras",
            "backbone": f"{MODEL} (frozen, Apache-2.0), {WIDTH}px wide input, 14px patches",
            "probe": "L2-normalised patch token + 3×3 context mean → logistic regression",
-           "operating_points": "thresholds chosen on the training cameras only: f1 = max F1 (balanced), "
-                               "f2 = max F2 (scouting, recall-weighted)",
-           "protocol": "leave-one-camera-out", "folds": {}}
+           "operating_points": "f1 = max F1, f2 = max F2. The threshold is read from out-of-fold scores "
+                               "of the other cameras, then a new probe is fit on all of them.",
+           "protocol": "leave-one-camera-out, nested threshold", "folds": {}}
     pooled = {"y": [], "p": [], "f1": dict.fromkeys(KEYS, 0), "f2": dict.fromkeys(KEYS, 0)}
     examples = {}
     for held in sorted(set(cams)):
         tr = [i for i in range(n) if cams[i] != held]; te = [i for i in range(n) if cams[i] == held]
-        clf, thr = fit(np.concatenate([X[i] for i in tr]), np.concatenate([F[i] for i in tr]) >= 0.5)
+        packs = []
+        for cam in sorted({cams[i] for i in tr}):
+            rows = [i for i in tr if cams[i] == cam]
+            packs.append((np.concatenate([X[i] for i in rows]), np.concatenate([F[i] for i in rows]) >= 0.5))
+        thr, nested = oof_thresholds(packs)
+        clf = fit_probe(np.concatenate([X[i] for i in tr]), np.concatenate([F[i] for i in tr]) >= 0.5)
         ys, ps = [], []
         st = {"f1": dict.fromkeys(KEYS, 0), "f2": dict.fromkeys(KEYS, 0)}
         for i in te:
@@ -172,6 +207,7 @@ def main(root):
                 "patch_roc_auc": round(float(roc_auc_score(y, p)), 3),
                 "patch_ap": round(float(average_precision_score(y, p)), 3),
                 "thresholds": {k: round(v, 3) for k, v in thr.items()},
+                "threshold_nested": nested,
                 "f1": score(st["f1"]), "f2": score(st["f2"])}
         res["folds"][held] = fold
         print(json.dumps(fold, ensure_ascii=False), flush=True)
@@ -183,7 +219,7 @@ def main(root):
     res["pooled"] = {"images": n, "patch_roc_auc": round(float(roc_auc_score(y, p)), 3),
                      "patch_ap": round(float(average_precision_score(y, p)), 3),
                      "f1": score(pooled["f1"]), "f2": score(pooled["f2"]),
-                     "note": "pooled over held-out cameras, each scored by a probe that never saw that camera"}
+                     "note": "pooled over held-out cameras. The probe never saw that camera. The threshold was read from out-of-fold scores of the other cameras, not from in-sample probabilities."}
     # final probe on all cameras for deployment (invaradar.drone.DinoProbeSegmenter)
     clf, thr = fit(np.concatenate(X), np.concatenate(F) >= 0.5)
     out = Path(OUT) / "drone"; out.mkdir(parents=True, exist_ok=True)

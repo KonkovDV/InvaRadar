@@ -24,7 +24,7 @@
 
 | Link | Question | InvaRadar |
 |---|---|---|
-| Satellite | where is it most likely to grow | a map of both species over 4,225 km² at 10 m |
+| Satellite | where the landscape rank is higher | a map of both species over 4,225 km² at 10 m |
 | Queue | where should the crew go first | rank × proximity to people × proximity to roads, rivers and power lines × size; a straight-line order, not a road route |
 | Check | is it hogweed or wild angelica | a resident's photo → species classifier; a drone orthomosaic → stand outline |
 | **Work order** | **which method is lawful here** | **method and rule: Water Code art. 65, sanitary rules СанПиН 2.1.3684-21, heritage law 73-ФЗ** |
@@ -35,8 +35,8 @@ Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environm
 ## What already works
 
 - **A map of both species** over a 65 × 65 km window: Moscow and the inner belt of Moscow Oblast, 42.25 million pixels. The Rust core computes it in about 2 minutes on 4 cores.
-- **Tested on 5 km blocks held out of training.** The top 10% of area holds 25.0% of known hogweed reports (95% CI 20.7–28.8), 2.5 times what a random search finds. Goldenrod: 32.5%, 3.3 times.
-- **Tested on later reports.** Training labels stop at 2024. The check uses 2025–2026 reports more than 100 m from older ones. Both sides use one AlphaEarth image, the 2025 embeddings, including the 450 m mean. This is not a forecast from an earlier image. Of those new reports, 38.4% of hogweed (n = 383) and 45.7% of goldenrod (n = 346) fall in the top 20% of area.
+- **Tested on 5 km blocks.** The 30 October 2026 run, before the buffer around each block: the top 10% of area holds 25.0% of known hogweed reports (95% CI 20.7–28.8) and 32.5% of goldenrod. The current code also drops every training row within 500 m of a test row, because the widest feature is a 450 m mean. Those percentages are not what the current script would print.
+- **Tested on later reports.** The 30 October run called a 2025–2026 report "new" when it was 100 m from an older one, while the feature still averages a 450 m window. Of those reports, 38.4% of hogweed (n = 383) and 45.7% of goldenrod (n = 346) fall in the top 20% of area. The current code requires 500 m and does not train inside that ring. Both sides still use one AlphaEarth image, the 2025 embeddings. This is not a forecast from an earlier image.
 - **A draft order for each of 38,308 candidates for a visit** (16,056 hogweed and 22,252 goldenrod). The threshold is percentile 0.98; after 250 levels that is about 2.2% of area, and patches under 400 m² are dropped. Hogweed candidates cover 9,018.8 ha. The share of real hogweed among them has not been measured.
 - **The law is checked by tests** on the top 200 orders of each species and on every point of the web map: no chemicals in a water-protection zone, a protected area or next to children; no pesticide drone inside a settlement; no digging beside a heritage site.
 - **Residents' photos.** Hogweed against wild angelica, Siberian hogweed, cow parsley and ground elder: precision 86.7%, recall 86.5%. Goldenrod against tansy, ragwort and St John's wort: 88.7% and 88.7%. At confidence 0.9 and above the model closes 68.2% of reports itself; 6.2% of those are wrong.
@@ -116,7 +116,7 @@ flowchart LR
 
 1. **Features.** 64 dimensions of the AlphaEarth Foundations embedding at the 10 m cell and the means in windows of 50, 150 and 450 m. Log distance to major roads, minor roads, railways, water and power lines. Terrain: Priority-Flood depression filling, D8 flow, TWI and HAND. 265 features in all.
 2. **Model.** LightGBM, a report against background. The background is 60,000 records of other vascular plants by any observer in the same window. That reduces the pull toward roads and parks. It does not remove it.
-3. **Test.** 5 × 5 km blocks with no buffer, so the 450 m window can see across a block edge. A second split uses label year on the single 2025 image, as above. Area of applicability after Meyer & Pebesma. A 250-point field sample over four rank strata. The walk has not been done.
+3. **Test.** A checkerboard of 5 × 5 km blocks and a 500 m ring around test presences, wider than the 450 m window. A second split uses label year on the single 2025 image, with the same 500 m ring, as above. Area of applicability after Meyer & Pebesma. A 250-point field sample over four rank strata. The walk has not been done. The shares in `outputs/` are the 30 October 2026 run, before this ring.
 4. **Queue.** Connected patches of the top 2% of area, 400 m² and up. Three ranks are separate columns: near children area does not count, containment prefers a small isolated stand, stands of 1 ha and more are a separate programme. The straight line through the first points follows `priority`, which still includes area. There is no road network.
 5. **Work order.** The rules in `invaradar/management.py`, each with its own legal basis. The draft status is `candidate` and `signed_by` is empty: the program does not store a signature. Resolution 369-ПП is written only when a jurisdiction polygon is passed. The published run did not pass one. The photo classifier and the UAV module do not write the order.
 

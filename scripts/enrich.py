@@ -24,6 +24,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import GroupKFold
 from invaradar.config import EPSG, OUT, STUDY_BOX, TAXA, core_binary
 from invaradar.samples import build, load_obs, plant_taxa
+from invaradar.splits import clear_training_mask
 
 taxon = sys.argv[1]
 od = OUT / taxon; tmp = od / "tmp"
@@ -45,6 +46,8 @@ wts = gain / gain.sum()
 S = build(load_obs(), TAXA[taxon]["ids"], plant_taxa())
 F = np.fromfile(tmp / "pts.f32", "<f4").reshape(-1, nf)
 X = F[:len(S)]; ok = ~np.isnan(X[:, 0]); S, X = S[ok].reset_index(drop=True), X[ok]
+trained = clear_training_mask(S[["x", "y"]].to_numpy(), S.label.to_numpy())
+S, X = S.iloc[trained].reset_index(drop=True), X[trained]
 rng = np.random.default_rng(0)
 keep = np.r_[np.where(S.label == 1)[0], rng.choice(np.where(S.label == 0)[0], 8000, replace=False)]
 Xt, St = X[keep], S.iloc[keep].reset_index(drop=True)

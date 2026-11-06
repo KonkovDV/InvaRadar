@@ -14,16 +14,23 @@ import pandas as pd
 import rasterio
 from rasterio.features import shapes
 from rasterio.transform import from_origin
-from scipy.spatial import cKDTree
 from shapely.geometry import shape
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import GroupKFold
 
 from invaradar.aef import AEFIndex, BlockCache, block_jobs
 from invaradar.config import AEF_CACHE, AEF_INDEX, DATA, EPSG, OUT, STUDY_BOX, TAXA, TERRAIN_FEATURES, core_binary
 from invaradar.priority import HOT_PCT, MIN_PX
 from invaradar.queue import build_queue, load_context
 from invaradar.samples import build, load_obs, plant_taxa
+from invaradar.splits import (
+    BLOCK_M,
+    PURGE_M,
+    WINDOW_M,
+    boyce_index,
+    clear_training_mask,
+    iter_spatial_folds,
+    temporal_sets,
+)
 
 CORE = core_binary()
 ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
@@ -59,11 +66,12 @@ def segments():
     for k, g in layers.items():
         p = seg_dir / f"{k}.f32"
         if not p.exists():
-            g = g.to_crs(EPSG).geometry.boundary.where(g.geom_type.str.contains("Polygon"), g.to_crs(EPSG).geometry)
+            gg = g.to_crs(EPSG)
+            lines = gg.geometry.boundary.where(gg.geom_type.str.contains("Polygon"), gg.geometry)
             from shapely import get_coordinates, get_parts
             q = []
-            for geom in get_parts(g.dropna().values):
-                for part in get_parts(geom):
+            for piece in get_parts(lines.dropna().values):
+                for part in get_parts(piece):
                     xy = get_coordinates(part)
                     if len(xy) < 2:
                         continue
@@ -107,38 +115,59 @@ def fit(Xt, yt):
 
 
 def capture(ranks):
+    ranks = np.asarray(ranks, dtype=float)
+    ranks = ranks[np.isfinite(ranks)]
+    if len(ranks) == 0:
+        return {f"capture@{k}%area": None for k in (1, 5, 10, 20)}
     return {f"capture@{k}%area": float((ranks >= 1 - k / 100).mean()) for k in (1, 5, 10, 20)}
 
 
-# spatial block CV (5 km blocks)
-groups = (xy[:, 0] // 5000).astype(int) * 100003 + (xy[:, 1] // 5000).astype(int)
-oof = np.zeros(len(y)); rk = np.zeros(len(y))
-for tr, te in GroupKFold(5).split(X, y, groups):
+# Checkerboard of 5 km blocks, then a 500 m ring around test presences only.
+# The ring is wider than the 450 m embedding window. Background within 30 m is cleared per side.
+oof = np.full(len(y), np.nan)
+rk = np.full(len(y), np.nan)
+for tr, te in iter_spatial_folds(xy, y):
+    if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
+        continue
     m = fit(X[tr], y[tr])
     oof[te] = m.predict(X[te], raw_score=True)
     land = np.sort(m.predict(XL, raw_score=True))
     rk[te] = np.searchsorted(land, oof[te]) / len(land)
+scored = np.isfinite(oof)
+auc = None
+if scored.sum() and len(np.unique(y[scored])) > 1:
+    auc = float(roc_auc_score(y[scored], oof[scored]))
+boyce = boyce_index(rk[y == 1])
 metrics = {"taxon": a.taxon, "embedding_year": a.year, "features": int(X.shape[1]), "terrain": not a.no_terrain,
+           "protocol": {"block_m": BLOCK_M, "purge_m": PURGE_M, "window_m": WINDOW_M,
+                        "clear_m": 30.0, "folds": "checkerboard",
+                        "rule": "ring around test presences only; wider than the feature window; clear background per side"},
            "samples": {"presence": int(y.sum()), "background": int((y == 0).sum())},
-           "spatial_cv": {"roc_auc_vs_background": float(roc_auc_score(y, oof)), **capture(rk[y == 1])}}
+           "spatial_cv": {"roc_auc_vs_background": auc, "n_scored": int(scored.sum()),
+                          "boyce": None if boyce is None else round(boyce, 3),
+                          **capture(rk[y == 1])}}
 log("spatial CV", json.dumps(metrics["spatial_cv"]))
 
-# Label split, not a forecast from an earlier image. Every point uses the same AlphaEarth year
-# (`--year`, default 2025). A 2025–2026 presence is "new" only when it is more than 100 m from a
-# presence with year <= 2024. Features still include the 450 m mean, so that buffer does not
-# separate the test point from training context. Stored metrics are this protocol.
-tr = yr <= 2024; te_pos = (yr >= 2025) & (y == 1)
-d, _ = cKDTree(xy[tr & (y == 1)]).query(xy[te_pos]); new = np.where(te_pos)[0][d > 100]
-te_bg = np.where((yr >= 2025) & (y == 0))[0]
-m = fit(X[tr], y[tr]); land = np.sort(m.predict(XL, raw_score=True))
-pp, pb = m.predict(X[new], raw_score=True), m.predict(X[te_bg], raw_score=True)
-metrics["temporal_test"] = {"n_new_presence": int(len(new)),
-                            "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
-                            **capture(np.searchsorted(land, pp) / len(land))}
+# Not a forecast from an earlier image: both sides still use one AlphaEarth year. A 2025–2026
+# presence counts as new only outside the 450 m window of an older presence, and training rows
+# inside that window of a new presence are not used.
+tr, new, te_bg = temporal_sets(xy, y, yr)
+if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():
+    m = fit(X[tr], y[tr])
+    land = np.sort(m.predict(XL, raw_score=True))
+    pp, pb = m.predict(X[new], raw_score=True), m.predict(X[te_bg], raw_score=True)
+    temporal = {"n_new_presence": int(len(new)), "n_background": int(len(te_bg)),
+                "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
+                **capture(np.searchsorted(land, pp) / len(land))}
+else:
+    temporal = {"n_new_presence": int(len(new)), "n_background": int(len(te_bg)),
+                "roc_auc_vs_background": None, **capture([])}
+metrics["temporal_test"] = temporal
 log("temporal", json.dumps(metrics["temporal_test"]))
 
-# final model → JSON for the Rust evaluator; parity check on 2 000 points
-final = fit(X, y)
+# Deployed model sees every presence and only the background that is not within 30 m of one.
+keep = clear_training_mask(xy, y)
+final = fit(X[keep], y[keep])
 json.dump(final.dump_model(), open(tmp / "model.json", "w"))
 land = final.predict(XL, raw_score=True); land.astype("<f8").tofile(tmp / "land.f64")
 chk = xy[:2000].astype("<f8"); chk.tofile(tmp / "chk.f64")

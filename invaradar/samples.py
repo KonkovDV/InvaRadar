@@ -3,15 +3,15 @@
 Presence: research-grade observations of a target taxon with positional accuracy <= MAX_ACC metres.
 Background ("target-group"): research-grade observations of other vascular plants by any observer in the
 same window (Phillips et al. 2009). That reduces the pull toward roads, parks and dachas. It does not
-remove it, and it does not keep only the observers who recorded the target. Background points within
-CLEAR_M of a presence are dropped (likely unlabelled presence).
+remove it, and it does not keep only the observers who recorded the target. A pixel that already holds
+a presence is not also background. The 30 m clear is not applied here: each split does it on its own
+side, so a test plant cannot delete a training negative before the fold exists.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 from pyproj import Transformer
-from scipy.spatial import cKDTree
 
 from .config import EPSG, INAT_OBS, INAT_TAXA, STUDY_BOX
 
@@ -49,7 +49,7 @@ def in_box(d: pd.DataFrame, box=STUDY_BOX, margin=0.0) -> pd.DataFrame:
 
 def build(d: pd.DataFrame, target_ids, plants: set[int], box=STUDY_BOX, grades=("research",),
           max_bg: int = 60000, seed: int = 0) -> pd.DataFrame:
-    """→ DataFrame [x, y, year, month, label, quality_grade] deduplicated to one record per 10 m pixel and label."""
+    """→ DataFrame deduplicated to one record per 10 m pixel and label. Presence owns the pixel."""
     acc = pd.to_numeric(d["positional_accuracy"], errors="coerce")
     ok = acc.notna() & (acc <= MAX_ACC)
     d = to_utm(d[ok])
@@ -57,12 +57,13 @@ def build(d: pd.DataFrame, target_ids, plants: set[int], box=STUDY_BOX, grades=(
     tid = d["taxon_id"].astype(int)
     pos = d[tid.isin(target_ids) & d.quality_grade.isin(grades)].assign(label=1)
     bg = d[~tid.isin(target_ids) & tid.isin(plants) & (d.quality_grade == "research")].assign(label=0)
-    if len(pos):
-        dist, _ = cKDTree(pos[["x", "y"]].to_numpy()).query(bg[["x", "y"]].to_numpy())
-        bg = bg[dist > CLEAR_M]
     s = pd.concat([pos, bg], ignore_index=True)
-    s["px"] = (s.x // 10).astype(np.int64); s["py"] = (s.y // 10).astype(np.int64)
+    s["px"] = (s.x // 10).astype(np.int64)
+    s["py"] = (s.y // 10).astype(np.int64)
     s = s.sort_values("observed_on").drop_duplicates(["px", "py", "label"], keep="first")
+    planted = pd.MultiIndex.from_frame(s.loc[s.label == 1, ["px", "py"]])
+    on_plant = (s.label == 0) & pd.MultiIndex.from_frame(s[["px", "py"]]).isin(planted)
+    s = s.loc[~on_plant]
     bgi = s.index[s.label == 0]
     if len(bgi) > max_bg:
         s = s.drop(np.random.default_rng(seed).choice(bgi, len(bgi) - max_bg, replace=False))

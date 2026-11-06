@@ -6,9 +6,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import lightgbm as lgb
 import numpy as np
 from scipy.spatial import cKDTree
-from sklearn.model_selection import GroupKFold
 from invaradar.config import OUT, TAXA
 from invaradar.samples import build, load_obs, plant_taxa
+from invaradar.splits import iter_spatial_folds
 taxon = sys.argv[1]
 tmp = OUT / taxon / "tmp"
 obs = load_obs(); plants = plant_taxa()
@@ -26,18 +26,21 @@ persist = np.zeros(len(S), bool); persist[np.where(y == 1)[0][nobs >= 2]] = True
 print("presences", int(y.sum()), "persistent (>=2 observers within 30 m)", int(persist.sum()))
 P = dict(objective="binary", learning_rate=0.08, num_leaves=15, min_child_samples=20, subsample=0.8, subsample_freq=1,
          colsample_bytree=0.5, verbose=-1, n_jobs=4)
-groups = (xy[:, 0] // 5000).astype(int) * 100003 + (xy[:, 1] // 5000).astype(int)
 def run(cols, mask_train_pos=None, name=""):
     rk = np.full(len(y), np.nan)
-    for tr, te in GroupKFold(3).split(X, y, groups):
-        trm = tr if mask_train_pos is None else tr[(y[tr] == 0) | mask_train_pos[tr]]
-        m = lgb.train({**P, "scale_pos_weight": (y[trm] == 0).sum() / y[trm].sum()}, lgb.Dataset(X[trm][:, cols], y[trm]), 150)
+    for tr, te in iter_spatial_folds(xy, y, n_splits=3):
+        if mask_train_pos is not None and len(tr):
+            tr = tr[(y[tr] == 0) | mask_train_pos[tr]]
+        if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
+            continue
+        m = lgb.train({**P, "scale_pos_weight": (y[tr] == 0).sum() / y[tr].sum()}, lgb.Dataset(X[tr][:, cols], y[tr]), 150)
         land = np.sort(m.predict(XL[:, cols], raw_score=True))
         rk[te] = np.searchsorted(land, m.predict(X[te][:, cols], raw_score=True)) / len(land)
     out = {}
     for lab, sel in [("all", y == 1), ("persistent", persist), ("single", (y == 1) & ~persist)]:
         r = rk[sel]
-        out[lab] = {f"@{k}%": round(float((r >= 1 - k / 100).mean()), 3) for k in (1, 5, 10, 20)}
+        r = r[np.isfinite(r)]
+        out[lab] = {f"@{k}%": round(float((r >= 1 - k / 100).mean()), 3) if len(r) else None for k in (1, 5, 10, 20)}
     print(name, json.dumps(out)); return out
 A = list(range(128)); MS = list(range(256)); ALL = list(range(X.shape[1]))
 res = {"aef_pixel+50m": run(A, name="aef_pixel+50m"),

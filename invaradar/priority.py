@@ -22,7 +22,8 @@ def _dist(gdf, layer, mask=None):
     l = layer if layer is None or mask is None else layer[mask]
     if l is None or len(l) == 0:
         return np.full(len(gdf), np.inf)
-    l = l.to_crs(gdf.crs)
+    if l.crs != gdf.crs:
+        l = l.to_crs(gdf.crs)
     j = gpd.sjoin_nearest(gdf[["geometry"]].reset_index(), l[["geometry"]], how="left", distance_col="d")
     return j.groupby("index")["d"].min().reindex(range(len(gdf))).to_numpy()
 
@@ -32,12 +33,17 @@ def add_priority(gdf: gpd.GeoDataFrame, places, roads, water, infra, landuse=Non
     the same layer the treatment rules use (invaradar.layers)."""
     g = gdf.reset_index(drop=True).copy()
     cat = places["basic_category"].astype(str)
-    g["d_child_m"] = _dist(g, child_facilities(places, landuse, g.crs))
-    g["d_sensitive_m"] = np.minimum(_dist(g, places, cat.isin(SENSITIVE)), g["d_child_m"])  # children are sensitive too
-    g["d_road_m"] = _dist(g, roads, roads["subtype"] == "road")
-    g["d_rail_m"] = _dist(g, roads, roads["subtype"] == "rail")
-    g["d_water_m"] = _dist(g, water)
-    g["d_power_m"] = _dist(g, infra)
+    # Project each source once. Roads feed both the road and the rail distance.
+    places_m = places.to_crs(g.crs)
+    roads_m = roads.to_crs(g.crs)
+    water_m = water.to_crs(g.crs)
+    infra_m = infra.to_crs(g.crs)
+    g["d_child_m"] = _dist(g, child_facilities(places_m, landuse, g.crs))
+    g["d_sensitive_m"] = np.minimum(_dist(g, places_m, cat.isin(SENSITIVE)), g["d_child_m"])  # children are sensitive too
+    g["d_road_m"] = _dist(g, roads_m, roads_m["subtype"] == "road")
+    g["d_rail_m"] = _dist(g, roads_m, roads_m["subtype"] == "rail")
+    g["d_water_m"] = _dist(g, water_m)
+    g["d_power_m"] = _dist(g, infra_m)
     exposure = np.maximum(np.exp(-g.d_sensitive_m / 300.0), np.exp(-g.d_child_m / 500.0))
     spread = np.maximum.reduce([np.exp(-g.d_road_m / 100.0), np.exp(-g.d_rail_m / 100.0),
                                 np.exp(-g.d_water_m / 100.0), np.exp(-g.d_power_m / 50.0)])

@@ -1,8 +1,9 @@
-"""Protocols reimplemented from KonkovDV/expds-koz3.
+"""Numeric rules reimplemented from KonkovDV/expds-koz3.
 
 Nothing here is imported from that repository or from EhimenNathan/EXpedition.
-The published InvaRadar map is unchanged: these functions are not features of the
-265-dimensional LightGBM, and they do not rewrite outputs/.
+The split that uses them — a purge wider than the 450 m window, and a threshold
+read off the other groups — lives in invaradar.splits and scripts/drone_benchmark.py.
+Local relief is not one of the 265 map features: the map already has slope, TWI and HAND.
 """
 from __future__ import annotations
 

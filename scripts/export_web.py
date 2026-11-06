@@ -1,5 +1,5 @@
 """Light GeoJSON for the web map (web/index.html, GitHub Pages): the top hotspots of each species by priority,
-as points with the work-order fields, plus the district day route.
+as points with the work-order fields, plus the straight-line district tour.
 usage: export_web.py [--top 3000]   (after prescribe.py and render_maps.py)"""
 import argparse
 import json

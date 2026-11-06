@@ -23,10 +23,11 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score
+from sklearn.metrics import average_precision_score, roc_auc_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from invaradar.config import OUT, SCRATCH  # noqa: E402
+from invaradar.survey_protocol import best_fbeta_threshold  # noqa: E402
 
 WIDTH, PATCH = 896, 14
 MODEL = "vit_small_patch14_dinov2.lvd142m"  # Apache-2.0
@@ -88,9 +89,8 @@ def with_context(tok, hp, wp):
 
 
 def fbeta_threshold(y, p, beta):
-    pr, rc, th = precision_recall_curve(y, p)
-    f = (1 + beta**2) * pr * rc / np.maximum(beta**2 * pr + rc, 1e-9)
-    return float(th[np.argmax(f[:-1])])
+    """Highest threshold among those tied for the best F-beta, so a tie does not add false positives."""
+    return best_fbeta_threshold(y, p, beta)[0]
 
 
 def fit_probe(X, y, seed=0):

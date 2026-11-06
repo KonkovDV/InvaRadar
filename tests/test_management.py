@@ -143,6 +143,22 @@ def test_a_long_canal_keeps_the_right_of_way_rule_and_not_a_river_width():
     assert "ч. 9" in z.zone_note.iloc[0] and "полосе отвода" in z.zone_note.iloc[0]
 
 
+def test_a_pond_takes_the_wider_connected_river_not_the_nearer_ditch():
+    """A ditch 10 m away must not hide a river 20 m away.
+
+    sjoin_nearest would return only the ditch and leave the pond at 50 m.
+    Water Code art. 65 keeps the river width for a water body connected to that river.
+    """
+    ditch = line(0, 0, 1_000, 0)
+    river = line(0, 25, 60_000, 25)
+    pond = box(8, 8, 14, 14)  # ~10 m from the ditch, ~11–17 m from the river
+    water = gpd.GeoDataFrame({"class": ["ditch", "river", "pond"]}, geometry=[ditch, river, pond], crs=CRS)
+    z = water_zones(water, CRS)
+    assert z.zone_m.iloc[0] == 50
+    assert z.zone_m.iloc[1] == 200
+    assert z.zone_m.iloc[2] == 200
+
+
 def test_a_short_first_segment_does_not_steal_the_main_stem():
     """71 km stem (40 + 1 + 30) and a 5 km tributary longer than the 1 km piece.
 

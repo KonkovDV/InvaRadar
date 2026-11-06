@@ -36,9 +36,9 @@
   "hotspots": 16352,
   "in_water_zone_no_pesticides": 4942,
   "water_zone_by_width_m": {
-   "50": 2490,
+   "50": 2488,
    "100": 1539,
-   "200": 913
+   "200": 915
   },
   "in_protected_mechanical": 779,
   "child_org_territory": 92,

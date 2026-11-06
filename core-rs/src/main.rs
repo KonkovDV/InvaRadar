@@ -233,6 +233,11 @@ fn window_mean(sum: &[f32], cnt: &[f32], hc: usize, wc: usize, k: usize) -> Vec<
 /// Exact Euclidean distance transform (Felzenszwalb & Huttenlocher), returns metres.
 fn edt(mask: &[u8], h: usize, w: usize, res: f32) -> Vec<f32> {
     const INF: f32 = 1e20;
+    // No corridor in this layer: distance is the grid diagonal, so ln(1 + d) stays finite.
+    if h == 0 || w == 0 || !mask.iter().any(|&v| v != 0) {
+        let far = (h as f32).hypot(w as f32) * res;
+        return vec![far; h * w];
+    }
     fn dt1(f: &[f32], d: &mut [f32], v: &mut [usize], z: &mut [f32]) {
         let n = f.len();
         let mut k = 0usize;
@@ -1305,6 +1310,14 @@ mod tests {
             t.windows(2).skip(1).all(|w| w[0] <= w[1]),
             "monotonic for q > -128"
         );
+    }
+
+    #[test]
+    fn edt_of_an_empty_mask_is_the_grid_diagonal() {
+        let d = edt(&[0u8; 4 * 4], 4, 4, 10.0);
+        let far = (4f32).hypot(4.0) * 10.0;
+        assert!(d.iter().all(|v| (*v - far).abs() < 1e-4 && v.is_finite()));
+        assert!(edt(&[], 0, 0, 10.0).is_empty());
     }
 
     #[test]

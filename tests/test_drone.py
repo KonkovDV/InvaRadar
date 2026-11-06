@@ -28,6 +28,15 @@ def make_ortho(path, n=1500, gsd=0.03, seed=0):
     return stands, gsd
 
 
+def test_a_tied_f_keeps_the_higher_threshold():
+    from invaradar.survey_protocol import best_fbeta_threshold
+    from scripts.drone_benchmark import fbeta_threshold
+
+    y = np.array([0, 0, 0])
+    scores = np.array([0.2, 0.5, 0.9])
+    assert fbeta_threshold(y, scores, 1.0) == best_fbeta_threshold(y, scores, 1.0)[0] == 0.9
+
+
 def test_pipeline(tmp_path):
     tmp = str(Path(tmp_path) / "test_ortho.tif")
     stands, gsd = make_ortho(tmp)

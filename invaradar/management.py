@@ -199,9 +199,12 @@ def water_zones(water: gpd.GeoDataFrame, crs) -> gpd.GeoDataFrame:
         zone[P.index.to_numpy()[lake]] = 50.0
         lines = w[is_line & (zone > 0)].assign(zone_m=zone[(is_line & (zone > 0)).to_numpy()])
         if len(lines):
-            near = gpd.sjoin_nearest(P[["geometry"]], lines[["geometry", "zone_m"]], max_distance=CONNECT_M)
-            best = near.groupby(level=0)["zone_m"].max()
-            zone[best.index.to_numpy()] = np.maximum(zone[best.index.to_numpy()], best.to_numpy())
+            # Every line within CONNECT_M, not only the nearest. A ditch 10 m away must not hide a river 20 m away:
+            # the water body takes the wider zone (Water Code art. 65: a lake on a river keeps the river's width).
+            near = gpd.sjoin(P[["geometry"]], lines[["geometry", "zone_m"]], predicate="dwithin", distance=CONNECT_M)
+            if len(near):
+                best = near.groupby(level=0)["zone_m"].max()
+                zone[best.index.to_numpy()] = np.maximum(zone[best.index.to_numpy()], best.to_numpy())
     return w.assign(zone_m=zone, zone_note=note)
 
 

@@ -6,21 +6,21 @@
  },
  "prescriptions": {
   "hotspots": 19716,
-  "in_water_zone_no_pesticides": 4769,
+  "in_water_zone_no_pesticides": 4775,
   "water_zone_by_width_m": {
-   "50": 1997,
-   "100": 1500,
-   "200": 1272
+   "50": 1995,
+   "100": 1483,
+   "200": 1297
   },
   "in_protected_mechanical": 1450,
   "child_org_territory": 218,
   "near_children_100m": 1805,
   "near_heritage_no_digging": 119,
   "in_settlement": 14172,
-  "aerial_blocked_uav_700m": 12750,
+  "aerial_blocked_uav_700m": 12745,
   "drone_spraying_allowed": 125,
-  "ground_spot_treatment": 12750,
-  "mechanical_only": 6841,
+  "ground_spot_treatment": 12745,
+  "mechanical_only": 6846,
   "share_hotspots_inside_aoa": 0.99,
   "near_children_300m": 6045
  },

@@ -44,7 +44,7 @@
 
 ## Происхождение
 
-AlphaEarth Foundations 2025 (Google DeepMind), наблюдения iNaturalist (экспорт open data, октябрь 2026), Overture Maps release 2026-10-21.0, Copernicus DEM GLO-30. Обработка — код этого репозитория, версия 1.2.0.
+AlphaEarth Foundations 2025 (Google DeepMind), наблюдения iNaturalist (экспорт open data, скачан 6 ноября 2026), Overture Maps release 2026-10-21.0, Copernicus DEM GLO-30. Обработка — код этого репозитория, версия 1.2.0, прогон карты 6 ноября 2026.
 
 ## Как читать растр
 

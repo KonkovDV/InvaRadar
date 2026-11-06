@@ -27,6 +27,7 @@ from invaradar.splits import (
     PURGE_M,
     WINDOW_M,
     boyce_index,
+    boyce_ratios,
     clear_training_mask,
     iter_spatial_folds,
     temporal_sets,
@@ -137,30 +138,37 @@ scored = np.isfinite(oof)
 auc = None
 if scored.sum() and len(np.unique(y[scored])) > 1:
     auc = float(roc_auc_score(y[scored], oof[scored]))
-boyce = boyce_index(rk[y == 1])
+presence_ranks = rk[y == 1]
+boyce = boyce_index(presence_ranks)
+ratios = boyce_ratios(presence_ranks)
 metrics = {"taxon": a.taxon, "embedding_year": a.year, "features": int(X.shape[1]), "terrain": not a.no_terrain,
            "protocol": {"block_m": BLOCK_M, "purge_m": PURGE_M, "window_m": WINDOW_M,
                         "clear_m": 30.0, "folds": "checkerboard",
-                        "rule": "ring around test presences only; wider than the feature window; clear background per side"},
+                        "rule": "ring around test presences only; wider than the feature window; clear background per side",
+                        "reported_capture": "out of fold; the GeoTIFF is refit on every presence"},
            "samples": {"presence": int(y.sum()), "background": int((y == 0).sum())},
            "spatial_cv": {"roc_auc_vs_background": auc, "n_scored": int(scored.sum()),
                           "boyce": None if boyce is None else round(boyce, 3),
-                          **capture(rk[y == 1])}}
+                          "boyce_ratio": None if ratios is None else [round(float(v), 3) for v in ratios],
+                          **capture(presence_ranks)}}
 log("spatial CV", json.dumps(metrics["spatial_cv"]))
 
 # Not a forecast from an earlier image: both sides still use one AlphaEarth year. A 2025–2026
 # presence counts as new only outside the 450 m window of an older presence, and training rows
 # inside that window of a new presence are not used.
 tr, new, te_bg = temporal_sets(xy, y, yr)
+n_new_candidates = int(((yr >= 2025) & (y == 1)).sum())
 if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():
     m = fit(X[tr], y[tr])
     land = np.sort(m.predict(XL, raw_score=True))
     pp, pb = m.predict(X[new], raw_score=True), m.predict(X[te_bg], raw_score=True)
-    temporal = {"n_new_presence": int(len(new)), "n_background": int(len(te_bg)),
+    temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
+                "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
                 "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
                 **capture(np.searchsorted(land, pp) / len(land))}
 else:
-    temporal = {"n_new_presence": int(len(new)), "n_background": int(len(te_bg)),
+    temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
+                "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
                 "roc_auc_vs_background": None, **capture([])}
 metrics["temporal_test"] = temporal
 log("temporal", json.dumps(metrics["temporal_test"]))
@@ -204,5 +212,5 @@ from shapely.ops import unary_union
 st["geometry"] = [unary_union(geoms[i]) for i in st.hid]
 Hs = gpd.GeoDataFrame(st, geometry="geometry", crs=EPSG); Hs["area_m2"] = Hs.area
 metrics["hotspots"] = build_queue(Hs, od, a.year, a.top, load_context())
-json.dump(metrics, open(od / "metrics.json", "w"), ensure_ascii=False, indent=2)
+json.dump(metrics, open(od / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 log("done", json.dumps(metrics["hotspots"], ensure_ascii=False))

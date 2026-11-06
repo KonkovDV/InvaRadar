@@ -44,5 +44,5 @@ for taxon in ("heracleum", "solidago"):
                       "near_children_100m": s["near_children_100m"]}
 route = gpd.read_file(OUT / "heracleum" / "route_district_2025.geojson")
 route.to_file(web / "route_district.geojson", driver="GeoJSON", COORDINATE_PRECISION=5)
-json.dump(summary, open(web / "summary.json", "w"), ensure_ascii=False, indent=1)
+json.dump(summary, open(web / "summary.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(json.dumps(summary, ensure_ascii=False))

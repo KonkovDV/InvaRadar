@@ -1,108 +1,111 @@
 {
  "taxon": "heracleum",
  "n_presence": 1574,
+ "n_scored": 1574,
  "n_blocks_with_presence": 150,
  "spatial_cv": {
   "capture@1%area": {
-   "estimate": 0.0248,
+   "estimate": 0.0127,
    "ci95": [
-    0.0133,
-    0.0372
+    0.0063,
+    0.0206
    ],
-   "lift": 2.48,
+   "lift": 1.27,
    "lift_ci95": [
-    1.33,
-    3.72
+    0.63,
+    2.06
    ]
   },
   "capture@5%area": {
-   "estimate": 0.1277,
+   "estimate": 0.1252,
    "ci95": [
-    0.0932,
-    0.1626
-   ],
-   "lift": 2.55,
-   "lift_ci95": [
-    1.86,
-    3.25
-   ]
-  },
-  "capture@10%area": {
-   "estimate": 0.2503,
-   "ci95": [
-    0.2073,
-    0.2881
+    0.0986,
+    0.1502
    ],
    "lift": 2.5,
    "lift_ci95": [
-    2.07,
-    2.88
-   ]
-  },
-  "capture@20%area": {
-   "estimate": 0.4161,
-   "ci95": [
-    0.3675,
-    0.4584
-   ],
-   "lift": 2.08,
-   "lift_ci95": [
-    1.84,
-    2.29
-   ]
-  }
- },
- "spatial_cv_method": "cluster bootstrap over 5 km blocks, 2000 replicates, percentile 95% CI",
- "temporal_test": {
-  "capture@1%area": {
-   "estimate": 0.0183,
-   "ci95": [
-    0.0089,
-    0.0372
-   ],
-   "lift": 1.83,
-   "lift_ci95": [
-    0.89,
-    3.72
-   ]
-  },
-  "capture@5%area": {
-   "estimate": 0.0914,
-   "ci95": [
-    0.0664,
-    0.1244
-   ],
-   "lift": 1.83,
-   "lift_ci95": [
-    1.33,
-    2.49
+    1.97,
+    3.0
    ]
   },
   "capture@10%area": {
-   "estimate": 0.1854,
+   "estimate": 0.2332,
    "ci95": [
-    0.1497,
-    0.2274
+    0.1928,
+    0.2677
    ],
-   "lift": 1.85,
+   "lift": 2.33,
    "lift_ci95": [
-    1.5,
-    2.27
+    1.93,
+    2.68
    ]
   },
   "capture@20%area": {
-   "estimate": 0.3838,
+   "estimate": 0.4117,
    "ci95": [
-    0.3365,
-    0.4334
+    0.3625,
+    0.4547
    ],
-   "lift": 1.92,
+   "lift": 2.06,
    "lift_ci95": [
-    1.68,
-    2.17
+    1.81,
+    2.27
+   ]
+  }
+ },
+ "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only; cluster bootstrap of the out-of-fold ranks, 2000 replicates; the fold models are not refit inside the bootstrap",
+ "temporal_test": {
+  "capture@1%area": {
+   "estimate": 0.0046,
+   "ci95": [
+    0.0008,
+    0.0258
+   ],
+   "lift": 0.46,
+   "lift_ci95": [
+    0.08,
+    2.58
    ]
   },
-  "n_new_presence": 383
+  "capture@5%area": {
+   "estimate": 0.0556,
+   "ci95": [
+    0.0321,
+    0.0946
+   ],
+   "lift": 1.11,
+   "lift_ci95": [
+    0.64,
+    1.89
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.1898,
+   "ci95": [
+    0.1431,
+    0.2474
+   ],
+   "lift": 1.9,
+   "lift_ci95": [
+    1.43,
+    2.47
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.3472,
+   "ci95": [
+    0.2869,
+    0.4129
+   ],
+   "lift": 1.74,
+   "lift_ci95": [
+    1.43,
+    2.06
+   ]
+  },
+  "n_new_presence": 216,
+  "n_new_candidates": 504,
+  "n_new_inside_ring": 288
  },
  "temporal_method": "Wilson score 95% CI"
 }

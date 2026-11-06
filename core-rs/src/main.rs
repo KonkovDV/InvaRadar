@@ -333,13 +333,27 @@ fn cached_terrain(dem: &str, g: &Grid) -> Result<Vec<f32>> {
     Ok(t)
 }
 
-fn cache_dir(g: &Grid) -> Option<std::path::PathBuf> {
-    if let Some(dem) = &g.dem {
-        return std::path::Path::new(dem).parent().map(|p| p.to_path_buf());
+/// Directories that may already hold the interleaved mosaic. The block folder is first, so a run
+/// with terrain and a run without it share one cache. The DEM folder is only a fallback for a
+/// mosaic written by an older binary.
+fn mosaic_dirs(g: &Grid) -> Vec<std::path::PathBuf> {
+    let mut dirs = Vec::new();
+    let mut push = |p: std::path::PathBuf| {
+        if !dirs.iter().any(|d| d == &p) {
+            dirs.push(p);
+        }
+    };
+    if let Some((block, _, _)) = g.blocks.first() {
+        if let Some(d) = std::path::Path::new(block).parent() {
+            push(d.to_path_buf());
+        }
     }
-    g.blocks
-        .first()
-        .and_then(|(p, _, _)| std::path::Path::new(p).parent().map(|d| d.to_path_buf()))
+    if let Some(dem) = &g.dem {
+        if let Some(d) = std::path::Path::new(dem).parent() {
+            push(d.to_path_buf());
+        }
+    }
+    dirs
 }
 
 fn path_str(p: &std::path::Path) -> Result<String> {
@@ -352,11 +366,10 @@ fn path_str(p: &std::path::Path) -> Result<String> {
 /// file's length and modification time, so a new download rebuilds it. Delete the `.i8` to force that.
 fn mosaic_cached(g: &Grid) -> Result<Vec<i8>> {
     let n = g.height * g.width * B;
-    let Some(dir) = cache_dir(g) else {
+    let dirs = mosaic_dirs(g);
+    let Some(dir) = dirs.first() else {
         return mosaic(g);
     };
-    let cache = path_str(&dir.join(format!("invaradar-mosaic-{}x{}.i8", g.height, g.width)))?;
-    let stamp_path = path_str(&dir.join(format!("invaradar-mosaic-{}x{}.stamp", g.height, g.width)))?;
     let mut stamp = format!(
         "v1\t{}\t{}\t{}\t{}\t{}\n",
         g.height,
@@ -373,12 +386,22 @@ fn mosaic_cached(g: &Grid) -> Result<Vec<i8>> {
         stamp.push('\t');
         stamp.push_str(&format!("{}\t{}\n", x0.to_bits(), y0.to_bits()));
     }
-    let hit = stamp_matches(&stamp_path, &stamp) && cache_len_ok(&cache, n);
-    let v = cached_i8(&cache, &stamp_path, &stamp, n, || mosaic(g))?;
-    if hit {
-        eprintln!("[core] mosaic cache hit");
+    for candidate in &dirs {
+        let cache =
+            path_str(&candidate.join(format!("invaradar-mosaic-{}x{}.i8", g.height, g.width)))?;
+        let stamp_path =
+            path_str(&candidate.join(format!("invaradar-mosaic-{}x{}.stamp", g.height, g.width)))?;
+        if stamp_matches(&stamp_path, &stamp) && cache_len_ok(&cache, n) {
+            if let Ok(v) = read_i8_exact(&cache, n) {
+                eprintln!("[core] mosaic cache hit");
+                return Ok(v);
+            }
+        }
     }
-    Ok(v)
+    let cache = path_str(&dir.join(format!("invaradar-mosaic-{}x{}.i8", g.height, g.width)))?;
+    let stamp_path =
+        path_str(&dir.join(format!("invaradar-mosaic-{}x{}.stamp", g.height, g.width)))?;
+    cached_i8(&cache, &stamp_path, &stamp, n, || mosaic(g))
 }
 
 fn edt_cached(segment: &str, h: usize, w: usize, res: f32) -> Result<Vec<f32>> {
@@ -797,10 +820,9 @@ fn read_i8_exact(path: &str, n: usize) -> Result<Vec<i8>> {
     let mut f = fs::File::open(path).with_context(|| path.to_string())?;
     let mut m = vec![0i8; n];
     // SAFETY: the buffer is n bytes and i8 has the same layout as u8.
-    std::io::Read::read_exact(
-        &mut f,
-        unsafe { std::slice::from_raw_parts_mut(m.as_mut_ptr().cast::<u8>(), n) },
-    )
+    std::io::Read::read_exact(&mut f, unsafe {
+        std::slice::from_raw_parts_mut(m.as_mut_ptr().cast::<u8>(), n)
+    })
     .with_context(|| path.to_string())?;
     Ok(m)
 }
@@ -818,8 +840,17 @@ fn read_f32_exact(path: &str, n: usize) -> Result<Vec<f32>> {
 /// Identity of one input file: length and modification time. None if the file cannot be stamped.
 fn file_stamp(path: &str) -> Option<String> {
     let m = fs::metadata(path).ok()?;
-    let d = m.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?;
-    Some(format!("{}\t{}\t{}", m.len(), d.as_secs(), d.subsec_nanos()))
+    let d = m
+        .modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?;
+    Some(format!(
+        "{}\t{}\t{}",
+        m.len(),
+        d.as_secs(),
+        d.subsec_nanos()
+    ))
 }
 
 fn stamp_matches(path: &str, body: &str) -> bool {
@@ -845,7 +876,9 @@ fn cached_i8(
         }
     }
     let v = compute()?;
-    match write_bytes(cache, bytes_of_i8(&v)).and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into)) {
+    match write_bytes(cache, bytes_of_i8(&v))
+        .and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into))
+    {
         Ok(()) => {}
         Err(e) => eprintln!("[core] cache write skipped: {cache} ({e:#})"),
     }
@@ -866,7 +899,8 @@ fn cached_f32(
     }
     let v = compute()?;
     let bytes: Vec<u8> = v.iter().flat_map(|x| x.to_le_bytes()).collect();
-    match write_bytes(cache, &bytes).and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into)) {
+    match write_bytes(cache, &bytes).and_then(|()| fs::write(stamp_path, stamp).map_err(Into::into))
+    {
         Ok(()) => {}
         Err(e) => eprintln!("[core] cache write skipped: {cache} ({e:#})"),
     }
@@ -1077,7 +1111,11 @@ fn cmd_hotspots(a: &[String]) -> Result<()> {
     }
     let mut labels = std::io::BufWriter::new(fs::File::create(&a[4])?);
     for r in &root_of {
-        let v = if *r == u32::MAX { 0 } else { label_of[*r as usize] };
+        let v = if *r == u32::MAX {
+            0
+        } else {
+            label_of[*r as usize]
+        };
         labels.write_all(&v.to_le_bytes())?;
     }
     labels.flush()?;

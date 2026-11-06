@@ -4,7 +4,15 @@ import pandas as pd
 from pyproj import Transformer
 
 from invaradar.samples import build
-from invaradar.splits import PURGE_M, boyce_index, iter_spatial_folds, prepare_fold, temporal_sets
+from invaradar.splits import (
+    PURGE_M,
+    boyce_index,
+    boyce_ratios,
+    iter_spatial_folds,
+    prepare_fold,
+    presence_spacing,
+    temporal_sets,
+)
 
 
 def test_a_training_ring_inside_the_feature_window_is_dropped_and_each_side_clears_its_own_background():
@@ -42,6 +50,32 @@ def test_boyce_is_high_when_presences_occupy_the_top_of_the_percentile_map():
     bottom = boyce_index(np.linspace(0.01, 0.2, 40))
     assert top is not None and bottom is not None
     assert top > 0.4 and bottom < 0 and top > bottom
+
+
+def _ranks_with_ratios(ratios):
+    parts = [np.linspace(i / 10 + 0.002, (i + 1) / 10 - 0.002, int(r * 30)) for i, r in enumerate(ratios)]
+    return np.concatenate(parts)
+
+
+def test_boyce_orders_the_bins_and_does_not_measure_the_slope():
+    gentle_r = np.linspace(0.7, 1.3, 10)
+    steep_r = np.linspace(0.2, 1.8, 10)
+    gentle, steep = boyce_index(_ranks_with_ratios(gentle_r)), boyce_index(_ranks_with_ratios(steep_r))
+    assert gentle > 0.95 and steep > 0.95
+    got = boyce_ratios(_ranks_with_ratios(steep_r))
+    assert got[0] < 1 < got[-1] and got[-1] > boyce_ratios(_ranks_with_ratios(gentle_r))[-1]
+    # A spike in one bin ties the empty bins, so the index is not 1 even though the top is full.
+    assert boyce_index(np.full(40, 0.97)) < 0.8
+
+
+def test_spacing_separates_a_clump_inside_one_block_from_a_neighbour_across_the_edge():
+    clump = np.array([[100.0, 100.0], [180.0, 100.0], [100.0, 180.0]])
+    across = np.array([[5100.0, 100.0], [5180.0, 100.0], [5100.0, 180.0]])
+    xy = np.vstack([clump, across])
+    info = presence_spacing(xy, np.ones(len(xy)))
+    assert info["share_nearest_within_purge"] == 1.0
+    assert info["share_other_fold_within_purge"] == 0.0
+    assert info["share_other_fold_between_purge_and_block"] == 1.0
 
 
 def test_a_2025_plant_inside_the_window_of_an_older_one_is_not_a_new_site():

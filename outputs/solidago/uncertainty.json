@@ -1,108 +1,111 @@
 {
  "taxon": "solidago",
  "n_presence": 1560,
+ "n_scored": 1560,
  "n_blocks_with_presence": 151,
  "spatial_cv": {
   "capture@1%area": {
-   "estimate": 0.0712,
+   "estimate": 0.0763,
    "ci95": [
-    0.0506,
-    0.0881
+    0.048,
+    0.1017
    ],
-   "lift": 7.12,
+   "lift": 7.63,
    "lift_ci95": [
-    5.06,
-    8.81
+    4.8,
+    10.17
    ]
   },
   "capture@5%area": {
-   "estimate": 0.2096,
+   "estimate": 0.2135,
    "ci95": [
-    0.1764,
-    0.2389
+    0.1721,
+    0.2476
    ],
-   "lift": 4.19,
+   "lift": 4.27,
    "lift_ci95": [
-    3.53,
-    4.78
+    3.44,
+    4.95
    ]
   },
   "capture@10%area": {
    "estimate": 0.325,
    "ci95": [
-    0.2841,
-    0.3593
+    0.2777,
+    0.3634
    ],
    "lift": 3.25,
    "lift_ci95": [
-    2.84,
-    3.59
+    2.78,
+    3.63
    ]
   },
   "capture@20%area": {
-   "estimate": 0.4962,
+   "estimate": 0.4949,
    "ci95": [
-    0.4625,
-    0.528
+    0.4459,
+    0.5327
    ],
-   "lift": 2.48,
+   "lift": 2.47,
    "lift_ci95": [
-    2.31,
-    2.64
+    2.23,
+    2.66
    ]
   }
  },
- "spatial_cv_method": "cluster bootstrap over 5 km blocks, 2000 replicates, percentile 95% CI",
+ "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only; cluster bootstrap of the out-of-fold ranks, 2000 replicates; the fold models are not refit inside the bootstrap",
  "temporal_test": {
   "capture@1%area": {
-   "estimate": 0.0376,
+   "estimate": 0.0266,
    "ci95": [
-    0.0221,
-    0.0632
+    0.0114,
+    0.0607
    ],
-   "lift": 3.76,
+   "lift": 2.66,
    "lift_ci95": [
-    2.21,
-    6.32
+    1.14,
+    6.07
    ]
   },
   "capture@5%area": {
-   "estimate": 0.1618,
+   "estimate": 0.133,
    "ci95": [
-    0.1268,
-    0.2043
+    0.0917,
+    0.1889
    ],
-   "lift": 3.24,
+   "lift": 2.66,
    "lift_ci95": [
-    2.54,
-    4.09
+    1.83,
+    3.78
    ]
   },
   "capture@10%area": {
-   "estimate": 0.2775,
+   "estimate": 0.2287,
    "ci95": [
-    0.2329,
-    0.3269
+    0.1745,
+    0.2938
    ],
-   "lift": 2.77,
+   "lift": 2.29,
    "lift_ci95": [
-    2.33,
-    3.27
+    1.74,
+    2.94
    ]
   },
   "capture@20%area": {
-   "estimate": 0.4566,
+   "estimate": 0.4149,
    "ci95": [
-    0.4049,
-    0.5093
+    0.3469,
+    0.4863
    ],
-   "lift": 2.28,
+   "lift": 2.07,
    "lift_ci95": [
-    2.02,
-    2.55
+    1.73,
+    2.43
    ]
   },
-  "n_new_presence": 346
+  "n_new_presence": 188,
+  "n_new_candidates": 446,
+  "n_new_inside_ring": 258
  },
  "temporal_method": "Wilson score 95% CI"
 }

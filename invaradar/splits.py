@@ -10,8 +10,8 @@ are used here.
 background only next to the presences on its own side. The 500 m ring is drawn
 around test presences only, which is the presence-background rule in blockCV:
 a test background point is not a reason to delete the neighbourhood.
-Folds are a checkerboard of 5 km blocks, so adjacent blocks are not in the
-same fold and the ring still separates their edges.
+Folds are a checkerboard of 5 km blocks, so blocks that share a side fall in
+different folds. The ring is wider than the 450 m feature window.
 """
 from __future__ import annotations
 
@@ -24,6 +24,41 @@ WINDOW_M = 450.0
 # One extra 50 m cell so the two windows do not share a coarse cell.
 PURGE_M = WINDOW_M + 50.0
 BLOCK_M = 5000.0
+
+
+def presence_spacing(xy, y, purge_m: float = PURGE_M, block_m: float = BLOCK_M, n_splits: int = 5, gps_m: float = 50.0):
+    """How tightly the presences cluster, relative to the ring and the block.
+
+    `share_other_fold_between_purge_and_block` is the share of presences whose
+    nearest presence in another fold lies outside the feature ring and inside
+    one block. Those pairs do not share a 450 m window, and they are still not
+    independent draws.
+    """
+    pos = np.asarray(xy, dtype=np.float64)[np.asarray(y).astype(int) == 1]
+    n = len(pos)
+    if n < 3:
+        return None
+    fold = np.mod(np.floor(pos[:, 0] / block_m) + np.floor(pos[:, 1] / block_m), n_splits)
+    delta = pos[:, None, :] - pos[None, :, :]
+    dist = np.hypot(delta[:, :, 0], delta[:, :, 1])
+    np.fill_diagonal(dist, np.inf)
+    nearest = dist.min(axis=1)
+    other = dist.copy()
+    other[fold[:, None] == fold[None, :]] = np.inf
+    nearest_other = other.min(axis=1)
+
+    def share(mask):
+        return round(float(np.mean(mask)), 3)
+
+    return {
+        "n": int(n),
+        "nearest_m_p50": round(float(np.median(nearest)), 1),
+        "nearest_m_p90": round(float(np.quantile(nearest, 0.9)), 1),
+        "share_nearest_within_gps": share(nearest <= gps_m),
+        "share_nearest_within_purge": share(nearest <= purge_m),
+        "share_other_fold_within_purge": share(nearest_other <= purge_m),
+        "share_other_fold_between_purge_and_block": share((nearest_other > purge_m) & (nearest_other <= block_m)),
+    }
 
 
 def block_groups(xy: np.ndarray, block_m: float = BLOCK_M) -> np.ndarray:
@@ -98,15 +133,14 @@ def iter_spatial_folds(xy: np.ndarray, y: np.ndarray, n_splits: int = 5, block_m
         yield prepare_fold(xy, y, train, test, purge_m, clear_m)
 
 
-def boyce_index(presence_ranks, n_bins: int = 10):
-    """Continuous Boyce index: Spearman correlation of rank bin vs presence/area.
+def boyce_ratios(presence_ranks, n_bins: int = 10):
+    """Predicted-to-expected ratio in equal-width bins of the landscape percentile.
 
-    Hirzel et al. 2006. `presence_ranks` are landscape percentiles in [0, 1].
-    Equal-width bins make the expected share of area 1/n_bins, which is how a
-    percentile map is defined. Returns None when a bin ratio cannot be ranked.
+    Hirzel et al. 2006. A percentile map gives each bin the same area, so the
+    expected share of presences is 1/n_bins and F/E = (share of presences) × n_bins.
+    The ratio does not say how steep the curve is: a gentle rise and a steep one
+    can both be perfectly ordered.
     """
-    from scipy.stats import spearmanr
-
     ranks = np.asarray(presence_ranks, dtype=float)
     ranks = ranks[np.isfinite(ranks)]
     if len(ranks) < n_bins:
@@ -114,14 +148,25 @@ def boyce_index(presence_ranks, n_bins: int = 10):
     ranks = np.clip(ranks, 0.0, 1.0)
     edges = np.linspace(0.0, 1.0, n_bins + 1)
     ratio = np.empty(n_bins)
-    mids = np.empty(n_bins)
     for i in range(n_bins):
         upper = ranks <= edges[i + 1] if i == n_bins - 1 else ranks < edges[i + 1]
         sel = (ranks >= edges[i]) & upper
         ratio[i] = sel.mean() * n_bins
-        mids[i] = 0.5 * (edges[i] + edges[i + 1])
-    if np.allclose(ratio, ratio[0]):
+    return ratio
+
+
+def boyce_index(presence_ranks, n_bins: int = 10):
+    """Spearman correlation of bin midpoint vs F/E. None when the ratios do not rank.
+
+    A value of 1 means the ten bins are strictly ordered. It is not a probability
+    and it is not the share of presences in the top of the map.
+    """
+    from scipy.stats import spearmanr
+
+    ratio = boyce_ratios(presence_ranks, n_bins)
+    if ratio is None or np.allclose(ratio, ratio[0]):
         return None
+    mids = np.linspace(0.5 / n_bins, 1.0 - 0.5 / n_bins, n_bins)
     result = spearmanr(mids, ratio)
     value = getattr(result, "statistic", None)
     if value is None:

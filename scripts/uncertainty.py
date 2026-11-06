@@ -80,7 +80,7 @@ out = {"taxon": taxon, "n_presence": int((y == 1).sum()), "n_scored": int(pos.su
        "n_blocks_with_presence": int(len(blocks)),
        "spatial_cv": {f"capture@{k}%area": ci(hits[k].sum() / cnt.sum(), *np.percentile(boot[k], [2.5, 97.5]), k)
                       for k in KS},
-       "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only, cluster bootstrap, 2000 replicates"}
+       "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only; cluster bootstrap of the out-of-fold ranks, 2000 replicates; the fold models are not refit inside the bootstrap"}
 
 tr, new, _te_bg = temporal_sets(xy, y, yr)
 if len(new) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
@@ -100,7 +100,10 @@ def wilson(x, n, z=1.959964):
 out["temporal_test"] = {f"capture@{k}%area": ci((r_new >= 1 - k / 100).mean(),
                                                  *wilson((r_new >= 1 - k / 100).sum(), len(r_new)), k)
                         for k in KS}
+n_cand = int(((yr >= 2025) & (y == 1)).sum())
+out["temporal_test"]["n_new_candidates"] = n_cand
 out["temporal_test"]["n_new_presence"] = int(len(new))
+out["temporal_test"]["n_new_inside_ring"] = n_cand - int(len(new))
 out["temporal_method"] = "Wilson score 95% CI"
-json.dump(out, open(od / "uncertainty.json", "w"), ensure_ascii=False, indent=1)
+json.dump(out, open(od / "uncertainty.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(json.dumps(out, ensure_ascii=False, indent=1))

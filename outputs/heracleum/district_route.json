@@ -1,8 +1,8 @@
 {
- "district_centre_lat": 55.5423,
- "district_centre_lon": 37.60081,
+ "district_centre_lat": 55.52697,
+ "district_centre_lon": 37.60769,
  "stops": 15,
- "reports_source": "iNaturalist API",
- "route_km": 17.9,
- "known_reports_in_view": 82
+ "reports_source": "iNaturalist open data export",
+ "route_km": 18.0,
+ "known_reports_in_view": 41
 }

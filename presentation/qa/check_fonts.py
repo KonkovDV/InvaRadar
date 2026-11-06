@@ -19,6 +19,10 @@ from fontTools.ttLib import TTFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONT_FILES = (glob.glob(os.path.join(HERE, "..", "fonts", "*.ttf")) + glob.glob(os.path.expanduser("~/.local/share/fonts/*.ttf"))
               + glob.glob("/usr/share/fonts/truetype/*/*.ttf"))
+if os.name == "nt":
+    windir = os.environ.get("WINDIR", r"C:\Windows")
+    FONT_FILES += glob.glob(os.path.join(windir, "Fonts", "*.ttf"))
+    FONT_FILES += glob.glob(os.path.join(windir, "Fonts", "*.ttc"))
 
 
 def cmaps() -> dict:

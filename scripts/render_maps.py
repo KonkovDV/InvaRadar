@@ -97,5 +97,5 @@ lon, lat = Transformer.from_crs(EPSG, 4326, always_xy=True).transform(*centre)
 info = {"district_centre_lat": round(lat, 5), "district_centre_lon": round(lon, 5), "stops": len(order) - 1,
         "reports_source": "iNaturalist open data export" if INAT_OBS.exists() else "iNaturalist API",
         "route_km": round(length / 1000, 1), "known_reports_in_view": int(((P.x > ext[0]) & (P.x < ext[2]) & (P.y > ext[1]) & (P.y < ext[3])).sum())}
-json.dump(info, open(od / "district_route.json", "w"), ensure_ascii=False, indent=1)
+json.dump(info, open(od / "district_route.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(json.dumps(info, ensure_ascii=False))

@@ -46,6 +46,8 @@ A = list(range(128)); MS = list(range(256)); ALL = list(range(X.shape[1]))
 res = {"aef_pixel+50m": run(A, name="aef_pixel+50m"),
        "aef_multiscale": run(MS, name="aef_multiscale"),
        "all_features": run(ALL, name="all"),
+       # Same 265 features as all_features, so the training filter is not confounded with the window set.
+       "all_features_train_on_persistent": run(ALL, persist, name="all_train_persistent"),
        "multiscale_train_on_persistent": run(MS, persist, name="ms_train_persistent")}
 json.dump({"n_presence": int(y.sum()), "n_persistent": int(persist.sum()), "results": res},
-          open(OUT / taxon / "exp_labels.json", "w"), indent=1)
+          open(OUT / taxon / "exp_labels.json", "w", encoding="utf-8"), indent=1)

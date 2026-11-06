@@ -3,47 +3,61 @@
   "embedding_year": 2025,
   "features": 265,
   "terrain": true,
+  "protocol": {
+    "block_m": 5000.0,
+    "purge_m": 500.0,
+    "window_m": 450.0,
+    "clear_m": 30.0,
+    "folds": "checkerboard",
+    "rule": "ring around test presences only; wider than the feature window; clear background per side",
+    "reported_capture": "out of fold; the GeoTIFF is refit on every presence"
+  },
   "samples": {
     "presence": 1560,
     "background": 60000
   },
   "spatial_cv": {
-    "roc_auc_vs_background": 0.6944232051282051,
-    "capture@1%area": 0.07628205128205129,
-    "capture@5%area": 0.22435897435897437,
-    "capture@10%area": 0.3314102564102564,
-    "capture@20%area": 0.4878205128205128
+    "roc_auc_vs_background": 0.694550233735576,
+    "n_scored": 59345,
+    "boyce": 1.0,
+    "capture@1%area": 0.06794871794871794,
+    "capture@5%area": 0.2012820512820513,
+    "capture@10%area": 0.3211538461538462,
+    "capture@20%area": 0.5019230769230769
   },
   "temporal_test": {
-    "n_new_presence": 346,
-    "roc_auc_vs_background": 0.6631075712046471,
-    "capture@1%area": 0.05202312138728324,
-    "capture@5%area": 0.14739884393063585,
-    "capture@10%area": 0.25722543352601157,
-    "capture@20%area": 0.43352601156069365
+    "n_new_presence": 188,
+    "n_background": 10973,
+    "roc_auc_vs_background": 0.6942853929664883,
+    "capture@1%area": 0.015957446808510637,
+    "capture@5%area": 0.11170212765957446,
+    "capture@10%area": 0.20212765957446807,
+    "capture@20%area": 0.35638297872340424,
+    "n_new_candidates": 446,
+    "n_new_inside_ring": 258
   },
-  "rust_parity_max_abs_diff": 1.7763568394002505e-15,
+  "rust_parity_max_abs_diff": 8.881784197001252e-16,
   "terrain_importance": {
-    "elevation": 0.0158,
-    "slope": 0.0049,
-    "twi": 0.0095,
-    "hand": 0.0053
+    "elevation": 0.0131,
+    "slope": 0.0036,
+    "twi": 0.009,
+    "hand": 0.0035
   },
   "importance_share": {
-    "pixel": 0.194,
-    "50m": 0.221,
-    "150m": 0.232,
-    "450m": 0.276,
-    "corridors": 0.041,
-    "terrain": 0.036
+    "pixel": 0.173,
+    "50m": 0.281,
+    "150m": 0.222,
+    "450m": 0.256,
+    "corridors": 0.04,
+    "terrain": 0.029
   },
   "hotspots": {
-    "count": 19279,
-    "area_ha": 8135.1,
-    "within_100m_of_child_facility": 1753,
-    "within_300m_of_child_facility": 5926,
-    "within_300m_of_sensitive_place": 7125,
+    "count": 19501,
+    "area_ha": 8692.5,
+    "within_100m_of_child_facility": 1764,
+    "within_300m_of_child_facility": 6132,
+    "within_300m_of_sensitive_place": 7360,
     "route_top": 25,
-    "route_km": 193.7
+    "route_km": 208.6
   }
 }

@@ -225,10 +225,8 @@ function page(n, nav, kicker, title, sources) {
   T(s, TEAM.members.flatMap((m, i) => [field(m.name, { breakLine: false }),
     { text: ` — ${m.role}`, options: { color: C.paperDim, breakLine: i < TEAM.members.length - 1 } }]),
     { x: MX, y: 4.47, w: 4.5, h: 1.05, fontSize: 10.5, color: C.cream, paraSpaceAfter: 3 });
-  label(s, "Контакты", MX, 5.68, 4.5, C.amber);
-  T(s, [field(TEAM.phone), { text: "   ·   ", options: { color: C.sage } }, field(TEAM.email, { breakLine: true }),
-    { text: "Открытый код и данные: ", options: { color: C.paperDim } },
-    field(TEAM.repo, isBlank(TEAM.repo) ? {} : { hyperlink: { url: TEAM.repo, tooltip: "Репозиторий ИнваРадара" } })],
+  label(s, "Открытый код", MX, 5.68, 4.5, C.amber);
+  T(s, [field(TEAM.repo, isBlank(TEAM.repo) ? {} : { hyperlink: { url: TEAM.repo, tooltip: "Репозиторий ИнваРадара" } })],
     { x: MX, y: 5.95, w: 4.5, h: 0.55, fontSize: 10.5, color: C.cream, paraSpaceAfter: 2 });
   T(s, [{ text: "Heracleum sosnowskyi", options: { italic: true } }, { text: " Manden. · " },
     { text: "Solidago canadensis", options: { italic: true } }, { text: " L. · " },
@@ -425,7 +423,7 @@ function page(n, nav, kicker, title, sources) {
   const sci = [
     ["Физика сигнала", `Пиксель Sentinel-2 — смесь цветков и фона: ρ = f·ρ_{1} + (1 − f)·ρ_{0}. Различима доля f ≥ z·σ / |ρ_{1} − ρ_{0}| ≈ 0,08–0,15, т. е. 8–15${NB}м² соцветий на 100${NB}м². Поэтому спутник сужает поиск, а контур даёт дрон: GSD = H·p / F = 2,7${NB}см с высоты 100${NB}м.`],
     ["Экология и статистика", "Фон — наблюдения других растений в той же зоне: так снижается смещение к дорогам и паркам (Phillips et al., 2009). Проверка — блоками 5 × 5 км и на находках следующих лет (Roberts et al., 2017); область применимости — по Meyer, Pebesma (2021)."],
-    ["Геофизика и гидрология", `Рельеф проверен как гипотеза по критерию, заданному до сравнения. У борщевика доля новых находок в верхних 20% площади выросла с ${pct(Hn.temporal_test["capture@20%area"])} до ${pct(H.temporal_test["capture@20%area"])} — слой оставлен; у золотарника снизилась — исключён. Признаки отбираются для каждого вида отдельно.`],
+    ["Геофизика и гидрология", `Рельеф включён у борщевика и выключен у золотарника: так вышло сравнение, заданное до прогона. Доля новых мест в верхних 20% площади — ${pct(Hn.temporal_test["capture@20%area"])} без рельефа и ${pct(H.temporal_test["capture@20%area"])} с ним у борщевика.`],
     ["Ботаника", "Борщевик — монокарпик: цветёт один раз, обычно на 3–6-й год, и отмирает; 15–20 тыс. семян, единицы процентов живут 2–3 года. Отсюда правила наряда: срезать зонтики до конца июля, подрезать корневую шейку на 5–10 см, наблюдать очаг 5 сезонов."],
   ];
   const sw = (CW - 0.45) / 4;
@@ -520,7 +518,7 @@ function page(n, nav, kicker, title, sources) {
 {
   const s = page(7, 4, "Основная часть · 4. Привлечённые ресурсы",
     "Проект собран на открытых данных и открытом коде: запуск в другом городе не требует закупок, а премия целиком идёт в полевой пилот",
-    "Лицензии: AlphaEarth Foundations Satellite Embedding — CC BY 4.0 («produced by Google and Google DeepMind»); iNaturalist — CC0 / CC BY / CC BY-NC; Overture Maps — ODbL / CDLA-Permissive-2.0; Copernicus DEM © DLR e.V., Airbus; DINOv2 — Apache-2.0; Ultralytics YOLO11 — AGPL-3.0; аэрофото — Menshchikov et al. 2021.");
+    "Лицензии: AlphaEarth Foundations Satellite Embedding — CC BY 4.0 («produced by Google and Google DeepMind»); iNaturalist; Overture Maps; Copernicus DEM © DLR e.V., Airbus; DINOv2 — Apache-2.0.");
   const cols = [
     { t: "Данные", ic: "TbBook2", rows: [
       ["AlphaEarth Foundations", "эмбеддинги 2025 г., 64 признака на 10 м"],
@@ -590,7 +588,7 @@ function page(n, nav, kicker, title, sources) {
 {
   const s = page(8, 5, "Основная часть · 5. Количественные и качественные характеристики (1/2)",
     `Проверка на районах вне обучения: в верхних 10% площади карты в ${fmt(h10.lift, 1)}–${fmt(s10.lift, 1)} раза больше известных очагов, чем при случайном обходе`,
-    "Расчёты ИнваРадара 1.2, октябрь 2026; AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist, исследовательский уровень, точность координат ≤ 50 м; Overture Maps. 95% ДИ — кластерный бутстрэп по блокам 5 км (2000 повторов) и интервал Уилсона.");
+    "Расчёты ИнваРадара 1.2, 6 ноября 2026; AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist, исследовательский уровень, точность координат ≤ 50 м; Overture Maps. 95% ДИ — кластерный бутстрэп уже посчитанных рангов по блокам 5 км (2000 повторов, без переобучения) и интервал Уилсона для одной доли.");
   const MS = 5.25;
   s.addImage({ path: img("heracleum_city.png"), x: MX, y: 1.62, w: MS, h: MS });
   rect(s, MX + 0.12, 1.74, 2.75, 0.62, C.white, C.line, 0.04);
@@ -639,7 +637,7 @@ function page(n, nav, kicker, title, sources) {
 {
   const s = page(9, 5, "Основная часть · 5. Количественные и качественные характеристики (2/2)",
     `Каждый кандидат получает приоритет и проект наряда; ${fmt(H.hotspots.within_300m_of_child_facility)} кандидатов борщевика — в 300 м от школ, садов и площадок`,
-    "Расчёты ИнваРадара 1.2, октябрь 2026; Overture Maps; iNaturalist (сообщения жителей в окне карты — по API, 30.10.2026); comnews.ru (02.04.2026); riamo.ru (07.08.2026); ГАТИ СПб, «Городовой» (hi-tech.mail.ru, dp.ru); Menshchikov et al., IEEE Trans. Computers 70(8), 2021 и их открытый набор аэрофото; gbsad.ru.");
+    "Расчёты ИнваРадара 1.2, 6 ноября 2026; Overture Maps; iNaturalist (сообщения жителей в окне карты — из открытого экспорта, 6.11.2026); comnews.ru (02.04.2026); riamo.ru (07.08.2026); ГАТИ СПб, «Городовой» (hi-tech.mail.ru, dp.ru); Menshchikov et al., IEEE Trans. Computers 70(8), 2021 и их открытый набор аэрофото; gbsad.ru.");
   const MS = 4.55;
   s.addImage({ path: img("heracleum_district.png"), x: MX, y: 1.62, w: MS, h: MS });
   T(s, `Юг Москвы, окно 9 × 9 км: ${DR.stops} самых приоритетных точек и прямая ломаная ${fmt(DR.route_km, 1)} км (синяя линия); чёрные точки — ${DR.known_reports_in_view} сообщений жителей iNaturalist`,
@@ -768,14 +766,12 @@ function page(n, nav, kicker, title, sources) {
   const bare = (u) => String(u).replace(/^https?:\/\//, "").replace(/\/$/, "");
   const yC = 5.25, hC = 2.36;
   rect(s, MX, yC, WL, hC, C.forest, null, 0.06);
-  T(s, "ОТКРЫТЫЙ КОД И КОНТАКТЫ", { x: MX + 0.2, y: yC + 0.12, w: WL - 0.4, h: 0.2, fontSize: 8, bold: true, color: C.amber, charSpacing: 1 });
+  T(s, "ОТКРЫТЫЙ КОД", { x: MX + 0.2, y: yC + 0.12, w: WL - 0.4, h: 0.2, fontSize: 8, bold: true, color: C.amber, charSpacing: 1 });
   const qrOn = !isBlank(TEAM.repo), tw = qrOn ? WL - 2.05 : WL - 0.4;
   const lab = (t) => ({ text: t, options: { color: C.sage, fontSize: 7.5, breakLine: true } });
   const link = (u) => (isBlank(u) ? {} : { hyperlink: { url: /^https?:/.test(u) ? u : `https://${u}` } });
   T(s, [lab("Код и данные"), field(isBlank(TEAM.repo) ? TEAM.repo : bare(TEAM.repo), Object.assign({ breakLine: true }, link(TEAM.repo))),
-    lab("Карта очагов"), field(bare(TEAM.map || pagesUrl(TEAM.repo)), Object.assign({ breakLine: true }, link(TEAM.map || pagesUrl(TEAM.repo)))),
-    lab("Контакты"), field(TEAM.email, { breakLine: true }), field(TEAM.phone, { breakLine: true }),
-    ...(TEAM.video ? [lab("Видео"), field(isBlank(TEAM.video) ? TEAM.video : bare(TEAM.video))] : [])],
+    lab("Карта очагов"), field(bare(TEAM.map || pagesUrl(TEAM.repo)), Object.assign({ breakLine: true }, link(TEAM.map || pagesUrl(TEAM.repo))))],
     { x: MX + 0.2, y: yC + 0.38, w: tw, h: hC - 0.45, fontSize: 9.2, color: C.cream, paraSpaceAfter: 1.5 });
   if (qrOn) {
     qr(s, `https://${bare(TEAM.repo)}`, MX + WL - 1.75, yC + 0.2, 1.58);

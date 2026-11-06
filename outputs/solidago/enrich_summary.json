@@ -1,28 +1,28 @@
 {
  "aoa": {
-  "threshold_DI": 0.531,
-  "share_area_inside_AOA": 0.957,
+  "threshold_DI": 0.527,
+  "share_area_inside_AOA": 0.955,
   "method": "Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, d̄ = mean pairwise distance, threshold = upper whisker of spatial-CV DI"
  },
  "prescriptions": {
-  "hotspots": 22252,
-  "in_water_zone_no_pesticides": 5048,
+  "hotspots": 19716,
+  "in_water_zone_no_pesticides": 4769,
   "water_zone_by_width_m": {
-   "50": 2498,
-   "100": 1240,
-   "200": 1310
+   "50": 1997,
+   "100": 1500,
+   "200": 1272
   },
-  "in_protected_mechanical": 1639,
-  "child_org_territory": 249,
-  "near_children_100m": 2025,
-  "near_heritage_no_digging": 123,
-  "in_settlement": 16227,
-  "aerial_blocked_uav_700m": 14675,
-  "drone_spraying_allowed": 171,
-  "ground_spot_treatment": 14675,
-  "mechanical_only": 7406,
+  "in_protected_mechanical": 1450,
+  "child_org_territory": 218,
+  "near_children_100m": 1805,
+  "near_heritage_no_digging": 119,
+  "in_settlement": 14172,
+  "aerial_blocked_uav_700m": 12750,
+  "drone_spraying_allowed": 125,
+  "ground_spot_treatment": 12750,
+  "mechanical_only": 6841,
   "share_hotspots_inside_aoa": 0.99,
-  "near_children_300m": 6995
+  "near_children_300m": 6045
  },
  "validation_design": {
   "strata_percentile_bounds": [
@@ -39,16 +39,16 @@
    90
   ],
   "area_km2": [
-   3363.8,
-   639.9,
-   123.5,
-   97.8
+   3364.3,
+   647.8,
+   114.6,
+   98.3
   ],
   "weights": [
-   0.7962,
-   0.1515,
-   0.0292,
-   0.0232
+   0.7963,
+   0.1533,
+   0.0271,
+   0.0233
   ],
   "estimator": "stratified proportion p = sum W_h p_h, SE = sqrt(sum W_h^2 p_h (1-p_h)/(n_h-1))"
  }

@@ -46,7 +46,7 @@ P.sort_values("priority", ascending=False)[cols].head(200).round(3) \
     .to_csv(od / f"work_orders_top200_{a.year}.csv", index=False)
 
 summary_path = od / "enrich_summary.json"
-summary = json.load(open(summary_path)) if summary_path.exists() else {}
+summary = json.load(open(summary_path, encoding="utf-8")) if summary_path.exists() else {}
 summary["prescriptions"] = summarize(P)
-json.dump(summary, open(summary_path, "w"), ensure_ascii=False, indent=1)
+json.dump(summary, open(summary_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print("prescriptions", json.dumps(summary["prescriptions"], ensure_ascii=False), flush=True)

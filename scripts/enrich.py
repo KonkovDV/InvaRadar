@@ -31,7 +31,7 @@ od = OUT / taxon; tmp = od / "tmp"
 CORE = core_binary()
 w, s, e, n = STUDY_BOX
 summary_path = od / "enrich_summary.json"
-summary = json.load(open(summary_path)) if summary_path.exists() else {}
+summary = json.load(open(summary_path, encoding="utf-8")) if summary_path.exists() else {}
 
 # ---------- 1. AOA on a 100 m grid
 model = json.load(open(tmp / "model.json"))
@@ -57,6 +57,8 @@ pca = PCA(24, random_state=0).fit(Z); Zt = pca.transform(Z)
 # d̄ = mean distance between training samples (estimated on 200 000 random pairs)
 ia, ib = rng.integers(0, len(Zt), 200_000), rng.integers(0, len(Zt), 200_000)
 dbar = float(np.linalg.norm(Zt[ia[ia != ib]] - Zt[ib[ia != ib]], axis=1).mean())
+# The DI threshold uses block groups in feature space. It is not the map's checkerboard
+# and it does not draw the 500 m ring: Meyer & Pebesma score distance to training points, not capture.
 groups = (St.x // 5000).astype(int) * 100003 + (St.y // 5000).astype(int)
 di_cv = np.zeros(len(Zt))
 for tr, te in GroupKFold(5).split(Zt, groups=groups):
@@ -101,4 +103,4 @@ summary["validation_design"] = {"strata_percentile_bounds": [0, 0.80, 0.95, 0.98
                                 "weights": strata.weight.round(4).tolist(),
                                 "estimator": "stratified proportion p = sum W_h p_h, SE = sqrt(sum W_h^2 p_h (1-p_h)/(n_h-1))"}
 print("validation", summary["validation_design"], flush=True)
-json.dump(summary, open(summary_path, "w"), ensure_ascii=False, indent=1)
+json.dump(summary, open(summary_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

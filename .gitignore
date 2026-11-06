@@ -34,6 +34,7 @@ node_modules/
 
 # local submission bundles, internal audits, videos — not part of the public tree
 /_local_do_not_commit/
+/files/
 
 # console journals from earlier runs, and the drawn orthomosaic sketch
 /outputs/logs/

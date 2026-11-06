@@ -159,6 +159,29 @@ def test_a_pond_takes_the_wider_connected_river_not_the_nearer_ditch():
     assert z.zone_m.iloc[2] == 200
 
 
+def test_a_ditch_caution_does_not_grow_into_the_aerial_buffer():
+    """50 m around a ditch is a caution. СанПиН item 282's 700 m is for fishery waters.
+
+    A stand 200 m from a ditch is outside the caution and may be sprayed from a drone.
+    A stand 400 m from a long river is outside the 200 m zone and still inside the 700 m buffer.
+    """
+    empty = gpd.GeoDataFrame({"class": [], "subtype": []}, geometry=[], crs=CRS)
+    places = gpd.GeoDataFrame({"basic_category": []}, geometry=[], crs=CRS)
+    ditch = gpd.GeoDataFrame({"class": ["ditch"], "subtype": ["ditch"]},
+                             geometry=[line(0, 0, 1_000, 0)], crs=CRS)
+    near = gpd.GeoDataFrame(geometry=[Point(500, 200).buffer(10)], crs=CRS)
+    p = prescribe(near, "heracleum", ditch, empty, places)
+    assert not p.in_water_zone[0] and p.method[0].startswith("точечное опрыскивание с дрона")
+    close = gpd.GeoDataFrame(geometry=[Point(500, 30).buffer(5)], crs=CRS)
+    c = prescribe(close, "heracleum", ditch, empty, places)
+    assert c.in_water_zone[0] and "с дрона" not in c.method[0]
+    river = gpd.GeoDataFrame({"class": ["river"], "subtype": ["river"]},
+                             geometry=[line(0, 0, 60_000, 0)], crs=CRS)
+    buffered = gpd.GeoDataFrame(geometry=[Point(10_000, 400).buffer(10)], crs=CRS)
+    r = prescribe(buffered, "heracleum", river, empty, places)
+    assert not r.in_water_zone[0] and r.method[0].startswith("наземная")
+
+
 def test_a_short_first_segment_does_not_steal_the_main_stem():
     """71 km stem (40 + 1 + 30) and a 5 km tributary longer than the 1 km piece.
 

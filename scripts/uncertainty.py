@@ -22,7 +22,7 @@ import numpy as np
 
 from invaradar.config import OUT, TAXA
 from invaradar.samples import build, load_obs, plant_taxa
-from invaradar.splits import block_groups, iter_spatial_folds, temporal_sets
+from invaradar.splits import block_groups, iter_spatial_folds, landscape_percentile, temporal_sets
 
 taxon = sys.argv[1]
 od = OUT / taxon
@@ -54,7 +54,7 @@ for tr, te in iter_spatial_folds(xy, y):
         continue
     m = fit(X[tr], y[tr])
     land = np.sort(m.predict(XL, raw_score=True))
-    rk[te] = np.searchsorted(land, m.predict(X[te], raw_score=True)) / len(land)
+    rk[te] = landscape_percentile(land, m.predict(X[te], raw_score=True))
 
 pos = (y == 1) & np.isfinite(rk)
 r_pos, g_pos = rk[pos], groups[pos]
@@ -87,7 +87,7 @@ if len(new) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
     raise SystemExit("temporal split has no new presences or no training class")
 m = fit(X[tr], y[tr])
 land = np.sort(m.predict(XL, raw_score=True))
-r_new = np.searchsorted(land, m.predict(X[new], raw_score=True)) / len(land)
+r_new = landscape_percentile(land, m.predict(X[new], raw_score=True))
 
 
 def wilson(x, n, z=1.959964):

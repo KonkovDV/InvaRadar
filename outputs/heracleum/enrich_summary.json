@@ -46,9 +46,9 @@
   "near_children_100m": 1138,
   "near_heritage_no_digging": 79,
   "in_settlement": 10489,
-  "aerial_blocked_uav_700m": 10278,
-  "drone_spraying_allowed": 154,
-  "ground_spot_treatment": 10278,
+  "aerial_blocked_uav_700m": 10262,
+  "drone_spraying_allowed": 170,
+  "ground_spot_treatment": 10262,
   "mechanical_only": 5920,
   "share_hotspots_inside_aoa": 0.977,
   "near_children_300m": 4188

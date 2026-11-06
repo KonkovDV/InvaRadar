@@ -3,16 +3,16 @@
   "hotspots": 16352,
   "shown": 3000,
   "mechanical": 5920,
-  "ground": 10278,
-  "drone": 154,
+  "ground": 10262,
+  "drone": 170,
   "near_children_100m": 1138
  },
  "solidago": {
   "hotspots": 19716,
   "shown": 3000,
   "mechanical": 6846,
-  "ground": 12745,
-  "drone": 125,
+  "ground": 12721,
+  "drone": 149,
   "near_children_100m": 1805
  }
 }

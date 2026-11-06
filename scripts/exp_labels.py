@@ -8,7 +8,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from invaradar.config import OUT, TAXA
 from invaradar.samples import build, load_obs, plant_taxa
-from invaradar.splits import iter_spatial_folds
+from invaradar.splits import iter_spatial_folds, landscape_percentile
 taxon = sys.argv[1]
 tmp = OUT / taxon / "tmp"
 obs = load_obs(); plants = plant_taxa()
@@ -35,7 +35,7 @@ def run(cols, mask_train_pos=None, name=""):
             continue
         m = lgb.train({**P, "scale_pos_weight": (y[tr] == 0).sum() / y[tr].sum()}, lgb.Dataset(X[tr][:, cols], y[tr]), 150)
         land = np.sort(m.predict(XL[:, cols], raw_score=True))
-        rk[te] = np.searchsorted(land, m.predict(X[te][:, cols], raw_score=True)) / len(land)
+        rk[te] = landscape_percentile(land, m.predict(X[te][:, cols], raw_score=True))
     out = {}
     for lab, sel in [("all", y == 1), ("persistent", persist), ("single", (y == 1) & ~persist)]:
         r = rk[sel]

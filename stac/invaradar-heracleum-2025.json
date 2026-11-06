@@ -90,8 +90,8 @@
   "invaradar:hotspots": 16352,
   "license": "CC-BY-4.0",
   "invaradar:prescriptions": {
-   "drone_spraying_allowed": 154,
-   "ground_spot_treatment": 10278,
+   "drone_spraying_allowed": 170,
+   "ground_spot_treatment": 10262,
    "mechanical_only": 5920,
    "in_water_zone_no_pesticides": 4942
   }
@@ -143,8 +143,8 @@
    "roles": [
     "data"
    ],
-   "file:size": 9664891,
-   "file:checksum": "122048b14ca8d344a8c13cc025a5321ea92ab322f5a6ea9ed993ac1448c979ae4426"
+   "file:size": 9665056,
+   "file:checksum": "1220f1c60ebc15e09fe6b9df099602ce84591b44c50b68b581998c93b9002dc4c18d"
   },
   "hotspots_geojson": {
    "href": "./invaradar_heracleum_hotspots_prescribed_2025.geojson",
@@ -153,8 +153,8 @@
    "roles": [
     "data"
    ],
-   "file:size": 69669054,
-   "file:checksum": "1220efb6dc7be761c1e97ac5f74c1d07059443605a16c52de1de876830e90786290d"
+   "file:size": 69670451,
+   "file:checksum": "1220d6095c53ae2ee8cd0bda783aa1892a51a9ec5d6ce03f12eca65b3387778b08cb"
   },
   "dissimilarity": {
    "href": "./invaradar_heracleum_dissimilarity_index_100m.tif",

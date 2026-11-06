@@ -105,7 +105,7 @@ def fit_probe(X, y, seed=0):
 
 
 def fit(X, y, seed=0):
-    """Probe plus in-sample thresholds. Kept for the deployed file; the reported camera does not use these."""
+    """Probe plus thresholds fit on its own scores. Used only when a camera has no second group to borrow."""
     clf = fit_probe(X, y, seed)
     p = clf.predict_proba(X)[:, 1]
     return clf, {"f1": fbeta_threshold(y, p, 1.0), "f2": fbeta_threshold(y, p, 2.0)}

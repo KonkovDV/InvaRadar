@@ -9,10 +9,19 @@ from invaradar.splits import (
     boyce_index,
     boyce_ratios,
     iter_spatial_folds,
+    landscape_percentile,
     prepare_fold,
     presence_spacing,
     temporal_sets,
 )
+
+
+def test_a_missing_score_is_not_reported_as_the_top_of_the_map():
+    land = np.array([0.1, 0.4, 0.9])
+    got = landscape_percentile(land, [0.4, np.nan, 0.95])
+    assert got[0] == np.searchsorted(land, 0.4) / 3
+    assert np.isnan(got[1])
+    assert got[2] == 1.0
 
 
 def test_a_training_ring_inside_the_feature_window_is_dropped_and_each_side_clears_its_own_background():

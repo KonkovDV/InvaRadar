@@ -23,9 +23,10 @@ is advisory: a person signs the work order.
 * Aerial application of pesticides keeps at least 2 km (manned aircraft) or 700 m (unmanned aircraft systems) from
   settlements, drinking-water sources, nature reserves, national parks, zakazniks and fishery water bodies
   (СанПиН 2.1.3684-21 item 282). A hotspot inside a settlement is at distance 0. Inside settlements green spaces
-  are treated with ground boom or knapsack sprayers only (item 273(3)). So in Moscow the drone finds and outlines
+  are treated with ground boom or knapsack sprayers only (item 273(3)).   So in Moscow the drone finds and outlines
   stands, and a ground crew treats them. Settlements: locality boundaries plus residential land use
-  (invaradar.layers); water bodies with a protection zone stand in for fishery water bodies.
+  (invaradar.layers). A statutory water-protection zone stands in for a fishery water body.
+  The 50 m ditch caution does not: it is not that zone and it does not create the 700 m aerial buffer.
 * Ground application: residents are notified through the media at least 5 calendar days ahead and warning signs stand
   at the entrances (item 272). Inside a settlement, item 273(4) also requires the treatment before 07:00 or after
   22:00, in calm weather. That clock time is written into the order.
@@ -255,7 +256,10 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
     g["near_heritage"] = _near(g, heritage, HERITAGE_M)
     g["in_settlement"] = _near(g, settlements(landuse, localities, g.crs), 0.0)
     g["near_settlement_uav"] = _near(g, settlements(landuse, localities, g.crs), AERIAL_UAV_M)
-    g["near_reserve_or_water_uav"] = _near(g, reserves, AERIAL_UAV_M) | _near(g, wz[wz.zone_m > 0], AERIAL_UAV_M)
+    # СанПиН item 282: 700 m from fishery waters. A statutory zone stands in for that.
+    # A ditch's 50 m caution is not a fishery water and does not grow into a 700 m ban.
+    statutory_water = wz[(wz.zone_m > 0) & ~wz["class"].astype(str).isin(DITCH_LINES)]
+    g["near_reserve_or_water_uav"] = _near(g, reserves, AERIAL_UAV_M) | _near(g, statutory_water, AERIAL_UAV_M)
     farms = landuse[lu_cls.isin(FARM_LANDUSE)] if "class" in landuse else landuse.iloc[0:0]
     g["near_farm_uav"] = _near(g, farms, AERIAL_UAV_M)
     g["in_zso"] = _near(g, zso, 0.0)

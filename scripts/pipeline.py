@@ -30,6 +30,7 @@ from invaradar.splits import (
     boyce_ratios,
     clear_training_mask,
     iter_spatial_folds,
+    landscape_percentile,
     temporal_sets,
 )
 
@@ -139,7 +140,7 @@ for tr, te in iter_spatial_folds(xy, y):
     m = fit(X[tr], y[tr])
     oof[te] = m.predict(X[te], raw_score=True)
     land = np.sort(m.predict(XL, raw_score=True))
-    rk[te] = np.searchsorted(land, oof[te]) / len(land)
+    rk[te] = landscape_percentile(land, oof[te])
 scored = np.isfinite(oof)
 auc = None
 if scored.sum() and len(np.unique(y[scored])) > 1:
@@ -171,7 +172,7 @@ if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():
     temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
                 "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
                 "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
-                **capture(np.searchsorted(land, pp) / len(land))}
+                **capture(landscape_percentile(land, pp))}
 else:
     temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
                 "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),

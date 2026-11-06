@@ -133,6 +133,21 @@ def iter_spatial_folds(xy: np.ndarray, y: np.ndarray, n_splits: int = 5, block_m
         yield prepare_fold(xy, y, train, test, purge_m, clear_m)
 
 
+def landscape_percentile(reference, scores) -> np.ndarray:
+    """Share of a sorted reference strictly below each score.
+
+    A non-finite score stays missing. Search would otherwise place NaN at the top
+    of the reference and report it as the best percentile.
+    """
+    ref = np.asarray(reference, dtype=float)
+    values = np.asarray(scores, dtype=float)
+    out = np.full(values.shape, np.nan, dtype=float)
+    ok = np.isfinite(values)
+    if len(ref) and ok.any():
+        out[ok] = np.searchsorted(ref, values[ok]) / len(ref)
+    return out
+
+
 def boyce_ratios(presence_ranks, n_bins: int = 10):
     """Predicted-to-expected ratio in equal-width bins of the landscape percentile.
 

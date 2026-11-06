@@ -93,7 +93,7 @@ A 65 × 65 km window, 4,225 km², 10 m cells. It covers Moscow and the inner bel
 | Boyce index, reports against rank | 1.000 | 0.988 |
 | Share of area inside the model's area of applicability | 97.2% | 96.4% |
 | Likely stands of at least 400 m² / within 300 m of schools, kindergartens and playgrounds | 16,352 / 4,188 | 19,716 / 6,045 |
-| Drone spraying / ground treatment / mechanical only | 154 / 10,278 / 5,920 | 125 / 12,745 / 6,846 |
+| Drone spraying / ground treatment / mechanical only | 170 / 10,262 / 5,920 | 149 / 12,721 / 6,846 |
 
 Intervals are a bootstrap over 5 km blocks, 2,000 replicates, and a Wilson interval for the year split. A random search finds a share of reports equal to the share of area it covers.
 
@@ -132,14 +132,14 @@ Versions as of 30 October 2026: the Water Code as amended on 4 August 2026; sani
 | Rule | Basis | Hogweed stands |
 |---|---|---|
 | Water-protection zone of 50, 100 or 200 m by river length: no pesticides, mechanical methods only | Water Code art. 65, parts 4–6 and part 15 items 3, 6 | 4,942 |
-| Settlement: ground equipment only; a pesticide drone no closer than 700 m to housing, water and protected areas | СанПиН 2.1.3684-21, items 273 and 282 | 10,278 treated from the ground |
+| Settlement: ground equipment only; a pesticide drone no closer than 700 m to housing, a water body with a statutory zone, and protected areas. A ditch is not that buffer | СанПиН 2.1.3684-21, items 273 and 282 | 10,262 treated from the ground |
 | Grounds of a children's organisation: no pesticides | СанПиН 2.1.3684-21, item 273 | 92 |
 | School, kindergarten or playground within 100 m: no pesticides; a separate safety rank, not the visit order | a caution of this system; no statute sets this distance | 1,138 |
 | Protected areas and parks: mechanical methods | protected-area regimes, Mospriroda practice | 779 |
 | Heritage site within 50 m: no digging | a caution of this system; art. 36 of 73-ФЗ requires clearance for earthworks, and the statute sets no 50 m distance | 79 |
 | Ground chemical treatment: notice 5 days ahead and signs. Inside a settlement, also before 07:00 or after 22:00 | СанПиН 2.1.3684-21, items 272 and 273 | ground chemical orders, not mechanical ones |
 
-Hogweed totals: mechanical only 5,920 stands, ground spot treatment 10,278, drone spraying allowed 154, all outside settlements. Goldenrod: 6,846, 12,745 and 125. A canal is not given a river-length width: Water Code art. 65 part 9 sets the width to the right-of-way, and this layer has none. Resolution 369-ПП is written only when a Moscow polygon is passed; the published tables had no such polygon.
+Hogweed totals: mechanical only 5,920 stands, ground spot treatment 10,262, drone spraying allowed 170, all outside settlements. Goldenrod: 6,846, 12,721 and 149. A canal is not given a river-length width: Water Code art. 65 part 9 sets the width to the right-of-way, and this layer has none. Resolution 369-ПП is written only when a Moscow polygon is passed; the published tables had no such polygon.
 
 Biology in the order: umbels are cut before the end of July and again in August, and carried out in bags. Stands larger than 0.5 ha are mown at least every two weeks from May through September. The root collar is cut 5–10 cm down where digging is not forbidden. Both hogweed and goldenrod are watched for 5 seasons. Hogweed orders name the protective equipment.
 

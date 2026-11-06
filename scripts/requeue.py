@@ -27,7 +27,7 @@ MODEL_COLS = ["hid", "n_px", "mean_rank", "max_rank", "cx", "cy", "area_m2", "ge
 hs = gpd.read_parquet(src)[MODEL_COLS].to_crs(EPSG).sort_values("hid").reset_index(drop=True)
 block = build_queue(hs, od, a.year, a.top, load_context())
 mpath = od / "metrics.json"
-metrics = json.load(open(mpath))
+metrics = json.load(open(mpath, encoding="utf-8"))
 metrics["hotspots"] = block
-json.dump(metrics, open(mpath, "w"), ensure_ascii=False, indent=2)
+json.dump(metrics, open(mpath, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 print(json.dumps(block, ensure_ascii=False))

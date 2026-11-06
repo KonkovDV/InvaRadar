@@ -48,7 +48,7 @@ for name, src in assets.items():
     sums[name] = sha256(dist / name)
 
 for f in (ROOT / "stac").glob("*.json"):
-    item = json.load(open(f))
+    item = json.load(open(f, encoding="utf-8"))
     for asset in item.get("assets", {}).values():
         name = asset["href"].removeprefix("./")
         if name in sums:
@@ -57,11 +57,11 @@ for f in (ROOT / "stac").glob("*.json"):
     taxon = item.get("properties", {}).get("invaradar:taxon")
     if taxon:
         t = "heracleum" if taxon.startswith("Heracleum") else "solidago"
-        pres = json.load(open(OUT / t / "enrich_summary.json"))["prescriptions"]
+        pres = json.load(open(OUT / t / "enrich_summary.json", encoding="utf-8"))["prescriptions"]
         item["properties"]["invaradar:hotspots"] = pres["hotspots"]
         item["properties"]["invaradar:prescriptions"] = {k: pres[k] for k in (
             "drone_spraying_allowed", "ground_spot_treatment", "mechanical_only", "in_water_zone_no_pesticides")}
-    json.dump(item, open(f, "w"), ensure_ascii=False, indent=1)
+    json.dump(item, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     shutil.copyfile(f, dist / f.name)
 
 with open(dist / "SHA256SUMS", "w") as fo:

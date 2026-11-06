@@ -1,8 +1,9 @@
 {
  "aoa": {
-  "threshold_DI": 0.527,
-  "share_area_inside_AOA": 0.955,
-  "method": "Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, d̄ = mean pairwise distance, threshold = upper whisker of spatial-CV DI"
+  "threshold_DI": 0.472,
+  "share_area_inside_AOA": 0.964,
+  "n_reference": 59341,
+  "method": "Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, reference = the full training set, d̄ = mean pairwise distance, threshold = upper whisker of spatial-block CV DI"
  },
  "prescriptions": {
   "hotspots": 19716,

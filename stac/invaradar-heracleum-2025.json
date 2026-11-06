@@ -64,36 +64,36 @@
   "invaradar:taxon": "Heracleum sosnowskyi Manden.",
   "invaradar:terrain_features": true,
   "invaradar:spatial_cv_capture_at_10pct_area": {
-   "estimate": 0.2503,
+   "estimate": 0.2332,
    "ci95": [
-    0.2073,
-    0.2881
+    0.1928,
+    0.2677
    ],
-   "lift": 2.5,
+   "lift": 2.33,
    "lift_ci95": [
-    2.07,
-    2.88
+    1.93,
+    2.68
    ]
   },
   "invaradar:temporal_capture_at_20pct_area": {
-   "estimate": 0.3838,
+   "estimate": 0.3472,
    "ci95": [
-    0.3365,
-    0.4334
+    0.2869,
+    0.4129
    ],
-   "lift": 1.92,
+   "lift": 1.74,
    "lift_ci95": [
-    1.68,
-    2.17
+    1.43,
+    2.06
    ]
   },
-  "invaradar:hotspots": 16056,
+  "invaradar:hotspots": 16352,
   "license": "CC-BY-4.0",
   "invaradar:prescriptions": {
-   "drone_spraying_allowed": 168,
-   "ground_spot_treatment": 10367,
-   "mechanical_only": 5521,
-   "in_water_zone_no_pesticides": 4456
+   "drone_spraying_allowed": 154,
+   "ground_spot_treatment": 10278,
+   "mechanical_only": 5920,
+   "in_water_zone_no_pesticides": 4942
   }
  },
  "links": [
@@ -143,8 +143,8 @@
    "roles": [
     "data"
    ],
-   "file:size": 9264696,
-   "file:checksum": "1220409c1eb51de624e0ddfc5db093a418f2f6cdfcdc3eb20a6dcd7488b97cfac2f9"
+   "file:size": 9664891,
+   "file:checksum": "122048b14ca8d344a8c13cc025a5321ea92ab322f5a6ea9ed993ac1448c979ae4426"
   },
   "hotspots_geojson": {
    "href": "./invaradar_heracleum_hotspots_prescribed_2025.geojson",
@@ -153,8 +153,8 @@
    "roles": [
     "data"
    ],
-   "file:size": 46878577,
-   "file:checksum": "12205d4d8eb5ba0741790d32583b8318c682f69f9905f4b8227033a4a5f626c331f8"
+   "file:size": 69669054,
+   "file:checksum": "1220efb6dc7be761c1e97ac5f74c1d07059443605a16c52de1de876830e90786290d"
   },
   "dissimilarity": {
    "href": "./invaradar_heracleum_dissimilarity_index_100m.tif",
@@ -163,8 +163,8 @@
    "roles": [
     "metadata"
    ],
-   "file:size": 1468749,
-   "file:checksum": "122079700be753d088fc77d5902d677df40822c0641a18c4716c3bd1ee6004071522"
+   "file:size": 1464034,
+   "file:checksum": "1220c003649a5f19c0e27cb7cc8f6f59b6f112a33a26fcc808c9852be52a9c3537b9"
   }
  },
  "collection": "invaradar-2025"

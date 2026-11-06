@@ -220,8 +220,10 @@ def main(root):
                      "patch_ap": round(float(average_precision_score(y, p)), 3),
                      "f1": score(pooled["f1"]), "f2": score(pooled["f2"]),
                      "note": "pooled over held-out cameras. The probe never saw that camera. The threshold was read from out-of-fold scores of the other cameras, not from in-sample probabilities."}
-    # final probe on all cameras for deployment (invaradar.drone.DinoProbeSegmenter)
-    clf, thr = fit(np.concatenate(X), np.concatenate(F) >= 0.5)
+    # Coefficients see every camera. The threshold does not: it is the pooled leave-one-camera
+    # operating point, so a camera is never used to pick the cut that is then quoted for it.
+    clf = fit_probe(np.concatenate(X), np.concatenate(F) >= 0.5)
+    thr = {"f1": fbeta_threshold(y, p, 1.0), "f2": fbeta_threshold(y, p, 2.0)}
     out = Path(OUT) / "drone"; out.mkdir(parents=True, exist_ok=True)
     joblib.dump({"model": MODEL, "width": WIDTH, "context": 3, "coef": clf.coef_.astype(np.float32),
                  "intercept": clf.intercept_, "threshold": thr["f2"], "thresholds": thr}, out / "dinov2s_probe.joblib")

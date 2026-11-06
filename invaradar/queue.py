@@ -7,6 +7,7 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 from pyproj import Transformer
+from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
 
 from .config import DATA, EPSG, core_binary
@@ -18,6 +19,23 @@ DEPOT_LONLAT = (37.6176, 55.7520)  # route start: centre of Moscow
 QUEUE_COLS = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "max_rank", "d_sensitive_m", "d_child_m",
               "d_road_m", "d_rail_m", "d_water_m", "d_power_m",
               "safety_rank", "containment_rank", "programme_rank"]
+
+
+def district_stops(xy: np.ndarray, radius_m: float = 4000.0, n: int = 15) -> tuple[int, np.ndarray]:
+    """Index of the densest point, and up to `n` other points in its neighbourhood.
+
+    `xy` is ordered by priority, highest first. The centre is the point with the most
+    neighbours inside `radius_m`. It starts the route and is not listed again. The stops
+    keep that priority order.
+    """
+    xy = np.asarray(xy, dtype=np.float64)
+    if len(xy) == 0:
+        return 0, np.zeros(0, dtype=int)
+    counts = np.fromiter((len(ix) for ix in cKDTree(xy).query_ball_point(xy, radius_m)), dtype=int, count=len(xy))
+    centre = int(counts.argmax())
+    dist = np.hypot(xy[:, 0] - xy[centre, 0], xy[:, 1] - xy[centre, 1])
+    stops = np.flatnonzero((dist < radius_m) & (np.arange(len(xy)) != centre))[:n]
+    return centre, stops
 
 
 def load_context():

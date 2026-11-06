@@ -128,5 +128,5 @@ fig.savefig(fig_dir / "drone_demo.png", bbox_inches="tight", pad_inches=0, facec
 plt.close(fig)
 json.dump({"note": "эскиз на ортофотоплане из tests/test_drone.py, не аэрофото Сколтеха",
            "stands_found": int(len(polys)), "area_m2": round(float(polys.area_m2.sum()), 1), **stats},
-          open(fig_dir / "drone_demo.json", "w"), ensure_ascii=False, indent=1)
+          open(fig_dir / "drone_demo.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print("drone demo", stats)

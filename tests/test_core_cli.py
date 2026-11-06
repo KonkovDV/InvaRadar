@@ -5,8 +5,18 @@ import numpy as np
 import pytest
 
 from invaradar.config import core_binary
+from invaradar.queue import district_stops
 
 CORE = core_binary()
+
+
+def test_the_densest_stand_starts_the_route_and_is_not_listed_twice():
+    alone_then_cluster = np.array([[0.0, 0.0], [1000.0, 0.0], [1010.0, 0.0], [1000.0, 10.0]])
+    centre, stops = district_stops(alone_then_cluster, radius_m=50, n=15)
+    assert centre == 1 and list(stops) == [2, 3]
+    cluster = np.array([[0.0, 0.0], [10.0, 0.0], [0.0, 10.0]])
+    centre, stops = district_stops(cluster, radius_m=100, n=15)
+    assert centre == 0 and list(stops) == [1, 2]
 
 
 @pytest.mark.skipif(not CORE.exists(), reason="build the core first: cd core-rs && cargo build --release")

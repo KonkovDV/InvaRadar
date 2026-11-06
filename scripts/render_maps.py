@@ -10,11 +10,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 from matplotlib.colors import LinearSegmentedColormap
-from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
-from invaradar.config import DATA, EPSG, INAT_OBS, OUT, STUDY_BOX, core_binary
+from invaradar.config import DATA, EPSG, INAT_OBS, OUT, STUDY_BOX, TAXA, core_binary
+from invaradar.queue import district_stops
 from invaradar.samples import build, load_obs, plant_taxa
-from invaradar.config import TAXA
 from invaradar.style import HOT, INK, PAPER, WATER_LIGHT, scale_bar, use_fonts
 
 use_fonts()
@@ -60,9 +59,9 @@ plt.close(fig)
 # 2) district zoom: densest 8-km neighbourhood of the top-300 priority hotspots → top 15 there → route (Rust)
 top = H.sort_values("priority", ascending=False).head(300).copy()
 c = np.c_[top.geometry.representative_point().x, top.geometry.representative_point().y]
-cnt = np.array([len(x) for x in cKDTree(c).query_ball_point(c, 4000)])
-centre = c[cnt.argmax()]
-near = top[np.hypot(c[:, 0] - centre[0], c[:, 1] - centre[1]) < 4000].head(15)
+centre_i, stop_i = district_stops(c)
+centre = c[centre_i]
+near = top.iloc[stop_i]
 pc = np.c_[near.geometry.representative_point().x, near.geometry.representative_point().y]
 pts = np.vstack([centre, pc]).astype("<f8"); pts.tofile(od / "tmp" / "droute.f64")
 subprocess.run([str(CORE), "route", str(od / "tmp" / "droute.f64"), str(od / "tmp" / "droute.txt")], check=True)

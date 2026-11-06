@@ -34,7 +34,7 @@ summary_path = od / "enrich_summary.json"
 summary = json.load(open(summary_path, encoding="utf-8")) if summary_path.exists() else {}
 
 # ---------- 1. AOA on a 100 m grid
-model = json.load(open(tmp / "model.json"))
+model = json.load(open(tmp / "model.json", encoding="utf-8"))
 nf = model["max_feature_idx"] + 1
 gain = np.zeros(nf)
 def walk(t):
@@ -48,9 +48,10 @@ F = np.fromfile(tmp / "pts.f32", "<f4").reshape(-1, nf)
 X = F[:len(S)]; ok = ~np.isnan(X[:, 0]); S, X = S[ok].reset_index(drop=True), X[ok]
 trained = clear_training_mask(S[["x", "y"]].to_numpy(), S.label.to_numpy())
 S, X = S.iloc[trained].reset_index(drop=True), X[trained]
+# Every presence and every background point the deployed model was allowed to see.
+# A draw of 8 000 background rows hides the nearest training point and inflates the threshold.
 rng = np.random.default_rng(0)
-keep = np.r_[np.where(S.label == 1)[0], rng.choice(np.where(S.label == 0)[0], 8000, replace=False)]
-Xt, St = X[keep], S.iloc[keep].reset_index(drop=True)
+Xt, St = X, S
 mu, sd = Xt.mean(0), Xt.std(0) + 1e-9
 Z = (Xt - mu) / sd * np.sqrt(wts)
 pca = PCA(24, random_state=0).fit(Z); Zt = pca.transform(Z)
@@ -82,7 +83,8 @@ with rasterio.open(od / "dissimilarity_index_100m.tif", "w", driver="GTiff", wid
                    compress="deflate") as ds:
     ds.write(di_img, 1); ds.update_tags(aoa_threshold=float(thr))
 summary["aoa"] = {"threshold_DI": round(float(thr), 3), "share_area_inside_AOA": round(float(inside.mean()), 3),
-                  "method": "Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, d̄ = mean pairwise distance, threshold = upper whisker of spatial-CV DI"}
+                  "n_reference": int(len(Zt)),
+                  "method": "Meyer & Pebesma 2021 (CAST): gain-weighted standardized features, 24 PCs, reference = the full training set, d̄ = mean pairwise distance, threshold = upper whisker of spatial-block CV DI"}
 print("AOA", summary["aoa"], flush=True)
 
 # ---------- 2. prescriptions: scripts/prescribe.py (needs the dissimilarity raster written above)

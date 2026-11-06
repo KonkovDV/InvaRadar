@@ -91,7 +91,7 @@ A 65 × 65 km window, 4,225 km², 10 m cells. It covers Moscow and the inner bel
 | New 2025–26 places farther than 500 m, top 20%, trained through 2024 | 34.7% (28.7–41.3), 216 of 504 | 41.5% (34.7–48.6), 188 of 446 |
 | ROC AUC against background, same blocks | 0.687 | 0.684 |
 | Boyce index, reports against rank | 1.000 | 0.988 |
-| Share of area inside the model's area of applicability | 96.4% | 95.5% |
+| Share of area inside the model's area of applicability | 97.2% | 96.4% |
 | Likely stands of at least 400 m² / within 300 m of schools, kindergartens and playgrounds | 16,352 / 4,188 | 19,716 / 6,045 |
 | Drone spraying / ground treatment / mechanical only | 154 / 10,278 / 5,920 | 125 / 12,745 / 6,846 |
 
@@ -149,7 +149,7 @@ Biology in the order: umbels are cut before the end of July and again in August,
 |---|---|
 | Citizen records cluster along roads and in parks. Background from other plants in the same window reduces that bias. It does not remove it (Phillips et al., 2009) | background of 60,000 records of other plants by any observer |
 | A random split overstates a spatial model (Roberts et al., 2017) | a checkerboard of 5 × 5 km blocks, a 500 m ring, and a separate split by label year |
-| A map cannot be trusted where the features are far from training (Meyer & Pebesma, 2021) | a dissimilarity index; 3.6% of the area is outside applicability for hogweed and 4.5% for goldenrod |
+| A map cannot be trusted where the features are far from training (Meyer & Pebesma, 2021) | a dissimilarity index against the full training set; 2.8% of the area is outside applicability for hogweed and 3.6% for goldenrod |
 | Map area and accuracy are estimated from a stratified random sample (Olofsson et al., 2014) | 250 points over four rank strata; the walk is the 2027 pilot |
 | Without filling depressions, flow stops in every pit (Barnes et al., 2014); HAND measures height above the stream along the flow path (Rennó et al., 2008) | Priority-Flood, D8, TWI and HAND in the Rust core |
 | Open annual 10 m embeddings describe every pixel without labelling imagery (AlphaEarth Foundations, 2025) | 64 dimensions of the pixel and means in three windows |

@@ -36,11 +36,17 @@ else:
         print(i, flush=True)
     E = np.stack(E); np.save(emb_f, E)
 y = idx.group.to_numpy(); g = idx.observer_id.to_numpy()
-clf = make_pipeline(StandardScaler(), LogisticRegression(C=0.5, max_iter=3000, class_weight="balanced"))
-oof = np.empty(len(y), dtype=object); proba = np.zeros((len(y), len(np.unique(y))))
-for tr, te in GroupKFold(5).split(E, y, g):
-    c = clf.fit(E[tr], y[tr]); oof[te] = c.predict(E[te]); proba[te] = c.predict_proba(E[te])
 labels = sorted(np.unique(y))
+col = {lab: i for i, lab in enumerate(labels)}
+clf = make_pipeline(StandardScaler(), LogisticRegression(C=0.5, max_iter=3000, class_weight="balanced"))
+oof = np.empty(len(y), dtype=object); proba = np.zeros((len(y), len(labels)))
+for tr, te in GroupKFold(5).split(E, y, g):
+    c = clf.fit(E[tr], y[tr])
+    oof[te] = c.predict(E[te])
+    pr = c.predict_proba(E[te])
+    # A fold that never saw one class has fewer columns. Write them by class, not by position.
+    order = [col[k] for k in c.named_steps["logisticregression"].classes_]
+    proba[np.ix_(te, order)] = pr
 rep = classification_report(y, oof, labels=labels, output_dict=True)
 cm = confusion_matrix(y, oof, labels=labels)
 # binary view used by moderators: "target invasive" vs "not"
@@ -54,7 +60,7 @@ rep["auto_triage"] = {"share_auto": float(conf.mean()),
                       "accuracy_on_auto": float((oof[conf] == y[conf]).mean()) if conf.any() else None}
 res = {"backbone": W, "n_images": int(len(y)), "classes": labels, "confusion_matrix": cm.tolist(), "report": rep,
        "split": "5-fold GroupKFold by observer_id (observer-disjoint)"}
-json.dump(res, open(OUT / "photo" / "metrics.json", "w"), ensure_ascii=False, indent=2)
+json.dump(res, open(OUT / "photo" / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 joblib.dump({"clf": clf.fit(E, y), "backbone": W, "classes": labels}, OUT / "photo" / "verifier.joblib")
 print(json.dumps({k: res["report"][k] for k in ["accuracy", "macro avg", "heracleum_binary", "solidago_binary",
                                                   "auto_triage"]}, ensure_ascii=False, indent=1))

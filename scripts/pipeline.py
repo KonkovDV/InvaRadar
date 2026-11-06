@@ -66,7 +66,10 @@ def segments():
               "power": gpd.read_parquet(ov / "infra.parquet")}
     for k, g in layers.items():
         p = seg_dir / f"{k}.f32"
-        if not p.exists():
+        # Rebuild when a source layer is newer. An old segment file would keep yesterday's roads.
+        fresh = p.exists() and p.stat().st_mtime >= max(src.stat().st_mtime for src in (
+            ov / "roads.parquet", ov / "water.parquet", ov / "infra.parquet"))
+        if not fresh:
             gg = g.to_crs(EPSG)
             lines = gg.geometry.boundary.where(gg.geom_type.str.contains("Polygon"), gg.geometry)
             from shapely import get_coordinates, get_parts
@@ -93,7 +96,7 @@ for j in jobs:
 grid = {"w": w, "n": n, "width": W, "height": H, "res": RES,
         "blocks": [[str(cache.path(a.year, Path(j[0]).stem, j[1], j[2])), j[3], j[4]] for j in jobs],
         "segments": segments(), **({} if a.no_terrain else {"dem": str(DATA / "dem_10m.f32")})}
-gpath = tmp / f"grid_{a.year}.json"; json.dump(grid, open(gpath, "w"))
+gpath = tmp / f"grid_{a.year}.json"; json.dump(grid, open(gpath, "w", encoding="utf-8"))
 
 # ---- samples + landscape points → Rust features
 S = build(load_obs(), TAXA[a.taxon]["ids"], plant_taxa())
@@ -179,7 +182,7 @@ log("temporal", json.dumps(metrics["temporal_test"]))
 # Deployed model sees every presence and only the background that is not within 30 m of one.
 keep = clear_training_mask(xy, y)
 final = fit(X[keep], y[keep])
-json.dump(final.dump_model(), open(tmp / "model.json", "w"))
+json.dump(final.dump_model(), open(tmp / "model.json", "w", encoding="utf-8"))
 land = final.predict(XL, raw_score=True); land.astype("<f8").tofile(tmp / "land.f64")
 chk = xy[:2000].astype("<f8"); chk.tofile(tmp / "chk.f64")
 core("score", gpath, tmp / "model.json", tmp / "chk.f64", tmp / "chk_score.f64")

@@ -66,34 +66,34 @@
   "invaradar:spatial_cv_capture_at_10pct_area": {
    "estimate": 0.325,
    "ci95": [
-    0.2841,
-    0.3593
+    0.2777,
+    0.3634
    ],
    "lift": 3.25,
    "lift_ci95": [
-    2.84,
-    3.59
+    2.78,
+    3.63
    ]
   },
   "invaradar:temporal_capture_at_20pct_area": {
-   "estimate": 0.4566,
+   "estimate": 0.4149,
    "ci95": [
-    0.4049,
-    0.5093
+    0.3469,
+    0.4863
    ],
-   "lift": 2.28,
+   "lift": 2.07,
    "lift_ci95": [
-    2.02,
-    2.55
+    1.73,
+    2.43
    ]
   },
-  "invaradar:hotspots": 22252,
+  "invaradar:hotspots": 19716,
   "license": "CC-BY-4.0",
   "invaradar:prescriptions": {
-   "drone_spraying_allowed": 171,
-   "ground_spot_treatment": 14675,
-   "mechanical_only": 7406,
-   "in_water_zone_no_pesticides": 5048
+   "drone_spraying_allowed": 125,
+   "ground_spot_treatment": 12745,
+   "mechanical_only": 6846,
+   "in_water_zone_no_pesticides": 4775
   }
  },
  "links": [
@@ -143,8 +143,8 @@
    "roles": [
     "data"
    ],
-   "file:size": 10882259,
-   "file:checksum": "12206abc55e47bd90eae296529baf44b348a6da5c7644fa4bdb4e735dde5e4dd3cb6"
+   "file:size": 10215806,
+   "file:checksum": "1220d57ee511aa999b22bd97ba0fd713696de822eb598908bde3dd89e60f6ca277f2"
   },
   "hotspots_geojson": {
    "href": "./invaradar_solidago_hotspots_prescribed_2025.geojson",
@@ -153,8 +153,8 @@
    "roles": [
     "data"
    ],
-   "file:size": 60161526,
-   "file:checksum": "12208e85b5ab0c8d36b1b1f6e525e328545b0868fecfc5648eaa94fcd419ce0b706d"
+   "file:size": 71688848,
+   "file:checksum": "1220878dc7db3b99c0b2603d773cb5e87d3bbf7d2ad1e3710805586cc09b797c2f40"
   },
   "dissimilarity": {
    "href": "./invaradar_solidago_dissimilarity_index_100m.tif",
@@ -163,8 +163,8 @@
    "roles": [
     "metadata"
    ],
-   "file:size": 1470269,
-   "file:checksum": "12206add7da861aa418b6913e9e21ce091a2bc3a4429a74d1872cabcba209d1a02e4"
+   "file:size": 1467043,
+   "file:checksum": "1220e884d4ae7cbf7acdab34eebba284ab5022cef277816b1eef97b5cc150780bfa7"
   }
  },
  "collection": "invaradar-2025"

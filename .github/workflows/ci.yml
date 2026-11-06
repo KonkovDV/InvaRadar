@@ -57,7 +57,8 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python }}
-      # The image Python refuses system pip. setup-uv already made .venv.
+          activate-environment: true
+      # The image Python refuses system pip. setup-uv makes .venv when activate-environment is set.
       - run: uv pip install -e ".[dev]"
       - run: uv run ruff check .
       - run: uv run pytest

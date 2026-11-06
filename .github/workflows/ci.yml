@@ -35,7 +35,7 @@ jobs:
       - run: cargo clippy --release --all-targets -- -D warnings
       - run: cargo test --release
       - run: cargo build --release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: invaradar_core-linux-x86_64
           path: core-rs/target/release/invaradar_core

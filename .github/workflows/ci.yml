@@ -54,7 +54,8 @@ jobs:
           name: invaradar_core-linux-x86_64
           path: core-rs/target/release
       - run: chmod +x core-rs/target/release/invaradar_core
-      - uses: astral-sh/setup-uv@v7
+      # v8 and later publish only an immutable tag. @v7 still floats.
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           python-version: ${{ matrix.python }}
           activate-environment: true

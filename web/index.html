@@ -14,7 +14,10 @@
                font: 14px/1.45 Arial, "Helvetica Neue", sans-serif; }
   #app { display: flex; height: 100%; }
   aside { width: 360px; flex: none; overflow-y: auto; padding: 20px 20px 16px; border-right: 1px solid var(--line); background: var(--paper); }
-  #map { flex: 1; min-width: 0; }
+  #map { flex: 1; min-width: 0; position: relative; }
+  .map-status { position: absolute; z-index: 2; left: 12px; right: 56px; top: 12px; margin: 0;
+                padding: 10px 12px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+  .seg button:focus-visible, .legend label:focus-within { outline: 2px solid var(--forest); outline-offset: 2px; }
   .kicker { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--moss); }
   h1 { font-size: 26px; margin: 6px 0 4px; color: var(--forest); }
   p.lead { margin: 0 0 14px; color: var(--muted); }
@@ -49,19 +52,21 @@
     <h1>ИнваРадар</h1>
     <p class="lead">Кандидаты на осмотр в Москве и ближнем Подмосковье: верхние 2% площади, для каждого — какой метод допустим, если вид подтвердят на месте. Нажмите на точку.</p>
     <div class="seg" role="group" aria-label="Вид">
-      <button id="b-heracleum" aria-pressed="true">Борщевик</button>
-      <button id="b-solidago" aria-pressed="false">Золотарник</button>
+      <button type="button" id="b-heracleum" aria-pressed="true">Борщевик</button>
+      <button type="button" id="b-solidago" aria-pressed="false">Золотарник</button>
     </div>
     <div class="kicker">Метод работ — фильтр</div>
     <div class="legend" id="legend"></div>
-    <div class="note" id="note"></div>
+    <div class="note" id="note" aria-live="polite"></div>
     <div class="note"><b>Как читать.</b> Показаны 3 000 точек с наивысшим рангом прогона 6 ноября 2025 года: один снимок AlphaEarth, не прогноз. Точка — представитель пятна, не его контур. Метод в карточке допустим, только если вид подтвердят на месте. Синяя линия — порядок обхода по прямой на юге Москвы, без дорожной сети. Расстояние до границы Москвы — полная геометрия geoBoundaries (сборка 2023-12-12, ODbL): это не кадастр и не реестр зелёного фонда.</div>
     <footer>
       Данные: AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist; Overture Maps, © участники OpenStreetMap; Copernicus DEM © DLR, Airbus. Юрисдикция в карточке — geoBoundaries gbOpen (ODbL). Подложка — OpenFreeMap, схема OpenMapTiles. Карта — MapLibre GL JS 6.18.0 (BSD-3-Clause), файл лежит рядом со страницей. Результаты — CC BY 4.0, код — Apache-2.0.
       <a href="https://github.com/KonkovDV/InvaRadar">Код</a>.
     </footer>
   </aside>
-  <div id="map" role="region" aria-label="Карта очагов"></div>
+  <div id="map" role="region" aria-label="Карта очагов">
+    <p id="map-status" class="map-status" hidden>Подложка OpenFreeMap не загрузилась. Обновите страницу: без неё точки не рисуются.</p>
+  </div>
 </div>
 <script type="module">
 import { Map, NavigationControl, Popup, ScaleControl, setWorkerUrl } from "./vendor/maplibre-gl.js";
@@ -73,16 +78,27 @@ const CLS = {
 };
 const SP = { heracleum: "Борщевик Сосновского", solidago: "Золотарник" };
 const fmt = (n) => Number(n).toLocaleString("ru-RU");
-let species = "heracleum", hidden = new Set(), summary = {};
+let species = "heracleum", hidden = new Set(), summary = {}, layersReady = false;
 
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const map = new Map({
   container: "map",
   // Vector tiles, no key. Positron stays pale so the three method colours stay in front.
+  // Its labels are already bilingual: Latin plus the local name when the tile has one.
   // MapLibre adds the OpenFreeMap / OpenMapTiles / OpenStreetMap attribution itself.
   style: "https://tiles.openfreemap.org/styles/positron",
   center: [37.62, 55.75], zoom: 9.3, maxZoom: 17, minZoom: 8,
   attributionControl: { compact: true },
   dragRotate: false, pitchWithRotate: false, maxPitch: 0,
+  fadeDuration: reduceMotion ? 0 : 300,
+  locale: {
+    "AttributionControl.ToggleAttribution": "Показать авторов",
+    "NavigationControl.ZoomIn": "Приблизить",
+    "NavigationControl.ZoomOut": "Отдалить",
+    "Popup.Close": "Закрыть",
+    "ScaleControl.Meters": "м",
+    "ScaleControl.Kilometers": "км",
+  },
 });
 window.invaradarMap = map;
 map.addControl(new NavigationControl({ showCompass: false }), "top-right");
@@ -103,6 +119,7 @@ function legend() {
   note.append(name, `${fmt(s.hotspots ?? 0)} кандидатов от 400 м², из них ${fmt(s.near_children_100m ?? 0)} — ближе 100 м к школам, садам и площадкам. Числа в легенде — по всем кандидатам. Это не подтверждённые очаги.`);
 }
 function filter() {
+  if (!layersReady) return;
   const show = Object.keys(CLS).filter((k) => !hidden.has(k));
   for (const sp of Object.keys(SP)) {
     map.setLayoutProperty(`h-${sp}`, "visibility", sp === species ? "visible" : "none");
@@ -112,10 +129,21 @@ function filter() {
 function setSpecies(sp) {
   species = sp;
   for (const k of Object.keys(SP)) document.getElementById(`b-${k}`).setAttribute("aria-pressed", String(k === sp));
-  legend(); filter();
+  legend();
+  if (layersReady) filter();
 }
+document.getElementById("b-heracleum").onclick = () => setSpecies("heracleum");
+document.getElementById("b-solidago").onclick = () => setSpecies("solidago");
+map.on("error", () => {
+  window.setTimeout(() => {
+    let ready = false;
+    try { ready = map.isStyleLoaded(); } catch (e) { ready = false; }
+    if (!ready) document.getElementById("map-status").hidden = false;
+  }, 4000);
+});
 
 map.on("load", async () => {
+  document.getElementById("map-status").hidden = true;
   summary = await (await fetch("data/summary.json")).json();
   map.addSource("route", { type: "geojson", data: "data/route_district.geojson" });
   map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#2F6F95", "line-width": 2.5, "line-opacity": 0.85 } });
@@ -169,8 +197,7 @@ map.on("load", async () => {
     map.on("mouseenter", `h-${sp}`, () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", `h-${sp}`, () => (map.getCanvas().style.cursor = ""));
   }
-  document.getElementById("b-heracleum").onclick = () => setSpecies("heracleum");
-  document.getElementById("b-solidago").onclick = () => setSpecies("solidago");
+  layersReady = true;
   setSpecies("heracleum");
 });
 </script>

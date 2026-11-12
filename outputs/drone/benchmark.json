@@ -2,8 +2,8 @@
  "dataset": "Heracleum dataset, Moscow region (Menshchikov et al. 2021), 263 aerial photos, 3 cameras",
  "backbone": "vit_small_patch14_dinov2.lvd142m (frozen, Apache-2.0), 896px wide input, 14px patches",
  "probe": "L2-normalised patch token + 3×3 context mean → logistic regression",
- "operating_points": "thresholds chosen on the training cameras only: f1 = max F1 (balanced), f2 = max F2 (scouting, recall-weighted)",
- "protocol": "leave-one-camera-out",
+ "operating_points": "f1 = max F1, f2 = max F2. The threshold is read from out-of-fold scores of the other cameras, then a new probe is fit on all of them.",
+ "protocol": "leave-one-camera-out, nested threshold",
  "folds": {
   "FC220": {
    "camera": "DJI Mavic Pro",
@@ -12,28 +12,29 @@
    "patch_roc_auc": 0.952,
    "patch_ap": 0.703,
    "thresholds": {
-    "f1": 0.808,
-    "f2": 0.52
+    "f1": 0.688,
+    "f2": 0.1
    },
+   "threshold_nested": true,
    "f1": {
-    "pixel_iou": 0.415,
-    "pixel_dice": 0.586,
-    "pixel_precision": 0.771,
-    "pixel_recall": 0.473,
-    "stand_recall": 0.494,
+    "pixel_iou": 0.467,
+    "pixel_dice": 0.637,
+    "pixel_precision": 0.711,
+    "pixel_recall": 0.577,
+    "stand_recall": 0.604,
     "stands": 877,
-    "images_with_hogweed_detected": "75/90",
+    "images_with_hogweed_detected": "80/90",
     "empty_images_clean": "9/12"
    },
    "f2": {
-    "pixel_iou": 0.488,
-    "pixel_dice": 0.655,
-    "pixel_precision": 0.627,
-    "pixel_recall": 0.687,
-    "stand_recall": 0.709,
+    "pixel_iou": 0.305,
+    "pixel_dice": 0.468,
+    "pixel_precision": 0.313,
+    "pixel_recall": 0.923,
+    "stand_recall": 0.943,
     "stands": 877,
-    "images_with_hogweed_detected": "83/90",
-    "empty_images_clean": "7/12"
+    "images_with_hogweed_detected": "90/90",
+    "empty_images_clean": "1/12"
    }
   },
   "FC300S": {
@@ -43,27 +44,28 @@
    "patch_roc_auc": 0.968,
    "patch_ap": 0.792,
    "thresholds": {
-    "f1": 0.805,
-    "f2": 0.547
+    "f1": 0.334,
+    "f2": 0.051
    },
+   "threshold_nested": true,
    "f1": {
-    "pixel_iou": 0.305,
-    "pixel_dice": 0.467,
-    "pixel_precision": 0.86,
-    "pixel_recall": 0.32,
-    "stand_recall": 0.255,
+    "pixel_iou": 0.518,
+    "pixel_dice": 0.683,
+    "pixel_precision": 0.776,
+    "pixel_recall": 0.609,
+    "stand_recall": 0.513,
     "stands": 1053,
-    "images_with_hogweed_detected": "46/92",
+    "images_with_hogweed_detected": "72/92",
     "empty_images_clean": "0/0"
    },
    "f2": {
-    "pixel_iou": 0.446,
-    "pixel_dice": 0.617,
-    "pixel_precision": 0.824,
-    "pixel_recall": 0.493,
-    "stand_recall": 0.397,
+    "pixel_iou": 0.545,
+    "pixel_dice": 0.705,
+    "pixel_precision": 0.604,
+    "pixel_recall": 0.847,
+    "stand_recall": 0.769,
     "stands": 1053,
-    "images_with_hogweed_detected": "64/92",
+    "images_with_hogweed_detected": "86/92",
     "empty_images_clean": "0/0"
    }
   },
@@ -74,25 +76,26 @@
    "patch_roc_auc": 0.962,
    "patch_ap": 0.826,
    "thresholds": {
-    "f1": 0.851,
-    "f2": 0.645
+    "f1": 0.624,
+    "f2": 0.313
    },
+   "threshold_nested": true,
    "f1": {
-    "pixel_iou": 0.644,
-    "pixel_dice": 0.783,
-    "pixel_precision": 0.76,
-    "pixel_recall": 0.808,
-    "stand_recall": 0.943,
+    "pixel_iou": 0.631,
+    "pixel_dice": 0.774,
+    "pixel_precision": 0.664,
+    "pixel_recall": 0.927,
+    "stand_recall": 0.976,
     "stands": 332,
     "images_with_hogweed_detected": "69/69",
     "empty_images_clean": "0/0"
    },
    "f2": {
-    "pixel_iou": 0.635,
-    "pixel_dice": 0.777,
-    "pixel_precision": 0.672,
-    "pixel_recall": 0.921,
-    "stand_recall": 0.973,
+    "pixel_iou": 0.537,
+    "pixel_dice": 0.699,
+    "pixel_precision": 0.544,
+    "pixel_recall": 0.979,
+    "stand_recall": 0.988,
     "stands": 332,
     "images_with_hogweed_detected": "69/69",
     "empty_images_clean": "0/0"
@@ -104,32 +107,32 @@
   "patch_roc_auc": 0.948,
   "patch_ap": 0.747,
   "f1": {
-   "pixel_iou": 0.492,
-   "pixel_dice": 0.659,
-   "pixel_precision": 0.779,
-   "pixel_recall": 0.571,
-   "stand_recall": 0.449,
+   "pixel_iou": 0.565,
+   "pixel_dice": 0.722,
+   "pixel_precision": 0.7,
+   "pixel_recall": 0.745,
+   "stand_recall": 0.616,
    "stands": 2262,
-   "images_with_hogweed_detected": "190/251",
+   "images_with_hogweed_detected": "221/251",
    "empty_images_clean": "9/12"
   },
   "f2": {
-   "pixel_iou": 0.548,
-   "pixel_dice": 0.708,
-   "pixel_precision": 0.692,
-   "pixel_recall": 0.725,
-   "stand_recall": 0.603,
+   "pixel_iou": 0.466,
+   "pixel_dice": 0.636,
+   "pixel_precision": 0.485,
+   "pixel_recall": 0.922,
+   "stand_recall": 0.869,
    "stands": 2262,
-   "images_with_hogweed_detected": "216/251",
-   "empty_images_clean": "7/12"
+   "images_with_hogweed_detected": "245/251",
+   "empty_images_clean": "1/12"
   },
-  "note": "pooled over held-out cameras, each scored by a probe that never saw that camera"
+  "note": "pooled over held-out cameras. The probe never saw that camera. The threshold was read from out-of-fold scores of the other cameras, not from in-sample probabilities."
  },
  "deployed_probe": {
   "file": "outputs/drone/dinov2s_probe.joblib",
   "thresholds": {
-   "f1": 0.826,
-   "f2": 0.546
+   "f1": 0.545,
+   "f2": 0.213
   }
  }
 }

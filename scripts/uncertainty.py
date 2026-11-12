@@ -33,7 +33,8 @@ from invaradar.splits import (
 )
 
 taxon = sys.argv[1]
-od = OUT / taxon
+# A second argument is a variant directory. The taxon name still selects the species list.
+od = Path(sys.argv[2]) if len(sys.argv) > 2 else OUT / taxon
 tmp = od / "tmp"
 S = build(load_obs(), TAXA[taxon]["ids"], plant_taxa())
 F = np.fromfile(tmp / "pts.f32", "<f4")

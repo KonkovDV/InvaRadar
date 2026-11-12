@@ -1,0 +1,31 @@
+{
+  "geometry": "geoBoundaries gbOpen RUS ADM1, full build 2023-12-12, ODbL-1.0",
+  "not_cadastral": true,
+  "green_fund_register": "not obtained; data.mos.ru did not answer",
+  "rule": "a point measurement may only add a water restriction; boundary distance is the minimum of the old and new values; jurisdiction changes only when the point falls in a polygon",
+  "heracleum": {
+    "orders": 200,
+    "boundary_shorter": 77,
+    "water_widened": 0,
+    "jurisdiction_flips": 0,
+    "canal_sentence_added": 1,
+    "canal_rank": 82,
+    "act_changed": 0,
+    "city_oblast": [93, 107],
+    "web_features_shorter_boundary": 1241,
+    "web_jurisdiction_flips": {"to_city": 9, "to_oblast": 5}
+  },
+  "solidago": {
+    "orders": 200,
+    "boundary_shorter": 90,
+    "water_widened": 0,
+    "jurisdiction_flips": 0,
+    "canal_sentence_added": 0,
+    "act_changed": 1,
+    "act_rank": 50,
+    "boundary_m": [102.84, 14.62],
+    "city_oblast": [79, 121],
+    "web_features_shorter_boundary": 1207,
+    "web_jurisdiction_flips": {"to_city": 8, "to_oblast": 3}
+  }
+}

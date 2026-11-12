@@ -71,28 +71,34 @@ def scene_percentile(scores: np.ndarray) -> np.ndarray:
 
 
 def best_fbeta_threshold(y: np.ndarray, scores: np.ndarray, beta: float = 1.0) -> tuple[float, float]:
-    """Threshold on this set only, and the F-beta it reaches. Higher score is a positive."""
+    """Threshold on this set only, and the F-beta it reaches. Higher score is a positive.
+
+    Equal F keeps the higher threshold. The scan is one pass over the distinct scores:
+    a loop that re-reads every patch for every score does not finish on an aerial frame.
+    """
     labels = np.asarray(y).astype(int).ravel()
     p = np.asarray(scores, dtype=np.float64).ravel()
     if labels.shape != p.shape:
         raise ValueError("labels and scores must have the same length")
     if len(labels) == 0:
         return 0.5, 0.0
-    best_t, best_f = float(np.max(p)), -1.0
+    uniq, inverse = np.unique(p, return_inverse=True)
+    positive = labels == 1
+    tp_at = np.bincount(inverse, weights=positive, minlength=len(uniq))
+    counts = np.bincount(inverse, minlength=len(uniq))
+    # uniq is ascending, so a suffix sum is every patch with score >= that value.
+    tp = np.cumsum(tp_at[::-1])[::-1]
+    predicted = np.cumsum(counts[::-1])[::-1]
+    fp = predicted - tp
+    fn = tp_at.sum() - tp
     b2 = beta * beta
-    for t in np.unique(p):
-        pred = p >= t
-        tp = int(np.sum(pred & (labels == 1)))
-        fp = int(np.sum(pred & (labels == 0)))
-        fn = int(np.sum(~pred & (labels == 1)))
-        precision = tp / (tp + fp) if tp + fp else 0.0
-        recall = tp / (tp + fn) if tp + fn else 0.0
-        denom = b2 * precision + recall
-        f = (1.0 + b2) * precision * recall / denom if denom else 0.0
-        # Equal F keeps the higher threshold: fewer false positives, not more flags.
-        if f >= best_f:
-            best_t, best_f = float(t), float(f)
-    return best_t, best_f
+    precision = np.divide(tp, tp + fp, out=np.zeros(len(uniq)), where=(tp + fp) > 0)
+    recall = np.divide(tp, tp + fn, out=np.zeros(len(uniq)), where=(tp + fn) > 0)
+    denom = b2 * precision + recall
+    f = np.divide((1.0 + b2) * precision * recall, denom, out=np.zeros(len(uniq)), where=denom > 0)
+    # The last maximum is the highest score: uniq increases, and a tie must not add flags.
+    best = int(np.flatnonzero(f == f.max())[-1])
+    return float(uniq[best]), float(f[best])
 
 
 def nested_thresholds(groups: dict[str, tuple[np.ndarray, np.ndarray]], beta: float = 1.0) -> dict[str, float]:

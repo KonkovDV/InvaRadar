@@ -47,7 +47,7 @@ def listed_act(jurisdiction: str, taxon: str, protected: bool = False,
     """What the work order may say about a legal duty to control this taxon here.
 
     369-ПП names a species and applies on Moscow's green fund, not on protected areas.
-    A point within 50 m of the simplified city boundary is too close to assign the duty.
+    A point within 50 m of the city boundary in the jurisdiction file is too close to assign the duty.
     Appendix 2 clause 3.2 of 369-ПП is deferred to 2027-01-01 for goldenrod.
     """
     regime = REGIMES.get(jurisdiction)

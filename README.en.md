@@ -41,7 +41,7 @@ Prepared for the Moscow Ecology Award 2026, category "Digitalisation of environm
 - **The law is checked by tests** on the top 200 orders of each species and on every point of the web map: no chemicals in a water-protection zone, a protected area or next to children; no pesticide drone inside a settlement; no digging beside a heritage site.
 - **Residents' photos.** Hogweed against wild angelica, Siberian hogweed, cow parsley and ground elder: precision 86.7%, recall 86.5%. Goldenrod against tansy, ragwort and St John's wort: 88.7% and 88.7%. At confidence 0.9 and above the model closes 68.2% of reports itself; 6.2% of those are wrong.
 - **The drone module on 263 aerial photos** of the Moscow region: ROC AUC 0.948 on 14 × 14 patches in the saved `outputs/drone/benchmark.json`. The capturing camera was kept out of the probe's training, and the threshold in that file was fit on the same frames. The current script chooses the threshold from the other cameras; that file was not recomputed. The authors of the set report 0.96 under a different protocol (Menshchikov et al., 2021). The frames are not in this repository.
-- **Rust inference matches LightGBM**: the largest difference is 1.1×10⁻¹⁵ for hogweed and 8.9×10⁻¹⁶ for goldenrod on 2,000 pipeline points (`rust_parity_max_abs_diff`). The single-node NaN test does not measure that number.
+- **Rust inference matches LightGBM**: the largest difference is 1.1×10⁻¹⁵ for hogweed and 8.9×10⁻¹⁶ for goldenrod on 2,000 pipeline points (`rust_parity_max_abs_diff`), from the 6 November run. Those 2,000 points were not scored again after `kernel.rs`. The vector sums are required to match the scalar loop bit for bit, and the core tests check that. The single-node NaN test does not measure the 10⁻¹⁵ figure.
 
 ![Sosnowsky's hogweed relative risk, 65 by 65 km window, 2025](outputs/figures/heracleum_city.png)
 
@@ -206,7 +206,7 @@ make pro-demo    # an offline walkthrough, written to pro/out_demo
 | What if AlphaEarth goes away? | Embeddings enter through one interface; TESSERA and OlmoEarth provide comparable global 10 m layers. Version 1.2 has not been run on them | [landscape](docs/LANDSCAPE.md) |
 | Whose photos are these? | The slides use iNaturalist photos under CC BY and CC0, authors in `presentation/assets/CREDITS.csv`. `scripts/photo_dataset.py` keeps only CC0 and CC BY for a model a city can ship. The aerial set is used for evaluation only and is not redistributed | [NOTICE](NOTICE) |
 | Personal data? | The model holds plant coordinates only. A bot or API must not keep faces, number plates or home geotags (152-ФЗ) | [security](SECURITY.md) |
-| Why Rust? | 42 million pixels × 265 features in one pass. The first mosaic takes a few minutes; scoring the grid again takes tens of seconds. Terrain is cached | [architecture](docs/ARCHITECTURE.md) |
+| Why Rust? | 42 million pixels × 265 features in one pass. The 64 embedding channels are added with AVX-512 or AVX2 in the same order as the scalar loop; tree thresholds stay f64. The first mosaic takes a few minutes; scoring the grid again takes tens of seconds. Terrain is cached | [architecture](docs/ARCHITECTURE.md) |
 
 ## Run
 
@@ -215,7 +215,7 @@ Python 3.11+ and Rust. A full run downloads about 9 GB of open data: AlphaEarth 
 ```bash
 git clone https://github.com/KonkovDV/InvaRadar && cd InvaRadar
 pip install -e ".[dev,pro]"
-make core test    # 9 Rust tests and 117 Python tests: 16 check the law on the orders and the map, 45 are InvaRadar Pro
+make core test    # 11 Rust tests (CI skips one extra strip timing) and 117 Python tests: 16 check the law on the orders and the map, 45 are InvaRadar Pro
 make all          # data, both species, terrain variants, intervals, figures
 ```
 
@@ -244,7 +244,7 @@ presentation/   decks, generators, fonts, photos
 docs/           science, experiments, model and data cards, landscape, plan, sources
 ```
 
-- **Rust 2024**: `rayon`, `memmap2`, `serde_json`, `anyhow`. One multithreaded pass over the mosaic, no copies.
+- **Rust 2024**, minimum 1.89: `rayon`, `memmap2`, `serde_json`, `anyhow`. One multithreaded pass over the mosaic. The 64-channel sums live in `core-rs/src/kernel.rs`: AVX-512 or AVX2, same order as the scalar loop.
 - **Python**: LightGBM, scikit-learn, GeoPandas, Shapely, rasterio, pyproj, PyArrow. Drone module: PyTorch and timm (`.[drone]`). Photo classifier: Ultralytics (`.[photo]`).
 - **Formats**: Cloud Optimized GeoTIFF, GeoParquet, STAC 1.1.
 - **Web map**: MapLibre GL over OpenStreetMap, published with GitHub Pages.

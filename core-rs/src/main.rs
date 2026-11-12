@@ -21,6 +21,13 @@
 //!             TWI = ln(a / tan b) with D8 flow accumulation on the depression-filled DEM, HAND (m)
 //!
 //! Window statistics at the edge of the study grid use replicate (nearest) padding, the same for points and map.
+//!
+//! The band arithmetic and the f32→f64 promotion live in `kernel.rs`. The binary is built with
+//! `target-cpu=native`. On Emerald Rapids the 64 embedding channels are one AVX-512 register.
+//! Adds stay in the same left-to-right order as the scalar loop, so the bits match LightGBM.
+//! Workers are pinned one to a core and each core walks a band of rows, so the sliding window of
+//! the mosaic stays in that core's L2. Tree nodes are 16 bytes. Thresholds stay f64.
+//! There is no fast-math and no software prefetch: the forest already fits in L2.
 
 // Index loops over pixels and bands are the clearest form for these numeric kernels.
 #![allow(clippy::needless_range_loop)]
@@ -31,6 +38,8 @@ use serde_json::Value;
 use std::fs;
 use std::io::Write;
 use std::time::Instant;
+
+mod kernel;
 
 const B: usize = 64; // embedding channels
 const BLK: usize = 1024; // AEF block size (px)
@@ -116,6 +125,7 @@ fn npy_data(bytes: &[u8]) -> Result<&[u8]> {
 fn mosaic(g: &Grid) -> Result<Vec<i8>> {
     let (h, w) = (g.height, g.width);
     let mut m = vec![NODATA; h * w * B];
+    kernel::advise_huge(&m);
     let span = BLK as f64 * g.res;
     for (path, x0, y0) in &g.blocks {
         let file = fs::File::open(path).with_context(|| path.clone())?;
@@ -179,24 +189,46 @@ struct Ctx {
 }
 
 fn coarse(m: &[i8], lut: &[f32; 256], h: usize, w: usize) -> (Vec<f32>, Vec<f32>, usize, usize) {
+    match kernel::selected_isa() {
+        kernel::AVX512 => coarse_isa::<{ kernel::AVX512 }>(m, lut, h, w),
+        kernel::AVX2 => coarse_isa::<{ kernel::AVX2 }>(m, lut, h, w),
+        _ => coarse_isa::<{ kernel::SCALAR }>(m, lut, h, w),
+    }
+}
+
+fn coarse_isa<const ISA: u8>(
+    m: &[i8],
+    lut: &[f32; 256],
+    h: usize,
+    w: usize,
+) -> (Vec<f32>, Vec<f32>, usize, usize) {
     let (hc, wc) = (h.div_ceil(CELL), w.div_ceil(CELL));
     let mut sum = vec![0f32; hc * wc * B];
     let mut cnt = vec![0f32; hc * wc];
-    sum.par_chunks_mut(wc * B)
-        .zip(cnt.par_chunks_mut(wc))
+    kernel::advise_huge(&sum);
+    // Contiguous coarse-row bands: one core walks neighbouring rows so the 2 MiB L2
+    // keeps the five source rows instead of re-reading the mosaic from DRAM.
+    let threads = rayon::current_num_threads().max(1);
+    let band = hc.div_ceil(threads);
+    sum.par_chunks_mut(band * wc * B)
+        .zip(cnt.par_chunks_mut(band * wc))
         .enumerate()
-        .for_each(|(rc, (srow, crow))| {
-            for r in rc * CELL..((rc + 1) * CELL).min(h) {
-                for c in 0..w {
-                    let px = &m[(r * w + c) * B..(r * w + c + 1) * B];
-                    if px[0] == NODATA {
-                        continue;
-                    }
-                    let cc = c / CELL;
-                    crow[cc] += 1.0;
-                    let s = &mut srow[cc * B..(cc + 1) * B];
-                    for b in 0..B {
-                        s[b] += lut[(px[b] as i16 + 128) as usize];
+        .for_each(|(t, (sband, cband))| {
+            let rc0 = t * band;
+            let nrc = sband.len() / (wc * B);
+            for i in 0..nrc {
+                let rc = rc0 + i;
+                let srow = &mut sband[i * wc * B..(i + 1) * wc * B];
+                let crow = &mut cband[i * wc..(i + 1) * wc];
+                for r in rc * CELL..((rc + 1) * CELL).min(h) {
+                    for c in 0..w {
+                        let px = &m[(r * w + c) * B..(r * w + c + 1) * B];
+                        if px[0] == NODATA {
+                            continue;
+                        }
+                        let cc = c / CELL;
+                        crow[cc] += 1.0;
+                        kernel::accum_dequant::<ISA>(&mut srow[cc * B..(cc + 1) * B], px, lut);
                     }
                 }
             }
@@ -205,30 +237,46 @@ fn coarse(m: &[i8], lut: &[f32; 256], h: usize, w: usize) -> (Vec<f32>, Vec<f32>
 }
 
 fn window_mean(sum: &[f32], cnt: &[f32], hc: usize, wc: usize, k: usize) -> Vec<f32> {
+    match kernel::selected_isa() {
+        kernel::AVX512 => window_mean_isa::<{ kernel::AVX512 }>(sum, cnt, hc, wc, k),
+        kernel::AVX2 => window_mean_isa::<{ kernel::AVX2 }>(sum, cnt, hc, wc, k),
+        _ => window_mean_isa::<{ kernel::SCALAR }>(sum, cnt, hc, wc, k),
+    }
+}
+
+fn window_mean_isa<const ISA: u8>(
+    sum: &[f32],
+    cnt: &[f32],
+    hc: usize,
+    wc: usize,
+    k: usize,
+) -> Vec<f32> {
     let h = (k / 2) as i64;
     let mut out = vec![0f32; hc * wc * B];
-    out.par_chunks_mut(wc * B)
+    let threads = rayon::current_num_threads().max(1);
+    let band = hc.div_ceil(threads);
+    out.par_chunks_mut(band * wc * B)
         .enumerate()
-        .for_each(|(r, orow)| {
-            for c in 0..wc {
-                let mut acc = [0f32; B];
-                let mut n = 0f32;
-                for dr in -h..=h {
-                    let rr = (r as i64 + dr).clamp(0, hc as i64 - 1) as usize;
-                    for dc in -h..=h {
-                        let cc = (c as i64 + dc).clamp(0, wc as i64 - 1) as usize;
-                        let i = rr * wc + cc;
-                        n += cnt[i];
-                        let s = &sum[i * B..(i + 1) * B];
-                        for b in 0..B {
-                            acc[b] += s[b];
+        .for_each(|(t, oband)| {
+            let r0 = t * band;
+            let nrows = oband.len() / (wc * B);
+            for i in 0..nrows {
+                let r = r0 + i;
+                let orow = &mut oband[i * wc * B..(i + 1) * wc * B];
+                for c in 0..wc {
+                    let mut acc = [0f32; B];
+                    let mut n = 0f32;
+                    for dr in -h..=h {
+                        let rr = (r as i64 + dr).clamp(0, hc as i64 - 1) as usize;
+                        for dc in -h..=h {
+                            let cc = (c as i64 + dc).clamp(0, wc as i64 - 1) as usize;
+                            let i = rr * wc + cc;
+                            n += cnt[i];
+                            kernel::accum_bands::<ISA>(&mut acc, &sum[i * B..(i + 1) * B]);
                         }
                     }
-                }
-                let o = &mut orow[c * B..(c + 1) * B];
-                if n > 0.0 {
-                    for b in 0..B {
-                        o[b] = acc[b] / n;
+                    if n > 0.0 {
+                        kernel::store_div::<ISA>(&mut orow[c * B..(c + 1) * B], &acc, n);
                     }
                 }
             }
@@ -310,11 +358,13 @@ fn edt(mask: &[u8], h: usize, w: usize, res: f32) -> Vec<f32> {
 fn rasterize_segments(path: &str, h: usize, w: usize) -> Result<Vec<u8>> {
     let bytes = fs::read(path).with_context(|| path.to_string())?;
     let s: Vec<f32> = bytes
-        .chunks_exact(4)
-        .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|b| f32::from_le_bytes(*b))
         .collect();
     let mut m = vec![0u8; h * w];
-    for q in s.chunks_exact(4) {
+    for q in s.as_chunks::<4>().0 {
         let (c0, r0, c1, r1) = (q[0], q[1], q[2], q[3]);
         let len = ((c1 - c0).abs().max((r1 - r0).abs()) * 2.0).ceil().max(1.0) as usize;
         for i in 0..=len {
@@ -351,15 +401,15 @@ fn mosaic_dirs(g: &Grid) -> Vec<std::path::PathBuf> {
             dirs.push(p);
         }
     };
-    if let Some((block, _, _)) = g.blocks.first() {
-        if let Some(d) = std::path::Path::new(block).parent() {
-            push(d.to_path_buf());
-        }
+    if let Some((block, _, _)) = g.blocks.first()
+        && let Some(d) = std::path::Path::new(block).parent()
+    {
+        push(d.to_path_buf());
     }
-    if let Some(dem) = &g.dem {
-        if let Some(d) = std::path::Path::new(dem).parent() {
-            push(d.to_path_buf());
-        }
+    if let Some(dem) = &g.dem
+        && let Some(d) = std::path::Path::new(dem).parent()
+    {
+        push(d.to_path_buf());
     }
     dirs
 }
@@ -399,11 +449,13 @@ fn mosaic_cached(g: &Grid) -> Result<Vec<i8>> {
             path_str(&candidate.join(format!("invaradar-mosaic-{}x{}.i8", g.height, g.width)))?;
         let stamp_path =
             path_str(&candidate.join(format!("invaradar-mosaic-{}x{}.stamp", g.height, g.width)))?;
-        if stamp_matches(&stamp_path, &stamp) && cache_len_ok(&cache, n) {
-            if let Ok(v) = read_i8_exact(&cache, n) {
-                eprintln!("[core] mosaic cache hit");
-                return Ok(v);
-            }
+        if stamp_matches(&stamp_path, &stamp)
+            && cache_len_ok(&cache, n)
+            && let Ok(v) = read_i8_exact(&cache, n)
+        {
+            eprintln!("[core] mosaic cache hit");
+            kernel::advise_huge(&v);
+            return Ok(v);
         }
     }
     let cache = path_str(&dir.join(format!("invaradar-mosaic-{}x{}.i8", g.height, g.width)))?;
@@ -429,6 +481,7 @@ fn build_context(g: &Grid) -> Result<Ctx> {
     let t = Instant::now();
     let lut = lut();
     let m = mosaic_cached(g)?;
+    kernel::advise_huge(&m);
     eprintln!(
         "[core] mosaic {}x{} in {:.1}s",
         g.width,
@@ -448,6 +501,9 @@ fn build_context(g: &Grid) -> Result<Ctx> {
         .par_iter()
         .map(|p| edt_cached(p, g.height, g.width, g.res as f32))
         .collect::<Result<Vec<_>>>()?;
+    for layer in &dist {
+        kernel::advise_huge(layer);
+    }
     eprintln!(
         "[core] corridor distances in {:.1}s",
         t.elapsed().as_secs_f32()
@@ -456,6 +512,7 @@ fn build_context(g: &Grid) -> Result<Ctx> {
         Some(p) => cached_terrain(p, g)?,
         None => vec![0f32; g.height * g.width * NTER],
     };
+    kernel::advise_huge(&terr);
     eprintln!("[core] terrain in {:.1}s", t.elapsed().as_secs_f32());
     Ok(Ctx {
         m,
@@ -478,10 +535,10 @@ impl Ctx {
     }
 
     /// Column sum of 5 rows (r-2..=r+2, clamped) at column c, accumulated in fixed order.
-    #[inline]
-    fn colsum(&self, r: usize, c: usize, acc: &mut [f32; B]) -> f32 {
+    #[inline(always)]
+    fn colsum_isa<const ISA: u8>(&self, r: usize, c: usize, acc: &mut [f32; B]) -> f32 {
         let mut n = 0f32;
-        *acc = [0f32; B];
+        kernel::zero_bands::<ISA>(acc);
         for dr in -2i64..=2 {
             let rr = (r as i64 + dr).clamp(0, self.h as i64 - 1) as usize;
             let p = self.px(rr, c);
@@ -489,25 +546,28 @@ impl Ctx {
                 continue;
             }
             n += 1.0;
-            for b in 0..B {
-                acc[b] += self.lut[(p[b] as i16 + 128) as usize];
-            }
+            kernel::accum_dequant::<ISA>(acc, p, &self.lut);
         }
         n
     }
 
     /// Fill features for pixel (r, c) given the 5x5 local sum; returns false for a no-data pixel.
-    #[inline]
-    fn finish(&self, r: usize, c: usize, loc: &[f32; B], nloc: f32, out: &mut [f32]) -> bool {
+    #[inline(always)]
+    fn finish_isa<const ISA: u8>(
+        &self,
+        r: usize,
+        c: usize,
+        loc: &[f32; B],
+        nloc: f32,
+        out: &mut [f32],
+    ) -> bool {
         let p = self.px(r, c);
         if p[0] == NODATA {
             out.iter_mut().for_each(|x| *x = f32::NAN);
             return false;
         }
-        for b in 0..B {
-            out[b] = self.lut[(p[b] as i16 + 128) as usize];
-            out[B + b] = if nloc > 0.0 { loc[b] / nloc } else { 0.0 };
-        }
+        kernel::store_dequant::<ISA>(&mut out[..B], p, &self.lut);
+        kernel::store_div::<ISA>(&mut out[B..2 * B], loc, nloc);
         let ci = (r / CELL).min(self.hc - 1) * self.wc + (c / CELL).min(self.wc - 1);
         out[2 * B..3 * B].copy_from_slice(&self.ms3[ci * B..(ci + 1) * B]);
         out[3 * B..4 * B].copy_from_slice(&self.ms9[ci * B..(ci + 1) * B]);
@@ -519,18 +579,24 @@ impl Ctx {
         true
     }
 
-    fn point(&self, r: usize, c: usize, out: &mut [f32]) -> bool {
+    fn point_isa<const ISA: u8>(&self, r: usize, c: usize, out: &mut [f32]) -> bool {
         let mut loc = [0f32; B];
         let mut n = 0f32;
         let mut cs = [0f32; B];
         for dc in -2i64..=2 {
             let cc = (c as i64 + dc).clamp(0, self.w as i64 - 1) as usize;
-            n += self.colsum(r, cc, &mut cs);
-            for b in 0..B {
-                loc[b] += cs[b];
-            }
+            n += self.colsum_isa::<ISA>(r, cc, &mut cs);
+            kernel::accum_bands::<ISA>(&mut loc, &cs);
         }
-        self.finish(r, c, &loc, n, out)
+        self.finish_isa::<ISA>(r, c, &loc, n, out)
+    }
+
+    fn point(&self, r: usize, c: usize, out: &mut [f32]) -> bool {
+        match kernel::selected_isa() {
+            kernel::AVX512 => self.point_isa::<{ kernel::AVX512 }>(r, c, out),
+            kernel::AVX2 => self.point_isa::<{ kernel::AVX2 }>(r, c, out),
+            _ => self.point_isa::<{ kernel::SCALAR }>(r, c, out),
+        }
     }
 }
 
@@ -694,64 +760,84 @@ fn terrain(z: &[f32], h: usize, w: usize, res: f32) -> Vec<f32> {
 
 // ---------------------------------------------------------------- GBDT (LightGBM dump_model JSON)
 
+/// 16 bytes: one threshold and the child indices. 300 trees × 15 leaves is about 140 KiB,
+/// so a core's 2 MiB L2 holds the forest next to the feature row. `feat == u16::MAX` is a leaf.
 #[derive(Clone, Copy)]
+#[repr(C)]
 struct Node {
-    feat: u32, // u32::MAX = leaf
-    thr: f64,  // threshold or leaf value
-    left: u32,
-    right: u32,
-    default_left: bool,
-    missing: u8, // 0 None, 1 Zero, 2 NaN
+    thr: f64,
+    feat: u16,
+    left: u16,
+    right: u16,
+    flags: u16,
+}
+
+const _: () = assert!(std::mem::size_of::<Node>() == 16);
+
+impl Node {
+    const LEAF: u16 = u16::MAX;
+
+    fn default_left(self) -> bool {
+        self.flags & 1 != 0
+    }
+
+    fn missing(self) -> u8 {
+        ((self.flags >> 1) & 3) as u8
+    }
 }
 
 struct Forest {
     nodes: Vec<Node>,
-    roots: Vec<u32>,
+    roots: Vec<u16>,
 }
 
 fn load_forest(p: &str) -> Result<Forest> {
     let v: Value = serde_json::from_str(&fs::read_to_string(p)?)?;
     let mut nodes = Vec::new();
     let mut roots = Vec::new();
-    fn add(n: &Value, nodes: &mut Vec<Node>) -> u32 {
-        let id = nodes.len() as u32;
+    fn add(n: &Value, nodes: &mut Vec<Node>) -> Result<u16> {
+        let id = u16::try_from(nodes.len()).context("forest has more than 65535 nodes")?;
         if let Some(lv) = n.get("leaf_value") {
             nodes.push(Node {
-                feat: u32::MAX,
                 thr: lv.as_f64().unwrap(),
+                feat: Node::LEAF,
                 left: 0,
                 right: 0,
-                default_left: true,
-                missing: 0,
+                flags: 0,
             });
-            return id;
+            return Ok(id);
         }
         let missing = match n["missing_type"].as_str().unwrap_or("None") {
-            "Zero" => 1,
+            "Zero" => 1u16,
             "NaN" => 2,
             _ => 0,
         };
-        assert_eq!(
-            n["decision_type"].as_str().unwrap_or("<="),
-            "<=",
-            "only numerical splits supported"
-        );
+        if n["decision_type"].as_str().unwrap_or("<=") != "<=" {
+            bail!("only numerical splits supported");
+        }
+        let feat = n["split_feature"].as_u64().context("split_feature")?;
+        if feat >= F as u64 {
+            bail!("split feature {feat} is outside the {F} map features");
+        }
+        let mut flags = missing << 1;
+        if n["default_left"].as_bool().unwrap_or(true) {
+            flags |= 1;
+        }
         nodes.push(Node {
-            feat: n["split_feature"].as_u64().unwrap() as u32,
-            thr: n["threshold"].as_f64().unwrap(),
+            thr: n["threshold"].as_f64().context("threshold")?,
+            feat: feat as u16,
             left: 0,
             right: 0,
-            default_left: n["default_left"].as_bool().unwrap_or(true),
-            missing,
+            flags,
         });
-        let l = add(&n["left_child"], nodes);
-        let r = add(&n["right_child"], nodes);
+        let l = add(&n["left_child"], nodes)?;
+        let r = add(&n["right_child"], nodes)?;
         nodes[id as usize].left = l;
         nodes[id as usize].right = r;
-        id
+        Ok(id)
     }
     for t in v["tree_info"].as_array().context("tree_info")? {
-        roots.push(add(&t["tree_structure"], &mut nodes));
+        roots.push(add(&t["tree_structure"], &mut nodes)?);
     }
     Ok(Forest { nodes, roots })
 }
@@ -759,38 +845,45 @@ fn load_forest(p: &str) -> Result<Forest> {
 impl Forest {
     #[inline]
     fn raw(&self, x: &[f32]) -> f64 {
+        match kernel::selected_isa() {
+            kernel::AVX512 => self.raw_isa::<{ kernel::AVX512 }>(x),
+            kernel::AVX2 => self.raw_isa::<{ kernel::AVX2 }>(x),
+            _ => self.raw_isa::<{ kernel::SCALAR }>(x),
+        }
+    }
+
+    #[inline(always)]
+    fn raw_isa<const ISA: u8>(&self, x: &[f32]) -> f64 {
         // The wall-to-wall map asks for every feature at every node. Promote the 265 values once;
         // a shorter vector (the unit test) keeps the old per-node cast and the same panic.
         if x.len() == F {
             let mut xd = [0f64; F];
-            for i in 0..F {
-                xd[i] = x[i] as f64;
-            }
+            kernel::promote::<ISA>(x, &mut xd);
             return self.walk(|feat| xd[feat]);
         }
         self.walk(|feat| x[feat] as f64)
     }
 
-    #[inline]
+    #[inline(always)]
     fn walk(&self, v_at: impl Fn(usize) -> f64) -> f64 {
         let mut s = 0f64;
         for &root in &self.roots {
             let mut i = root as usize;
             loop {
-                let n = &self.nodes[i];
-                if n.feat == u32::MAX {
+                let n = self.nodes[i];
+                if n.feat == Node::LEAF {
                     s += n.thr;
                     break;
                 }
                 let v = v_at(n.feat as usize);
                 let go_left = if v.is_nan() {
-                    match n.missing {
-                        2 => n.default_left,
-                        1 => n.default_left,
+                    match n.missing() {
+                        2 => n.default_left(),
+                        1 => n.default_left(),
                         _ => 0.0 <= n.thr,
                     }
-                } else if n.missing == 1 && v == 0.0 {
-                    n.default_left
+                } else if n.missing() == 1 && v == 0.0 {
+                    n.default_left()
                 } else {
                     v <= n.thr
                 };
@@ -919,10 +1012,11 @@ fn cached_i8(
     n: usize,
     compute: impl FnOnce() -> Result<Vec<i8>>,
 ) -> Result<Vec<i8>> {
-    if stamp_matches(stamp_path, stamp) && cache_len_ok(cache, n) {
-        if let Ok(v) = read_i8_exact(cache, n) {
-            return Ok(v);
-        }
+    if stamp_matches(stamp_path, stamp)
+        && cache_len_ok(cache, n)
+        && let Ok(v) = read_i8_exact(cache, n)
+    {
+        return Ok(v);
     }
     let v = compute()?;
     match write_bytes(cache, bytes_of_i8(&v))
@@ -941,10 +1035,11 @@ fn cached_f32(
     n: usize,
     compute: impl FnOnce() -> Result<Vec<f32>>,
 ) -> Result<Vec<f32>> {
-    if stamp_matches(stamp_path, stamp) && cache_len_ok(cache, n * 4) {
-        if let Ok(v) = read_f32_exact(cache, n) {
-            return Ok(v);
-        }
+    if stamp_matches(stamp_path, stamp)
+        && cache_len_ok(cache, n * 4)
+        && let Ok(v) = read_f32_exact(cache, n)
+    {
+        return Ok(v);
     }
     let v = compute()?;
     match write_bytes(cache, f32_as_bytes(&v))
@@ -1015,33 +1110,51 @@ fn sorted_landscape(land: &mut Vec<f64>) -> Result<()> {
 }
 
 fn predict_ranks(g: &Grid, ctx: &Ctx, forest: &Forest, land: &[f64]) -> Vec<u8> {
+    match kernel::selected_isa() {
+        kernel::AVX512 => predict_ranks_isa::<{ kernel::AVX512 }>(g, ctx, forest, land),
+        kernel::AVX2 => predict_ranks_isa::<{ kernel::AVX2 }>(g, ctx, forest, land),
+        _ => predict_ranks_isa::<{ kernel::SCALAR }>(g, ctx, forest, land),
+    }
+}
+
+fn predict_ranks_isa<const ISA: u8>(g: &Grid, ctx: &Ctx, forest: &Forest, land: &[f64]) -> Vec<u8> {
     let (h, w) = (g.height, g.width);
     let mut out = vec![255u8; h * w];
-    out.par_chunks_mut(w).enumerate().for_each(|(r, orow)| {
-        // column sums for the row, then a 5-wide horizontal window (same summation order as Ctx::point)
-        let mut cs = vec![[0f32; B]; w];
-        let mut cn = vec![0f32; w];
-        for c in 0..w {
-            cn[c] = ctx.colsum(r, c, &mut cs[c]);
-        }
-        let mut feat = vec![0f32; F];
-        for c in 0..w {
-            let mut loc = [0f32; B];
-            let mut n = 0f32;
-            for dc in -2i64..=2 {
-                let cc = (c as i64 + dc).clamp(0, w as i64 - 1) as usize;
-                n += cn[cc];
-                for b in 0..B {
-                    loc[b] += cs[cc][b];
+    kernel::advise_huge(&out);
+    // One contiguous band of rows per core. The column-sum buffer is allocated once per
+    // band, not once per row: zeroing 1.6 MiB × 6500 rows was writing about 10 GiB of zeros.
+    let threads = rayon::current_num_threads().max(1);
+    let band = h.div_ceil(threads);
+    out.par_chunks_mut(band * w)
+        .enumerate()
+        .for_each(|(t, chunk)| {
+            let r0 = t * band;
+            let rows = chunk.len() / w;
+            let mut cs = vec![[0f32; B]; w];
+            let mut cn = vec![0f32; w];
+            let mut feat = vec![0f32; F];
+            for dr in 0..rows {
+                let r = r0 + dr;
+                let orow = &mut chunk[dr * w..(dr + 1) * w];
+                for c in 0..w {
+                    cn[c] = ctx.colsum_isa::<ISA>(r, c, &mut cs[c]);
+                }
+                for c in 0..w {
+                    let mut loc = [0f32; B];
+                    let mut n = 0f32;
+                    for dc in -2i64..=2 {
+                        let cc = (c as i64 + dc).clamp(0, w as i64 - 1) as usize;
+                        n += cn[cc];
+                        kernel::accum_bands::<ISA>(&mut loc, &cs[cc]);
+                    }
+                    if !ctx.finish_isa::<ISA>(r, c, &loc, n, &mut feat) {
+                        continue;
+                    }
+                    let s = forest.raw_isa::<ISA>(&feat);
+                    orow[c] = (landscape_rank(land, s) * 250.0).round() as u8;
                 }
             }
-            if !ctx.finish(r, c, &loc, n, &mut feat) {
-                continue;
-            }
-            let s = forest.raw(&feat);
-            orow[c] = (landscape_rank(land, s) * 250.0).round() as u8;
-        }
-    });
+        });
     out
 }
 
@@ -1350,6 +1463,7 @@ fn cmd_route(a: &[String]) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    kernel::init();
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         bail!("usage: invaradar_core <points|predict|score|scoremap|hotspots|route|strata> ...");
@@ -1578,5 +1692,98 @@ mod tests {
         assert!(len > 0.0);
         assert_eq!(open_tour(&[]).0.len(), 0);
         assert_eq!(open_tour(&[1.0, 2.0]), (vec![0], 0.0));
+    }
+
+    /// Host-only timing of the band kernels on a strip with the real map width (6500).
+    /// CI does not run ignored tests. The numbers are not a full 6500 × 6500 scoremap.
+    #[test]
+    #[ignore]
+    fn time_band_kernels_on_a_map_width_strip() {
+        const H: usize = 512;
+        const W: usize = 6500;
+        let mut seed = 0x9e3779b97f4a7c15u64;
+        let mut mosaic = vec![0i8; H * W * B];
+        for x in &mut mosaic {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            let v = (seed >> 33) as i8;
+            *x = if v == NODATA { 0 } else { v };
+        }
+        let mut lut = [0f32; 256];
+        for i in 0..256 {
+            let v = (i as i16 - 128) as f32 / 127.5;
+            lut[i] = v.signum() * v * v;
+        }
+        lut[0] = 0.0;
+        kernel::init();
+        if kernel::selected_isa() != kernel::AVX512 {
+            eprintln!("[bench] skipped: this host has no AVX-512");
+            return;
+        }
+        let time = |isa: u8| {
+            let t = Instant::now();
+            let (sum, cnt, hc, wc) = match isa {
+                3 => coarse_isa::<3>(&mosaic, &lut, H, W),
+                _ => coarse_isa::<1>(&mosaic, &lut, H, W),
+            };
+            let mean = match isa {
+                3 => window_mean_isa::<3>(&sum, &cnt, hc, wc, 9),
+                _ => window_mean_isa::<1>(&sum, &cnt, hc, wc, 9),
+            };
+            (t.elapsed().as_secs_f64(), mean)
+        };
+        let (scalar_s, scalar_mean) = time(1);
+        let (vector_s, vector_mean) = time(3);
+        for (a, b) in scalar_mean.iter().zip(&vector_mean) {
+            assert_eq!(a.to_bits(), b.to_bits());
+        }
+        eprintln!(
+            "[bench] coarse+450m window {H}x{W}: scalar {scalar_s:.3}s, avx-512 {vector_s:.3}s"
+        );
+
+        let mut nodes = Vec::new();
+        let mut roots = Vec::new();
+        fn bush(nodes: &mut Vec<Node>, depth: usize, feat: u16) -> u16 {
+            let id = nodes.len() as u16;
+            if depth == 0 {
+                nodes.push(Node {
+                    thr: 0.1,
+                    feat: Node::LEAF,
+                    left: 0,
+                    right: 0,
+                    flags: 0,
+                });
+                return id;
+            }
+            nodes.push(Node {
+                thr: 0.0,
+                feat,
+                left: 0,
+                right: 0,
+                flags: 1,
+            });
+            let left = bush(nodes, depth - 1, (feat + 1) % F as u16);
+            let right = bush(nodes, depth - 1, (feat + 3) % F as u16);
+            nodes[id as usize].left = left;
+            nodes[id as usize].right = right;
+            id
+        }
+        for t in 0..300 {
+            roots.push(bush(&mut nodes, 4, (t % F) as u16));
+        }
+        let forest = Forest { nodes, roots };
+        let mut row = [0f32; F];
+        for (i, x) in row.iter_mut().enumerate() {
+            *x = (i as f32) * 0.01 - 1.0;
+        }
+        let n = 100_000u32;
+        let t = Instant::now();
+        let mut sink = 0f64;
+        for i in 0..n {
+            row[i as usize % F] = (i % 17) as f32 * 0.01;
+            sink += forest.raw_isa::<3>(&row);
+        }
+        let walk_s = t.elapsed().as_secs_f64();
+        assert!(sink.is_finite());
+        eprintln!("[bench] {n} walks of 300 trees, depth 4: {walk_s:.3}s");
     }
 }

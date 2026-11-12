@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ИнваРадар — кандидаты на осмотр</title>
-<meta name="description" content="Приоритетные очаги борщевика Сосновского и золотарников в Москве с методом работ и правовым основанием. Модельная оценка ИнваРадара, 2025.">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<meta name="description" content="Приоритетные очаги борщевика Сосновского и золотарников в Москве с методом работ и правовым основанием. Модельная оценка ИнваРадара, прогон 6 ноября 2025 года.">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
 <style>
   :root { --paper:#F4F6F1; --ink:#14231D; --forest:#0F2A22; --moss:#2F6B55; --muted:#5B6B63; --line:#DCE3DD;
           --amber:#E0A030; --rust:#B4532A; --gold:#B8941C; --water:#2F6F95; --tint:#E8EEE9; }
@@ -56,15 +55,17 @@
     <div class="kicker">Метод работ — фильтр</div>
     <div class="legend" id="legend"></div>
     <div class="note" id="note"></div>
-    <div class="note"><b>Как читать.</b> Показаны 3 000 точек с наивысшим рангом. Это кандидаты на осмотр: метод в карточке — тот, который допустим, если вид подтвердят на месте. Синяя линия — порядок обхода по прямой на юге Москвы, без дорожной сети.</div>
+    <div class="note"><b>Как читать.</b> Показаны 3 000 точек с наивысшим рангом прогона 6 ноября 2025 года: один снимок AlphaEarth, не прогноз. Точка — представитель пятна, не его контур. Метод в карточке допустим, только если вид подтвердят на месте. Синяя линия — порядок обхода по прямой на юге Москвы, без дорожной сети. Расстояние до границы Москвы — полная геометрия geoBoundaries (сборка 2023-12-12, ODbL): это не кадастр и не реестр зелёного фонда.</div>
     <footer>
-      Данные: AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist; Overture Maps, © участники OpenStreetMap; Copernicus DEM © DLR, Airbus. Результаты — CC BY 4.0, код — Apache-2.0.
+      Данные: AlphaEarth Foundations © Google, Google DeepMind (CC BY 4.0); iNaturalist; Overture Maps, © участники OpenStreetMap; Copernicus DEM © DLR, Airbus. Юрисдикция в карточке — geoBoundaries gbOpen (ODbL). Подложка — OpenFreeMap, схема OpenMapTiles. Карта — MapLibre GL JS 6.18.0 (BSD-3-Clause), файл лежит рядом со страницей. Результаты — CC BY 4.0, код — Apache-2.0.
       <a href="https://github.com/KonkovDV/InvaRadar">Код</a>.
     </footer>
   </aside>
   <div id="map" role="region" aria-label="Карта очагов"></div>
 </div>
-<script>
+<script type="module">
+import { Map, NavigationControl, Popup, ScaleControl, setWorkerUrl } from "./vendor/maplibre-gl.js";
+setWorkerUrl(new URL("vendor/maplibre-gl-worker.js", import.meta.url).href);
 const CLS = {
   mechanical: { name: "Только механика", color: "#B4532A", hint: "водоохранные зоны, ООПТ и парки, дети рядом" },
   ground: { name: "Наземная точечная обработка", color: "#E0A030", hint: "населённый пункт или ближе 700 м к жилью, статусному водоёму и ООПТ" },
@@ -74,20 +75,18 @@ const SP = { heracleum: "Борщевик Сосновского", solidago: "З
 const fmt = (n) => Number(n).toLocaleString("ru-RU");
 let species = "heracleum", hidden = new Set(), summary = {};
 
-const map = new maplibregl.Map({
+const map = new Map({
   container: "map",
-  // OpenStreetMap standard tiles, no key; greyscale so the data stays in front (tile usage policy: light use, attribution)
-  style: { version: 8, sources: { osm: { type: "raster", tileSize: 256, maxzoom: 19,
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">участники OpenStreetMap</a>' } },
-    layers: [{ id: "bg", type: "background", paint: { "background-color": "#F4F6F1" } },
-             { id: "osm", type: "raster", source: "osm",
-               paint: { "raster-saturation": -1, "raster-opacity": 0.55, "raster-contrast": -0.15 } }] },
-  center: [37.62, 55.75], zoom: 9.3, maxZoom: 17, minZoom: 8, attributionControl: { compact: true },
+  // Vector tiles, no key. Positron stays pale so the three method colours stay in front.
+  // MapLibre adds the OpenFreeMap / OpenMapTiles / OpenStreetMap attribution itself.
+  style: "https://tiles.openfreemap.org/styles/positron",
+  center: [37.62, 55.75], zoom: 9.3, maxZoom: 17, minZoom: 8,
+  attributionControl: { compact: true },
+  dragRotate: false, pitchWithRotate: false, maxPitch: 0,
 });
 window.invaradarMap = map;
-map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
+map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+map.addControl(new ScaleControl({ unit: "metric" }), "bottom-right");
 
 function legend() {
   const s = summary[species] || {};
@@ -165,7 +164,7 @@ map.on("load", async () => {
       basis.className = "b";
       basis.textContent = `Основание: ${p.basis}`;
       root.append(h, tag, warn, dl, method, basis);
-      new maplibregl.Popup({ maxWidth: "340px" }).setLngLat(e.features[0].geometry.coordinates).setDOMContent(root).addTo(map);
+      new Popup({ maxWidth: "340px" }).setLngLat(e.features[0].geometry.coordinates).setDOMContent(root).addTo(map);
     });
     map.on("mouseenter", `h-${sp}`, () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", `h-${sp}`, () => (map.getCanvas().style.cursor = ""));

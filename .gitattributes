@@ -6,3 +6,6 @@
 *.pdf binary
 *.tif binary
 *.parquet binary
+web/vendor/maplibre-gl.js linguist-vendored
+web/vendor/maplibre-gl-worker.js linguist-vendored
+web/vendor/maplibre-gl.css linguist-vendored

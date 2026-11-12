@@ -1,0 +1,111 @@
+{
+ "taxon": "solidago",
+ "n_presence": 1560,
+ "n_scored": 1560,
+ "n_blocks_with_presence": 151,
+ "spatial_cv": {
+  "capture@1%area": {
+   "estimate": 0.0442,
+   "ci95": [
+    0.032,
+    0.0594
+   ],
+   "lift": 4.42,
+   "lift_ci95": [
+    3.2,
+    5.94
+   ]
+  },
+  "capture@5%area": {
+   "estimate": 0.1763,
+   "ci95": [
+    0.1499,
+    0.2092
+   ],
+   "lift": 3.53,
+   "lift_ci95": [
+    3.0,
+    4.18
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.2846,
+   "ci95": [
+    0.2548,
+    0.3192
+   ],
+   "lift": 2.85,
+   "lift_ci95": [
+    2.55,
+    3.19
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.4622,
+   "ci95": [
+    0.426,
+    0.5009
+   ],
+   "lift": 2.31,
+   "lift_ci95": [
+    2.13,
+    2.5
+   ]
+  }
+ },
+ "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only; cluster bootstrap of the out-of-fold ranks, 2000 replicates; the fold models are not refit inside the bootstrap",
+ "temporal_test": {
+  "capture@1%area": {
+   "estimate": 0.016,
+   "ci95": [
+    0.0054,
+    0.0459
+   ],
+   "lift": 1.6,
+   "lift_ci95": [
+    0.54,
+    4.59
+   ]
+  },
+  "capture@5%area": {
+   "estimate": 0.117,
+   "ci95": [
+    0.0786,
+    0.1708
+   ],
+   "lift": 2.34,
+   "lift_ci95": [
+    1.57,
+    3.42
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.1649,
+   "ci95": [
+    0.1187,
+    0.2245
+   ],
+   "lift": 1.65,
+   "lift_ci95": [
+    1.19,
+    2.25
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.3457,
+   "ci95": [
+    0.2815,
+    0.4162
+   ],
+   "lift": 1.73,
+   "lift_ci95": [
+    1.41,
+    2.08
+   ]
+  },
+  "n_new_candidates": 446,
+  "n_new_presence": 188,
+  "n_new_inside_ring": 258
+ },
+ "temporal_method": "Wilson score 95% CI"
+}

@@ -1,0 +1,83 @@
+{
+  "taxon": "solidago",
+  "embedding_year": 2024,
+  "map_year": 2025,
+  "temporal_protocol": "retro_forecast",
+  "features": 265,
+  "terrain": false,
+  "protocol": {
+    "block_m": 5000.0,
+    "purge_m": 500.0,
+    "window_m": 450.0,
+    "clear_m": 30.0,
+    "folds": "checkerboard",
+    "rule": "ring around test presences only; wider than the feature window; clear background per side",
+    "reported_capture": "out of fold; the GeoTIFF is refit on every presence"
+  },
+  "samples": {
+    "presence": 1560,
+    "background": 60000
+  },
+  "spatial_cv": {
+    "roc_auc_vs_background": 0.6764411401237567,
+    "n_scored": 59345,
+    "boyce": 1.0,
+    "boyce_ratio": [
+      0.128,
+      0.372,
+      0.378,
+      0.583,
+      0.628,
+      0.84,
+      1.103,
+      1.346,
+      1.776,
+      2.846
+    ],
+    "capture@1%area": 0.04423076923076923,
+    "capture@5%area": 0.1762820512820513,
+    "capture@10%area": 0.2846153846153846,
+    "capture@20%area": 0.4621794871794872
+  },
+  "temporal_test": {
+    "n_new_candidates": 446,
+    "n_new_presence": 188,
+    "n_new_inside_ring": 258,
+    "n_background": 10973,
+    "roc_auc_vs_background": 0.6765077142929163,
+    "capture@1%area": 0.015957446808510637,
+    "capture@5%area": 0.11702127659574468,
+    "capture@10%area": 0.16489361702127658,
+    "capture@20%area": 0.34574468085106386
+  },
+  "observation_file": {
+    "name": "obs_region.tsv",
+    "bytes": 327950715,
+    "mtime_utc": "2026-11-12T21:16:01Z",
+    "note": "iNaturalist open data changes daily. This file is the export on disk, not the 6 Nov 2025 sample."
+  },
+  "rust_parity_max_abs_diff": 1.7763568394002505e-15,
+  "terrain_importance": {
+    "elevation": 0.0,
+    "slope": 0.0,
+    "twi": 0.0,
+    "hand": 0.0
+  },
+  "importance_share": {
+    "pixel": 0.187,
+    "50m": 0.289,
+    "150m": 0.221,
+    "450m": 0.267,
+    "corridors": 0.036,
+    "terrain": 0.0
+  },
+  "hotspots": {
+    "count": 24746,
+    "area_ha": 8765.4,
+    "within_100m_of_child_facility": 2302,
+    "within_300m_of_child_facility": 8011,
+    "within_300m_of_sensitive_place": 9702,
+    "route_top": 25,
+    "route_km": 251.2
+  }
+}

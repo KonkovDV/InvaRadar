@@ -17,7 +17,7 @@ from shapely.geometry import shape
 from sklearn.metrics import roc_auc_score
 
 from invaradar.aef import AEFIndex, BlockCache, block_jobs
-from invaradar.config import AEF_CACHE, AEF_INDEX, DATA, EPSG, OUT, STUDY_BOX, TAXA, TERRAIN_FEATURES, core_binary
+from invaradar.config import AEF_CACHE, AEF_INDEX, DATA, EPSG, INAT_OBS, OUT, STUDY_BOX, TAXA, TERRAIN_FEATURES, core_binary
 from invaradar.model import fit_map
 from invaradar.priority import HOT_PCT, MIN_PX
 from invaradar.queue import build_queue, load_context
@@ -176,7 +176,18 @@ else:
                 "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
                 "roc_auc_vs_background": None, **capture_rates([])}
 metrics["temporal_test"] = temporal
+obs_path = INAT_OBS
+if obs_path.is_file():
+    stt = obs_path.stat()
+    metrics["observation_file"] = {
+        "name": obs_path.name, "bytes": stt.st_size,
+        "mtime_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(stt.st_mtime)),
+        "note": "iNaturalist open data changes daily. This file is the export on disk, not the 6 Nov 2025 sample.",
+    }
 log("temporal", json.dumps(metrics["temporal_test"]))
+# The wall-to-wall map can run out of memory after the folds are done. Keep the measured
+# folds on disk before that step; the final dump below replaces this file.
+json.dump(metrics, open(od / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
 # Deployed model sees every presence and only the background that is not within 30 m of one.
 keep = clear_training_mask(xy, y)

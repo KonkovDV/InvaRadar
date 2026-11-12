@@ -1,8 +1,10 @@
 """Moscow city and Moscow oblast polygons for the work order.
 
-``boundaries/jurisdictions.geojson`` is a simplified geoBoundaries ADM1 extract
-(ODbL, OpenStreetMap). A point outside both polygons stays ``unknown``. The
-oblast list is still unverified, so the polygon only names the jurisdiction.
+``boundaries/jurisdictions.geojson`` is the full geoBoundaries gbOpen RUS ADM1
+geometry (ODbL, OpenStreetMap via Wambacher, build 2023-12-12), not a simplified
+extract and not the cadastral line. A point outside both polygons stays
+``unknown``. The oblast list is still unverified, so the polygon only names
+the jurisdiction.
 """
 from __future__ import annotations
 

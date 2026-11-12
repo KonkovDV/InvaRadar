@@ -1,0 +1,111 @@
+{
+ "taxon": "heracleum",
+ "n_presence": 1574,
+ "n_scored": 1574,
+ "n_blocks_with_presence": 150,
+ "spatial_cv": {
+  "capture@1%area": {
+   "estimate": 0.0254,
+   "ci95": [
+    0.0169,
+    0.0342
+   ],
+   "lift": 2.54,
+   "lift_ci95": [
+    1.69,
+    3.42
+   ]
+  },
+  "capture@5%area": {
+   "estimate": 0.1334,
+   "ci95": [
+    0.1053,
+    0.1605
+   ],
+   "lift": 2.67,
+   "lift_ci95": [
+    2.11,
+    3.21
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.2579,
+   "ci95": [
+    0.2172,
+    0.2975
+   ],
+   "lift": 2.58,
+   "lift_ci95": [
+    2.17,
+    2.98
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.4307,
+   "ci95": [
+    0.3823,
+    0.474
+   ],
+   "lift": 2.15,
+   "lift_ci95": [
+    1.91,
+    2.37
+   ]
+  }
+ },
+ "spatial_cv_method": "checkerboard of 5 km blocks, 500 m ring around test presences only; cluster bootstrap of the out-of-fold ranks, 2000 replicates; the fold models are not refit inside the bootstrap",
+ "temporal_test": {
+  "capture@1%area": {
+   "estimate": 0.0185,
+   "ci95": [
+    0.0072,
+    0.0466
+   ],
+   "lift": 1.85,
+   "lift_ci95": [
+    0.72,
+    4.66
+   ]
+  },
+  "capture@5%area": {
+   "estimate": 0.1157,
+   "ci95": [
+    0.0796,
+    0.1653
+   ],
+   "lift": 2.31,
+   "lift_ci95": [
+    1.59,
+    3.31
+   ]
+  },
+  "capture@10%area": {
+   "estimate": 0.213,
+   "ci95": [
+    0.1636,
+    0.2723
+   ],
+   "lift": 2.13,
+   "lift_ci95": [
+    1.64,
+    2.72
+   ]
+  },
+  "capture@20%area": {
+   "estimate": 0.338,
+   "ci95": [
+    0.2782,
+    0.4034
+   ],
+   "lift": 1.69,
+   "lift_ci95": [
+    1.39,
+    2.02
+   ]
+  },
+  "n_new_candidates": 504,
+  "n_new_presence": 216,
+  "n_new_inside_ring": 288
+ },
+ "temporal_method": "Wilson score 95% CI"
+}

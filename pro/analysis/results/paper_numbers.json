@@ -1,0 +1,1006 @@
+{
+  "law_check": {
+    "contexts": 177147,
+    "monotonicity_pairs": 1062882,
+    "properties": {
+      "P1": "ok",
+      "P2": "ok",
+      "P3": "ok",
+      "P4": "ok",
+      "P5": "ok"
+    },
+    "obligations": "ok",
+    "decisive_contexts_by_rule": {
+      "vk65-water-zone": 1467,
+      "sanpin-273-child-org": 1467,
+      "sanpin-273-settlement": 0,
+      "sanpin-272-notice": 0,
+      "sanpin-282-uav-700": 27,
+      "uav-distance-unknown": 135,
+      "heritage-unknown": 118098,
+      "uav-flight-ban": 9,
+      "pesticide-context-unknown": 45333,
+      "children-100m": 1467,
+      "oopt-mechanical": 1458,
+      "zso": 1467,
+      "heritage-73fz": 118098,
+      "fz294-duty": 0,
+      "koap-8-7-2": 0
+    },
+    "never_decisive": [
+      "sanpin-273-settlement"
+    ]
+  },
+  "consistency": {
+    "heracleum": {
+      "rows": 200,
+      "errors": [],
+      "pro_stricter_on_uav": 0,
+      "legal_review": 107
+    },
+    "solidago": {
+      "rows": 200,
+      "errors": [],
+      "pro_stricter_on_uav": 0,
+      "legal_review": 121
+    }
+  },
+  "demo": {
+    "states": {
+      "HER-2025-001": "closed",
+      "HER-2025-002": "closed",
+      "HER-2025-003": "closed",
+      "HER-2025-004": "rejected",
+      "HER-2025-005": "closed",
+      "HER-2025-006": "closed",
+      "HER-2025-007": "monitoring",
+      "HER-2025-008": "closed"
+    },
+    "kpi": {
+      "cases": 8,
+      "by_state": {
+        "closed": 6,
+        "monitoring": 1,
+        "rejected": 1
+      },
+      "signal_to_check_days_median": 8.5,
+      "confirm_rate": 0.875,
+      "ai_autoconfirm_share": 0.125,
+      "order_to_report_days_median": 17,
+      "first_pass_acceptance": 0.857,
+      "overdue_orders": [],
+      "relapse_rate_per_followup": 0.017,
+      "closed_share_of_approved": 0.857,
+      "blocked_attempts": 4,
+      "blocked_prohibited_method": 2,
+      "herbicide_l_per_ha": 0.0,
+      "treated_area_ha": 552.71,
+      "chain_ok": true,
+      "merkle_root": "c07fd0401771b605417d621ece6c07215caa074eddc8d0e9f69482d84dee0276"
+    },
+    "spread": {
+      "new_cells": 394,
+      "ldd_share_true": 0.75,
+      "ldd_share_fitted": 0.9,
+      "capture_model": {
+        "top1%": 0.9670050761421319,
+        "top5%": 0.9974619289340102,
+        "top10%": 1.0,
+        "top20%": 1.0
+      },
+      "capture_suitability_only": {
+        "top1%": 0.01015228426395939,
+        "top5%": 0.06091370558375635,
+        "top10%": 0.41878172588832485,
+        "top20%": 0.7208121827411168
+      },
+      "capture_distance_only": {
+        "top1%": 0.09390862944162437,
+        "top5%": 0.7030456852791879,
+        "top10%": 0.8527918781725888,
+        "top20%": 0.9187817258883249
+      }
+    },
+    "transparency": {
+      "tree_size": 146,
+      "root": "c07fd0401771b605417d621ece6c07215caa074eddc8d0e9f69482d84dee0276",
+      "inclusion_ok": true,
+      "consistency_ok": true,
+      "proof_len": 8
+    }
+  },
+  "closure_thresholds": [
+    {
+      "seeded": false,
+      "cost_escape_rub": 30000.0,
+      "p_star": 0.4,
+      "seasons_including_treatment_year": 1,
+      "clean_seasons_after_treatment": 0,
+      "season_detection": 0.546,
+      "myopic_threshold": 0.1832,
+      "stationary_without_surveys": 0.0385
+    },
+    {
+      "seeded": false,
+      "cost_escape_rub": 120000.0,
+      "p_star": 0.0685,
+      "seasons_including_treatment_year": 3,
+      "clean_seasons_after_treatment": 2,
+      "season_detection": 0.546,
+      "myopic_threshold": 0.0458,
+      "stationary_without_surveys": 0.0385
+    },
+    {
+      "seeded": false,
+      "cost_escape_rub": 300000.0,
+      "p_star": 0.04,
+      "seasons_including_treatment_year": 3,
+      "clean_seasons_after_treatment": 2,
+      "season_detection": 0.546,
+      "myopic_threshold": 0.0183,
+      "stationary_without_surveys": 0.0385
+    },
+    {
+      "seeded": true,
+      "cost_escape_rub": 30000.0,
+      "p_star": 1.0,
+      "seasons_including_treatment_year": 0,
+      "clean_seasons_after_treatment": 0,
+      "season_detection": 0.546,
+      "myopic_threshold": 0.1832,
+      "stationary_without_surveys": 0.0909
+    },
+    {
+      "seeded": true,
+      "cost_escape_rub": 120000.0,
+      "p_star": 0.117,
+      "seasons_including_treatment_year": 4,
+      "clean_seasons_after_treatment": 3,
+      "season_detection": 0.546,
+      "myopic_threshold": 0.0458,
+      "stationary_without_surveys": 0.0909
+    },
+    {
+      "seeded": true,
+      "cost_escape_rub": 300000.0,
+      "p_star": 0.0535,
+      "seasons_including_treatment_year": 6,
+      "clean_seasons_after_treatment": 5,
+      "season_detection": 0.546,
+      "myopic_threshold": 0.0183,
+      "stationary_without_surveys": 0.0909
+    }
+  ],
+  "power": {
+    "H4_points_per_stratum_for_pm10pp_at_p0.3": 81,
+    "H6_relapse_0.30_to_0.24_n_per_arm": 859,
+    "H6_did_power_n200_vs_200": 0.15875,
+    "H6_did_power_n600_vs_600": 0.3775,
+    "H7_herbicide_any_use_0.6_to_0.42_n_per_arm": 120,
+    "H6_relapse_0.30_to_0.15_n_per_arm": 121,
+    "H6_did_power_50pct_n200_vs_200": 0.69925
+  },
+  "top10": {
+    "Текущая траектория (один автор, без писем)": 0.150795,
+    "План «Путь в топ-10»": 0.32644,
+    "tornado": {
+      "нет платного договора до мая": -0.06667000000000001,
+      "нет пилота с результатом (только подписан)": -0.174575,
+      "автор один": -0.03391500000000003,
+      "нет живого демо": -0.017759999999999998,
+      "слабая заявка (как сейчас)": -0.013844999999999996
+    }
+  },
+  "retro_forecast": {
+    "box_epsg32637": [
+      381000.0,
+      6147000.0,
+      446000.0,
+      6212000.0
+    ],
+    "cut": "2024-12-31",
+    "end": "2026-11-07",
+    "features": "AlphaEarth pixel embedding, 64 dims",
+    "lgb": {
+      "n_estimators": 300,
+      "learning_rate": 0.05,
+      "num_leaves": 15,
+      "min_child_samples": 20,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0,
+      "random_state": 0,
+      "verbose": -1
+    },
+    "background_old": 11259,
+    "background_new": 6301,
+    "taxa": {
+      "heracleum": {
+        "n_old": 1156,
+        "n_new": 526,
+        "n_new_far": 221,
+        "by_year": {
+          "2023": {
+            "capture": {
+              "top1%": {
+                "capture": 0.0,
+                "lift": 0.0,
+                "wilson95": [
+                  -0.0,
+                  0.0171
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.0
+                ]
+              },
+              "top5%": {
+                "capture": 0.0136,
+                "lift": 0.27,
+                "wilson95": [
+                  0.0046,
+                  0.0391
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.032
+                ]
+              },
+              "top10%": {
+                "capture": 0.1131,
+                "lift": 1.13,
+                "wilson95": [
+                  0.0778,
+                  0.1617
+                ],
+                "block_boot95": [
+                  0.0676,
+                  0.1622
+                ]
+              },
+              "top20%": {
+                "capture": 0.276,
+                "lift": 1.38,
+                "wilson95": [
+                  0.2213,
+                  0.3384
+                ],
+                "block_boot95": [
+                  0.2045,
+                  0.347
+                ]
+              }
+            },
+            "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+            "n_train_pos": 1156,
+            "n_train_bg": 10931
+          },
+          "2024": {
+            "capture": {
+              "top1%": {
+                "capture": 0.009,
+                "lift": 0.9,
+                "wilson95": [
+                  0.0025,
+                  0.0324
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.0244
+                ]
+              },
+              "top5%": {
+                "capture": 0.0362,
+                "lift": 0.72,
+                "wilson95": [
+                  0.0185,
+                  0.0698
+                ],
+                "block_boot95": [
+                  0.0124,
+                  0.0664
+                ]
+              },
+              "top10%": {
+                "capture": 0.1629,
+                "lift": 1.63,
+                "wilson95": [
+                  0.12,
+                  0.2173
+                ],
+                "block_boot95": [
+                  0.0957,
+                  0.2387
+                ]
+              },
+              "top20%": {
+                "capture": 0.2805,
+                "lift": 1.4,
+                "wilson95": [
+                  0.2254,
+                  0.3431
+                ],
+                "block_boot95": [
+                  0.2042,
+                  0.362
+                ]
+              }
+            },
+            "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+            "n_train_pos": 1156,
+            "n_train_bg": 10931
+          },
+          "2025": {
+            "capture": {
+              "top1%": {
+                "capture": 0.0045,
+                "lift": 0.45,
+                "wilson95": [
+                  0.0008,
+                  0.0252
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.0152
+                ]
+              },
+              "top5%": {
+                "capture": 0.0226,
+                "lift": 0.45,
+                "wilson95": [
+                  0.0097,
+                  0.0519
+                ],
+                "block_boot95": [
+                  0.0041,
+                  0.0493
+                ]
+              },
+              "top10%": {
+                "capture": 0.1041,
+                "lift": 1.04,
+                "wilson95": [
+                  0.0704,
+                  0.1513
+                ],
+                "block_boot95": [
+                  0.068,
+                  0.1436
+                ]
+              },
+              "top20%": {
+                "capture": 0.2624,
+                "lift": 1.31,
+                "wilson95": [
+                  0.2089,
+                  0.3242
+                ],
+                "block_boot95": [
+                  0.2043,
+                  0.3209
+                ]
+              }
+            },
+            "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+            "n_train_pos": 1156,
+            "n_train_bg": 10931
+          }
+        },
+        "leakage_2025_minus_2024_top20": {
+          "diff": -0.0181,
+          "boot95": [
+            -0.0837,
+            0.0453
+          ]
+        },
+        "proximity": {
+          "top1%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.0171
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top5%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.0171
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top10%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.0171
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top20%": {
+            "capture": 0.2262,
+            "lift": 1.13,
+            "wilson95": [
+              0.176,
+              0.2858
+            ],
+            "block_boot95": [
+              0.1613,
+              0.297
+            ]
+          }
+        },
+        "combined_2024_plus_proximity": {
+          "top1%": {
+            "capture": 0.0181,
+            "lift": 1.81,
+            "wilson95": [
+              0.0071,
+              0.0456
+            ],
+            "block_boot95": [
+              0.0,
+              0.0429
+            ]
+          },
+          "top5%": {
+            "capture": 0.0995,
+            "lift": 1.99,
+            "wilson95": [
+              0.0667,
+              0.1461
+            ],
+            "block_boot95": [
+              0.0437,
+              0.1687
+            ]
+          },
+          "top10%": {
+            "capture": 0.2217,
+            "lift": 2.22,
+            "wilson95": [
+              0.172,
+              0.281
+            ],
+            "block_boot95": [
+              0.1471,
+              0.301
+            ]
+          },
+          "top20%": {
+            "capture": 0.3756,
+            "lift": 1.88,
+            "wilson95": [
+              0.3144,
+              0.441
+            ],
+            "block_boot95": [
+              0.2888,
+              0.476
+            ]
+          }
+        },
+        "dispersal_distance": {
+          "median_target_m": 350.94414925428725,
+          "median_background_m": 557.0786796329679,
+          "bins": [
+            {
+              "from_m": 0,
+              "to_m": 250,
+              "target_share": 0.424,
+              "target_ci95": [
+                0.3824,
+                0.4666
+              ],
+              "background_share": 0.2652,
+              "relative_risk": 1.6
+            },
+            {
+              "from_m": 250,
+              "to_m": 500,
+              "target_share": 0.1559,
+              "target_ci95": [
+                0.1274,
+                0.1894
+              ],
+              "background_share": 0.2001,
+              "relative_risk": 0.78
+            },
+            {
+              "from_m": 500,
+              "to_m": 1000,
+              "target_share": 0.1939,
+              "target_ci95": [
+                0.1624,
+                0.2299
+              ],
+              "background_share": 0.2493,
+              "relative_risk": 0.78
+            },
+            {
+              "from_m": 1000,
+              "to_m": 2000,
+              "target_share": 0.1635,
+              "target_ci95": [
+                0.1344,
+                0.1975
+              ],
+              "background_share": 0.215,
+              "relative_risk": 0.76
+            },
+            {
+              "from_m": 2000,
+              "to_m": 5000,
+              "target_share": 0.0608,
+              "target_ci95": [
+                0.0434,
+                0.0846
+              ],
+              "background_share": 0.0695,
+              "relative_risk": 0.88
+            },
+            {
+              "from_m": 5000,
+              "to_m": null,
+              "target_share": 0.0019,
+              "target_ci95": [
+                0.0003,
+                0.0107
+              ],
+              "background_share": 0.0008,
+              "relative_risk": 2.4
+            }
+          ]
+        }
+      },
+      "solidago": {
+        "n_old": 1224,
+        "n_new": 467,
+        "n_new_far": 188,
+        "by_year": {
+          "2023": {
+            "capture": {
+              "top1%": {
+                "capture": 0.0053,
+                "lift": 0.53,
+                "wilson95": [
+                  0.0009,
+                  0.0295
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.0174
+                ]
+              },
+              "top5%": {
+                "capture": 0.0426,
+                "lift": 0.85,
+                "wilson95": [
+                  0.0217,
+                  0.0817
+                ],
+                "block_boot95": [
+                  0.0174,
+                  0.0739
+                ]
+              },
+              "top10%": {
+                "capture": 0.1383,
+                "lift": 1.38,
+                "wilson95": [
+                  0.0962,
+                  0.1949
+                ],
+                "block_boot95": [
+                  0.0833,
+                  0.1989
+                ]
+              },
+              "top20%": {
+                "capture": 0.266,
+                "lift": 1.33,
+                "wilson95": [
+                  0.2079,
+                  0.3333
+                ],
+                "block_boot95": [
+                  0.2,
+                  0.3474
+                ]
+              }
+            },
+            "verdict_top20": "не подтверждён: интервал включает случайный обход",
+            "n_train_pos": 1224,
+            "n_train_bg": 10721
+          },
+          "2024": {
+            "capture": {
+              "top1%": {
+                "capture": 0.016,
+                "lift": 1.6,
+                "wilson95": [
+                  0.0054,
+                  0.0459
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.0379
+                ]
+              },
+              "top5%": {
+                "capture": 0.0532,
+                "lift": 1.06,
+                "wilson95": [
+                  0.0291,
+                  0.0951
+                ],
+                "block_boot95": [
+                  0.0241,
+                  0.0918
+                ]
+              },
+              "top10%": {
+                "capture": 0.0904,
+                "lift": 0.9,
+                "wilson95": [
+                  0.0572,
+                  0.14
+                ],
+                "block_boot95": [
+                  0.0457,
+                  0.1377
+                ]
+              },
+              "top20%": {
+                "capture": 0.1862,
+                "lift": 0.93,
+                "wilson95": [
+                  0.137,
+                  0.2479
+                ],
+                "block_boot95": [
+                  0.1225,
+                  0.2512
+                ]
+              }
+            },
+            "verdict_top20": "не подтверждён: интервал включает случайный обход",
+            "n_train_pos": 1224,
+            "n_train_bg": 10721
+          },
+          "2025": {
+            "capture": {
+              "top1%": {
+                "capture": 0.0053,
+                "lift": 0.53,
+                "wilson95": [
+                  0.0009,
+                  0.0295
+                ],
+                "block_boot95": [
+                  0.0,
+                  0.0182
+                ]
+              },
+              "top5%": {
+                "capture": 0.0691,
+                "lift": 1.38,
+                "wilson95": [
+                  0.0409,
+                  0.1147
+                ],
+                "block_boot95": [
+                  0.0329,
+                  0.1146
+                ]
+              },
+              "top10%": {
+                "capture": 0.1277,
+                "lift": 1.28,
+                "wilson95": [
+                  0.0873,
+                  0.1829
+                ],
+                "block_boot95": [
+                  0.0814,
+                  0.1856
+                ]
+              },
+              "top20%": {
+                "capture": 0.2713,
+                "lift": 1.36,
+                "wilson95": [
+                  0.2128,
+                  0.3389
+                ],
+                "block_boot95": [
+                  0.2033,
+                  0.3476
+                ]
+              }
+            },
+            "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+            "n_train_pos": 1224,
+            "n_train_bg": 10721
+          }
+        },
+        "leakage_2025_minus_2024_top20": {
+          "diff": 0.0851,
+          "boot95": [
+            0.0179,
+            0.1495
+          ]
+        },
+        "proximity": {
+          "top1%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.02
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top5%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.02
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top10%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.02
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top20%": {
+            "capture": 0.2979,
+            "lift": 1.49,
+            "wilson95": [
+              0.2371,
+              0.3668
+            ],
+            "block_boot95": [
+              0.1929,
+              0.3909
+            ]
+          }
+        },
+        "combined_2024_plus_proximity": {
+          "top1%": {
+            "capture": 0.0,
+            "lift": 0.0,
+            "wilson95": [
+              -0.0,
+              0.02
+            ],
+            "block_boot95": [
+              0.0,
+              0.0
+            ]
+          },
+          "top5%": {
+            "capture": 0.0745,
+            "lift": 1.49,
+            "wilson95": [
+              0.0449,
+              0.1211
+            ],
+            "block_boot95": [
+              0.0365,
+              0.1176
+            ]
+          },
+          "top10%": {
+            "capture": 0.2181,
+            "lift": 2.18,
+            "wilson95": [
+              0.165,
+              0.2824
+            ],
+            "block_boot95": [
+              0.1392,
+              0.3035
+            ]
+          },
+          "top20%": {
+            "capture": 0.4043,
+            "lift": 2.02,
+            "wilson95": [
+              0.3367,
+              0.4756
+            ],
+            "block_boot95": [
+              0.3136,
+              0.4935
+            ]
+          }
+        },
+        "dispersal_distance": {
+          "median_target_m": 310.8394323720558,
+          "median_background_m": 473.7986417310753,
+          "bins": [
+            {
+              "from_m": 0,
+              "to_m": 250,
+              "target_share": 0.4304,
+              "target_ci95": [
+                0.3862,
+                0.4757
+              ],
+              "background_share": 0.2884,
+              "relative_risk": 1.49
+            },
+            {
+              "from_m": 250,
+              "to_m": 500,
+              "target_share": 0.167,
+              "target_ci95": [
+                0.1359,
+                0.2035
+              ],
+              "background_share": 0.2335,
+              "relative_risk": 0.72
+            },
+            {
+              "from_m": 500,
+              "to_m": 1000,
+              "target_share": 0.2355,
+              "target_ci95": [
+                0.1993,
+                0.2761
+              ],
+              "background_share": 0.2671,
+              "relative_risk": 0.88
+            },
+            {
+              "from_m": 1000,
+              "to_m": 2000,
+              "target_share": 0.1113,
+              "target_ci95": [
+                0.0859,
+                0.1431
+              ],
+              "background_share": 0.1547,
+              "relative_risk": 0.72
+            },
+            {
+              "from_m": 2000,
+              "to_m": 5000,
+              "target_share": 0.0535,
+              "target_ci95": [
+                0.0365,
+                0.0778
+              ],
+              "background_share": 0.0481,
+              "relative_risk": 1.11
+            },
+            {
+              "from_m": 5000,
+              "to_m": null,
+              "target_share": 0.0021,
+              "target_ci95": [
+                0.0004,
+                0.012
+              ],
+              "background_share": 0.0083,
+              "relative_risk": 0.26
+            }
+          ]
+        }
+      }
+    }
+  },
+  "evidence_bench": {
+    "n_photos": 150,
+    "source": "iNaturalist, Heracleum sosnowskyi, CC0/CC BY",
+    "hashes": {
+      "dhash": {
+        "auc_benign": 0.9999,
+        "best_t_at_fpr_0.5pct": {
+          "t": 18,
+          "tpr": 1.0,
+          "fpr": 0.00134
+        },
+        "per_transform_tpr_at_best_t": {
+          "jpeg_q60": 1.0,
+          "jpeg_q30": 1.0,
+          "resize_50": 1.0,
+          "messenger_800_q70": 1.0,
+          "crop_5": 1.0,
+          "brightness_+20": 1.0,
+          "contrast_-20": 1.0,
+          "rotate_2": 1.0
+        },
+        "hard_tpr_at_best_t": {
+          "crop_20": 0.007,
+          "rotate_10": 0.38,
+          "mirror": 0.02
+        },
+        "neg_min": 5,
+        "neg_p01": 22.0
+      },
+      "phash": {
+        "auc_benign": 0.9998,
+        "best_t_at_fpr_0.5pct": {
+          "t": 18,
+          "tpr": 1.0,
+          "fpr": 0.00067
+        },
+        "per_transform_tpr_at_best_t": {
+          "jpeg_q60": 1.0,
+          "jpeg_q30": 1.0,
+          "resize_50": 1.0,
+          "messenger_800_q70": 1.0,
+          "crop_5": 1.0,
+          "brightness_+20": 1.0,
+          "contrast_-20": 1.0,
+          "rotate_2": 1.0
+        },
+        "hard_tpr_at_best_t": {
+          "crop_20": 0.0,
+          "rotate_10": 0.253,
+          "mirror": 0.0
+        },
+        "neg_min": 0,
+        "neg_p01": 22.0
+      }
+    },
+    "combined_or": {
+      "t_dhash": 18,
+      "t_phash": 18,
+      "tpr": 1.0,
+      "fpr": 0.00168
+    },
+    "current_thresholds": {
+      "strict_fail": {
+        "t_dhash": 10,
+        "t_phash": 8,
+        "tpr": 0.945,
+        "fpr": 0.00034
+      },
+      "review": {
+        "t_dhash": 18,
+        "t_phash": 14,
+        "tpr": 1.0,
+        "fpr": 0.00134
+      },
+      "legacy_dhash_6": {
+        "t_dhash": 6,
+        "t_phash": -1,
+        "tpr": 0.83,
+        "fpr": 0.00034
+      }
+    },
+    "note": "Единственная «ложная» пара на малом расстоянии — настоящий повтор одного снимка в двух наблюдениях iNaturalist (pHash 0, средняя разница пикселей 0,5/255)"
+  }
+}

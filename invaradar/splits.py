@@ -222,6 +222,18 @@ def clear_training_mask(xy: np.ndarray, y: np.ndarray, clear_m: float = CLEAR_M)
     return keep
 
 
+def feature_year(map_year: int, embedding_year: int | None = None) -> tuple[int, str]:
+    """AlphaEarth year for the features, and whether the label split is a retro forecast.
+
+    The published 6 Nov 2026 map uses one 2025 image on both sides of the year split
+    (``same_image``). An earlier embedding year, with the same 2025–2026 holdout,
+    is a retro forecast (audit A-02). The pixel-only numbers for that protocol are
+    in ``pro/analysis/results/TABLES.md``.
+    """
+    year = int(map_year if embedding_year is None else embedding_year)
+    return year, "same_image" if year == int(map_year) else "retro_forecast"
+
+
 def temporal_sets(xy: np.ndarray, y: np.ndarray, year: np.ndarray,
                   purge_m: float = PURGE_M, clear_m: float = CLEAR_M) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Train on years <= 2024. A 2025–2026 presence is new only outside the feature window of an older presence.

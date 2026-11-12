@@ -16,6 +16,7 @@ import geopandas as gpd
 import rasterio
 
 from invaradar.config import DATA, EPSG, OUT
+from invaradar.jurisdictions import load_regions
 from invaradar.management import prescribe, summarize
 
 ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
@@ -33,10 +34,10 @@ H["inside_aoa"] = H["dissimilarity"] <= thr
 ov = DATA / "overture"
 layers = {k: gpd.read_parquet(ov / f"{k}.parquet") for k in ("water", "landuse", "places")}
 loc = ov / "settlements.parquet"
-# No Moscow/oblast boundary is loaded. `listed_species_act` therefore stays
-# "юрисдикция не определена"; 369-ПП is attached only when the caller passes `regions`.
+# City vs oblast comes from boundaries/jurisdictions.geojson. 369-ПП is written only
+# inside Moscow. The oblast polygon names the jurisdiction and does not create a duty.
 P = prescribe(H, a.taxon, layers["water"], layers["landuse"], layers["places"],
-              gpd.read_parquet(loc) if loc.exists() else None)
+              gpd.read_parquet(loc) if loc.exists() else None, regions=load_regions())
 P.to_crs(4326).to_file(od / f"hotspots_prescribed_{a.year}.geojson", driver="GeoJSON")
 P.to_crs(4326).to_parquet(od / f"hotspots_prescribed_{a.year}.parquet", compression="zstd")
 cols = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "inside_aoa", "water_zone_m", "in_protected",

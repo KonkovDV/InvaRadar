@@ -1,0 +1,8 @@
+pack: moscow_city
+title: "Москва"
+verified: true
+checked_on: "2026-10-30"
+lists:
+  heracleum: {act: "Постановление Правительства Москвы от 03.03.2026 № 369-ПП", ref: "перечень, группа I", verified: true}
+  solidago: {act: "Постановление Правительства Москвы от 03.03.2026 № 369-ПП", ref: "перечень, группа I", verified: true}
+note: "Пакет подставляется только по полигону юрисдикции (граница Москвы), не по догадке. То же правило в InvaRadar: invaradar/legal.py"

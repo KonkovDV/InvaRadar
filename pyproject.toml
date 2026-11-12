@@ -38,13 +38,15 @@ dependencies = [
 [project.optional-dependencies]
 photo = ["ultralytics>=8.3", "torch>=2.4", "torchvision>=0.19"]
 drone = ["torch>=2.4", "timm>=1.0", "pillow>=10"]
+pro = ["pyyaml>=6", "pillow>=10"]
 dev = ["pytest>=8", "ruff>=0.8", "pre-commit>=3.7"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["invaradar"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "pro/tests"]
+pythonpath = ["pro/src"]
 addopts = "-q"
 
 [tool.ruff]

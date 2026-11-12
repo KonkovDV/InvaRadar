@@ -146,6 +146,7 @@ map.on("load", async () => {
         ["До детей", `${fmt(p.d_child_m)} м`],
         ["Водоохранная зона", p.water_zone_m > 0 ? `${p.water_zone_m} м` : "нет"],
         ["Модель применима", p.inside_aoa === true || p.inside_aoa === "true" ? "да" : "нет — нужна проверка"],
+        ["Юрисдикция", ({moscow_city: "Москва", moscow_oblast: "Московская область", unknown: "не определена"})[p.jurisdiction] || "не определена"],
       ];
       const dl = document.createElement("dl");
       for (const [k, v] of rows) {

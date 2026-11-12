@@ -13,6 +13,10 @@
 *.onnx
 /outputs/test_ortho.tif
 
+# InvaRadar Pro demo output and downloaded analysis caches
+/pro/out_demo/
+/pro/analysis/cache/
+
 # Python
 __pycache__/
 *.py[cod]

@@ -133,6 +133,8 @@ def test_solidago_in_water_zone_is_mown_not_sprayed():
     hot = gpd.GeoDataFrame(geometry=[Point(10_000, 150).buffer(10)], crs=CRS)  # 150 m from a 60 km river → 200 m zone
     p = prescribe(hot, "solidago", water, empty, places)
     assert p.water_zone_m[0] == 200 and p.method[0].startswith("покос дважды")
+    assert "корневища и грунт с очага не вывозить" in p.method[0]
+    assert "очистить на участке" in p.method[0]
 
 
 def test_stream_width_follows_its_length_and_a_ditch_stays_narrow():
@@ -217,6 +219,8 @@ def test_herbicide_orders_name_apiaries_airspace_and_protective_clothing():
     assert "перчатки" in p.method[0]
     assert "пасек" in p.method[0] and "7 км" in p.method[0]
     assert "2 недели" in p.method[0] or "герметичн" in p.method[0]
+    assert "грунт с очага не вывозить" in p.method[0]
+    assert "очистить на участке" in p.method[0]
     assert p.status[0] == "candidate" and p.signed_by[0] == ""
     assert p.follow_up_years[0] == 5
     assert "наблюдение 5 сезонов" in p.method[0]
@@ -230,7 +234,11 @@ def test_large_heracleum_stand_is_mown_not_dug_by_hand():
     hot["area_m2"] = hot.area
     p = prescribe(hot, "heracleum", water, water, places)
     assert "многократный покос" in p.method[0] and "на краях очага" in p.method[0]
-    assert "подрезка корневой шейки на 5–10 см" in p.method[1]
+    assert "подрезка корневой шейки на 10–15 см, у крупных растений до 20 см" in p.method[1]
+    assert "5–10 см" not in p.method[1]
+    assert "грунт с очага не вывозить" in p.method[1]
+    assert "3–4 недели" in p.method[1]
+    assert "без глубокой обработки" in p.method[1]
 
 
 def test_drinking_water_zone_and_a_farm_block_chemicals():
@@ -263,6 +271,28 @@ def test_moscow_list_is_verified_and_the_oblast_list_is_not():
     assert city.jurisdiction[0] == "moscow_city" and "369-ПП" in city.listed_species_act[0]
     assert "не сверен" in oblast.listed_species_act[0]
     assert outside.listed_species_act[0].startswith("вне обязательного перечня")
+
+
+def test_the_shipped_polygons_separate_moscow_from_the_oblast():
+    from shapely.geometry import Point
+
+    from invaradar.jurisdictions import load_regions
+    from invaradar.legal import listed_act
+
+    regions = load_regions()
+    assert set(regions.jurisdiction) == {"moscow_city", "moscow_oblast"}
+
+    def code(lon, lat):
+        hit = regions[regions.covers(Point(lon, lat))]
+        return None if hit.empty else hit.jurisdiction.iloc[0]
+
+    assert code(37.6208, 55.7539) == "moscow_city"          # Red Square
+    assert code(37.1814, 55.9825) == "moscow_city"          # Zelenograd
+    assert code(37.3092, 55.4858) == "moscow_city"          # Troitsk, New Moscow
+    assert code(37.445, 55.889) == "moscow_oblast"          # Khimki
+    assert code(37.545, 55.431) == "moscow_oblast"          # Podolsk
+    assert "369-ПП" in listed_act("moscow_city", "heracleum")
+    assert "не сверен" in listed_act("moscow_oblast", "solidago")
 
 
 def test_a_five_hectare_stand_splits_into_survey_units():

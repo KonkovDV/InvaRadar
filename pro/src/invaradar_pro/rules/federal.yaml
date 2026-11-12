@@ -1,0 +1,141 @@
+# Федеральные нормы и правила осторожности системы.
+# kind: norm — норма права; policy — осторожность системы, не закон; regime — режим территории.
+# verified: true — норма прочитана в официальном тексте или ГАРАНТ/Консультант на дату checked_on.
+# Условия: {поле: значение} или {поле: {gt|gte|lt|lte|eq|in|missing: ...}}; any: [...] — «или».
+pack: federal
+checked_on: "2026-10-30"
+
+rules:
+  - id: vk65-water-zone
+    kind: norm
+    title: "Водоохранная зона: запрещены пестициды и авиационные меры борьбы с вредными организмами"
+    when: {water_zone_m: {gt: 0}}
+    prohibit: ["@pesticide"]
+    cite: {act: "Водный кодекс РФ", ref: "ст. 65 ч. 15 п. 3 и 6", edition: "ред. от 04.08.2026", verified: true}
+
+  - id: sanpin-273-child-org
+    kind: norm
+    title: "Территории детских организаций: применение пестицидов запрещено"
+    when: {child_org_territory: true}
+    prohibit: ["@pesticide"]
+    cite: {act: "СанПиН 2.1.3684-21", ref: "п. 273", edition: "с изм. от 12.02.2026 № 2", verified: true}
+
+  - id: sanpin-273-settlement
+    kind: norm
+    title: "Населённый пункт: зелёные насаждения обрабатывают только наземной штанговой или ранцевой аппаратурой"
+    when: {in_settlement: true}
+    prohibit: ["@aerial"]
+    require_if_method:
+      "@pesticide": ["Очаговая обработка до 7:00 или после 22:00, в безветренную погоду"]
+    cite: {act: "СанПиН 2.1.3684-21", ref: "п. 273", edition: "с изм. от 12.02.2026 № 2", verified: true}
+
+  - id: sanpin-272-notice
+    kind: norm
+    title: "Оповещение населения о наземной обработке пестицидами"
+    when: {}
+    require_if_method:
+      "@pesticide": ["Оповестить население через СМИ не позднее чем за 5 дней до обработки; знаки на границах участка"]
+    cite: {act: "СанПиН 2.1.3684-21", ref: "п. 272", edition: "с изм. от 12.02.2026 № 2", verified: true}
+
+  - id: sanpin-282-uav-700
+    kind: norm
+    title: "Беспилотник с пестицидом — не ближе 700 м от населённых пунктов, источников питьевой воды, ООПТ и рыбохозяйственных водоёмов"
+    when:
+      any:
+        - {in_settlement: true}
+        - {in_protected: true}
+        - {d_settlement_m: {lt: 700}}
+        - {d_drinking_water_m: {lt: 700}}
+        - {d_protected_m: {lt: 700}}
+        - {d_fishery_water_m: {lt: 700}}
+    prohibit: ["aerial_uav_herbicide"]
+    cite: {act: "СанПиН 2.1.3684-21", ref: "п. 282", edition: "с изм. от 12.02.2026 № 2", verified: true}
+
+  - id: uav-distance-unknown
+    kind: policy
+    title: "Нет данных для проверки полосы 700 м или режима полётов: опрыскивание с беспилотника не назначается"
+    when:
+      any:
+        - {d_settlement_m: {missing: true}}
+        - {d_drinking_water_m: {missing: true}}
+        - {d_protected_m: {missing: true}}
+        - {d_fishery_water_m: {missing: true}}
+        - {in_settlement: {missing: true}}
+        - {in_protected: {missing: true}}
+        - {uav_flights_restricted: {missing: true}}
+    prohibit: ["aerial_uav_herbicide"]
+    flag: uav_distance_unknown
+    cite: {act: "Правило осторожности ИнваРадар Pro", ref: "к п. 282 СанПиН 2.1.3684-21; найдено формальной проверкой (law_check)", verified: null}
+
+  - id: heritage-unknown
+    kind: policy
+    title: "Нет данных об объектах культурного наследия рядом: земляные работы не назначаются до проверки"
+    when: {near_heritage: {missing: true}}
+    prohibit: ["@excavation"]
+    flag: heritage_unknown
+    cite: {act: "Правило осторожности ИнваРадар Pro", ref: "к ст. 36 73-ФЗ; найдено формальной проверкой (law_check)", verified: null}
+
+  - id: uav-flight-ban
+    kind: regime
+    title: "Режим ограничения полётов беспилотников в регионе: облёт и опрыскивание только по разрешению"
+    when: {uav_flights_restricted: true}
+    prohibit: ["aerial_uav_herbicide"]
+    flag: uav_flights_restricted
+    cite: {act: "Региональный режим ограничения полётов БВС", ref: "Москва и большая часть Московской области — с 20.06.2026; сверять на дату работ", verified: false}
+
+  - id: pesticide-context-unknown
+    kind: policy
+    title: "Неизвестен хотя бы один слой (вода, дети, ООПТ, ЗСО): пестициды не назначаются, пока слой не заполнен"
+    when:
+      any:
+        - {water_zone_m: {missing: true}}
+        - {child_org_territory: {missing: true}}
+        - {d_child_m: {missing: true}}
+        - {in_protected: {missing: true}}
+        - {in_zso: {missing: true}}
+    prohibit: ["@pesticide"]
+    flag: context_incomplete
+    cite: {act: "Правило осторожности ИнваРадар Pro", ref: "отказ в безопасную сторону при неполных данных", verified: null}
+
+  - id: children-100m
+    kind: policy
+    title: "Детский объект ближе 100 м: без пестицидов"
+    when: {d_child_m: {lt: 100}}
+    prohibit: ["@pesticide"]
+    cite: {act: "Правило осторожности системы", ref: "не норма закона; то же правило в InvaRadar", verified: null}
+
+  - id: oopt-mechanical
+    kind: regime
+    title: "ООПТ и природные парки: только механические методы"
+    when: {in_protected: true}
+    prohibit: ["@pesticide"]
+    cite: {act: "Положение о конкретной ООПТ; практика ГПБУ «Мосприрода»", ref: "проверять по положению ООПТ", verified: false}
+
+  - id: zso
+    kind: norm
+    title: "Зона санитарной охраны источника водоснабжения: без пестицидов"
+    when: {in_zso: true}
+    prohibit: ["@pesticide"]
+    cite: {act: "СанПиН 2.1.4.1110-02", ref: "режим поясов ЗСО; пояс сверить", verified: false}
+
+  - id: heritage-73fz
+    kind: norm
+    title: "Рядом объект культурного наследия: земляные работы только по согласованию"
+    when: {near_heritage: true}
+    prohibit: ["@excavation"]
+    require: ["Земляные работы — после согласования с органом охраны объектов культурного наследия; до согласования — удаление зонтиков и укрытие"]
+    cite: {act: "Федеральный закон № 73-ФЗ", ref: "ст. 36; буфер 50 м — осторожность системы, в законе его нет", verified: true}
+
+  - id: fz294-duty
+    kind: norm
+    title: "Правообладатель и обладатель публичного сервитута обязаны бороться с опасными инвазивными растениями"
+    when: {holder_type: {in: [citizen, legal_entity, municipal, regional, federal, servitude]}}
+    obligation: "Мероприятия по борьбе с видом из утверждённого перечня проводит правообладатель участка, а в границах публичного сервитута — его обладатель"
+    cite: {act: "Федеральный закон № 294-ФЗ", ref: "действует с 01.03.2026; номера статей ЗК РФ сверить по официальному тексту", verified: true}
+
+  - id: koap-8-7-2
+    kind: norm
+    title: "Ответственность за непринятие мер"
+    when: {holder_type: {in: [citizen, legal_entity, servitude]}}
+    obligation: "Непринятие мер — ст. 8.7 ч. 2 КоАП РФ: граждане 20–50 тыс. ₽, юридические лица 400–700 тыс. ₽. Карта и наряд — не основание для штрафа: нужны акт обследования и неисполненное предписание"
+    cite: {act: "КоАП РФ", ref: "ст. 8.7 ч. 2", verified: true}

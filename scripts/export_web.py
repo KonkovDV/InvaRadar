@@ -29,6 +29,8 @@ for taxon in ("heracleum", "solidago"):
         "water_zone_m": top.water_zone_m.astype(int),
         "inside_aoa": top.inside_aoa.astype(bool),
         "cls": top.method.map(method_class),
+        "jurisdiction": top.jurisdiction.astype(str),
+        "listed_species_act": top.listed_species_act.astype(str),
         "method": top.method,
         "basis": top.legal_basis,
     }, geometry=gpd.points_from_xy(top.lon, top.lat), crs=4326)

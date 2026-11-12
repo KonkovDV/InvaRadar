@@ -139,9 +139,9 @@ Versions as of 30 October 2026: the Water Code as amended on 4 August 2026; sani
 | Heritage site within 50 m: no digging | a caution of this system; art. 36 of 73-ФЗ requires clearance for earthworks, and the statute sets no 50 m distance | 79 |
 | Ground chemical treatment: notice 5 days ahead and signs. Inside a settlement, also before 07:00 or after 22:00 | СанПиН 2.1.3684-21, items 272 and 273 | ground chemical orders, not mechanical ones |
 
-Hogweed totals: mechanical only 5,920 stands, ground spot treatment 10,262, drone spraying allowed 170, all outside settlements. Goldenrod: 6,846, 12,721 and 149. A canal is not given a river-length width: Water Code art. 65 part 9 sets the width to the right-of-way, and this layer has none. Resolution 369-ПП is written only when a Moscow polygon is passed; the published tables had no such polygon.
+Hogweed totals: mechanical only 5,920 stands, ground spot treatment 10,262, drone spraying allowed 170, all outside settlements. Goldenrod: 6,846, 12,721 and 149. A canal is not given a river-length width: Water Code art. 65 part 9 sets the width to the right-of-way, and this layer has none. Resolution 369-ПП is written only inside the Moscow polygon (`boundaries/jurisdictions.geojson`). In the top 200 that is 93 hogweed orders and 79 goldenrod orders. The other 107 and 121 fall in Moscow oblast: that list is not verified, so no duty is written.
 
-Biology in the order: umbels are cut before the end of July and again in August, and carried out in bags. Stands larger than 0.5 ha are mown at least every two weeks from May through September. The root collar is cut 5–10 cm down where digging is not forbidden. Both hogweed and goldenrod are watched for 5 seasons. Hogweed orders name the protective equipment.
+Biology in the order: umbels are cut before the end of July and again in August, then destroyed, because seed ripens on a cut umbel. Soil from the stand is not hauled away, and machines and boots are cleaned on site. Stands larger than 0.5 ha are mown at least every two weeks from May through September. The root collar is cut 10–15 cm down, up to 20 cm on a large plant, where digging is not forbidden. A repeat visit is due in 3–4 weeks. Both hogweed and goldenrod are watched for 5 seasons. Hogweed orders name the protective equipment.
 
 ## Where the choices come from
 
@@ -170,6 +170,16 @@ Full reference list: [sources](docs/SOURCES.md).
 
 InvaRadar computes the map, the visit queue and a draft work order. The city environment department already has its own loop: an address list, remote-sensing data and cameras. InvaRadar complements that loop. It does not replace it. Open code and models from 2025–2026: [landscape](docs/LANDSCAPE.md) (in Russian).
 
+## InvaRadar Pro
+
+Pro is the layer after the map: the law inside the order, a human signature, proof of the work, five seasons of follow-up, and a corridor audit. Code, tests and documents are in [`pro/`](pro/README.md) (the documents are in Russian).
+
+```bash
+pip install -e ".[dev,pro]"
+make pro-test    # 45 tests; they also run as part of make test
+make pro-demo    # an offline walkthrough, written to pro/out_demo
+```
+
 ## Limits of version 1.2
 
 | Area | Now | Next |
@@ -194,7 +204,7 @@ InvaRadar computes the map, the visit queue and a draft work order. The city env
 | Why terrain for hogweed only? | The rule was set before the comparison. Terrain raised the share of new hogweed reports and lowered it for goldenrod | [experiment log](docs/EXPERIMENTS.md) |
 | Why is *H. mantegazzianum* in the hogweed labels? | In central Russia records under that name on iNaturalist are almost always Sosnowsky's hogweed. Dropping them would drop real stands | [model card](docs/MODEL_CARD.md) |
 | What if AlphaEarth goes away? | Embeddings enter through one interface; TESSERA and OlmoEarth provide comparable global 10 m layers. Version 1.2 has not been run on them | [landscape](docs/LANDSCAPE.md) |
-| Whose photos are these? | iNaturalist under CC BY and CC0, authors in `presentation/assets/CREDITS.csv`. The aerial set is used for evaluation only and is not redistributed | [NOTICE](NOTICE) |
+| Whose photos are these? | The slides use iNaturalist photos under CC BY and CC0, authors in `presentation/assets/CREDITS.csv`. `scripts/photo_dataset.py` keeps only CC0 and CC BY for a model a city can ship. The aerial set is used for evaluation only and is not redistributed | [NOTICE](NOTICE) |
 | Personal data? | The model holds plant coordinates only. A bot or API must not keep faces, number plates or home geotags (152-ФЗ) | [security](SECURITY.md) |
 | Why Rust? | 42 million pixels × 265 features in one pass. The first mosaic takes a few minutes; scoring the grid again takes tens of seconds. Terrain is cached | [architecture](docs/ARCHITECTURE.md) |
 
@@ -204,8 +214,8 @@ Python 3.11+ and Rust. A full run downloads about 9 GB of open data: AlphaEarth 
 
 ```bash
 git clone https://github.com/KonkovDV/InvaRadar && cd InvaRadar
-pip install -e ".[dev]"
-make core test    # 9 Rust tests and 69 Python tests; 16 of them check the law on the orders and the map
+pip install -e ".[dev,pro]"
+make core test    # 9 Rust tests and 117 Python tests: 16 check the law on the orders and the map, 45 are InvaRadar Pro
 make all          # data, both species, terrain variants, intervals, figures
 ```
 

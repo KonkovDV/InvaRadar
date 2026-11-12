@@ -41,12 +41,15 @@ is advisory: a person signs the work order.
   collars or rhizomes; cutting, umbel removal or covering instead.
 
 Biology:
-* Heracleum sosnowskyi flowers once and dies after seeding, so cutting the root collar 5–10 cm below ground kills
-  the plant (manual work, practical for small stands; stands above ~0.5 ha are mown at least every 2 weeks from May
-  to September, with root-collar cutting at the edges); umbels are cut by late July and again in August; most seeds germinate the next
-  spring and a few per cent survive 2–3 years, while mown rosettes postpone flowering → 5 seasons of follow-up.
+* Heracleum sosnowskyi flowers once and dies after seeding, so cutting the root collar 10–15 cm below ground
+  (up to 20 cm on a large plant) kills the plant (manual work, practical for small stands; stands above ~0.5 ha
+  are mown at least every 2 weeks from May to September, with root-collar cutting at the edges); umbels are cut
+  by late July and again in August and destroyed, because seed ripens on a cut umbel; soil from the stand is not
+  hauled away and machines are cleaned on site; most seeds germinate the next spring and a few per cent survive
+  2–3 years, while mown rosettes postpone flowering → 5 seasons of follow-up, with a check 3–4 weeks after the cut.
 * Solidago spreads by rhizomes: mowing twice a season (late May–June and before flowering in August) depletes them
-  over several years; seed heads must be removed before September.
+  over several years; seed heads must be removed before September. Rhizomes and soil stay on the stand, and
+  machines are cleaned there.
 """
 from __future__ import annotations
 
@@ -63,6 +66,7 @@ AERIAL_UAV_M = 700.0          # СанПиН 2.1.3684-21 item 282 for unmanned a
 AERIAL_MANNED_M = 2000.0      # the same item for manned aircraft; kept for reference, the system plans drones only
 HERITAGE_M = 50.0
 LARGE_STAND_M2 = 5_000.0      # above ~0.5 ha manual root-collar cutting is impractical: repeated mowing instead
+COLLAR = "подрезка корневой шейки на 10–15 см, у крупных растений до 20 см"
 RESERVE_M = 200.0
 LAKE_MIN_KM2 = 0.5
 CONNECT_M = 30.0
@@ -303,15 +307,17 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
                   "оповещение за 5 дней, знаки); " + hours + chem_tail)
         ppe = ("; СИЗ: влагонепроницаемая одежда, перчатки, защита глаз; работать в пасмурную погоду или вечером; "
                "при попадании сока — смыть водой с мылом, кожу беречь от солнца 48 ч; "
-               "зонтики — в герметичных мешках и вывезти; после работ подсеять злаки")
+               "срезанные зонтики не оставлять на участке — семена дозревают, в герметичных мешках на уничтожение; "
+               "грунт с очага не вывозить; технику и обувь очистить на участке; "
+               "повторный осмотр через 3–4 недели; после работ подсеять злаки без глубокой обработки почвы")
         large = getattr(r, "area_m2", 0.0) >= LARGE_STAND_M2
         if taxon == "heracleum":
             cut = "зонтики срезать до конца июля и повторно вторичные в августе"
             if large:
                 m = ("покос не реже 1 раза в 2 недели с мая по сентябрь, до 8–10 раз за сезон (многократный покос), " + cut
-                     + ("; подрезка корневой шейки на 5–10 см на краях очага и в малых куртинах" if dig_ok else "; без перекопки"))
+                     + (f"; {COLLAR} на краях очага и в малых куртинах" if dig_ok else "; без перекопки"))
             elif dig_ok:
-                m = "подрезка корневой шейки на 5–10 см ниже земли + " + cut
+                m = f"{COLLAR} ниже земли + " + cut
             else:
                 m = cut + " + укрывной материал, без перекопки"
             m += ppe + "; наблюдение 5 сезонов"
@@ -325,6 +331,7 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
             m = "покос дважды: конец мая–июнь и до цветения в августе; удаление соцветий до сентября; наблюдение 5 сезонов"
             if dig_ok:
                 m += "; выборка корневищ на малых куртинах"
+            m += "; корневища и грунт с очага не вывозить и не компостировать; технику и обувь очистить на участке"
             if aerial_ok:
                 m = ("точечная обработка по контурам (с дрона — только при допуске БАС в регламенте, разрешении "
                      f"на использование воздушного пространства и дистанции {AERIAL_UAV_M:.0f} м до людей и животных); " + chem_tail + m)

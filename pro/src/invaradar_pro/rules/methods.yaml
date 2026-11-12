@@ -1,0 +1,89 @@
+# Методы работ и агротехника по видам. Право — в federal.yaml и пакетах юрисдикций.
+# Группы: pesticide — любые пестициды; aerial — авиационные меры; excavation — земляные работы.
+version: "2026-11-07"
+
+methods:
+  root_cut:
+    title: "Подрезка корня на 10–15 см ниже поверхности почвы (у крупных растений — до 20 см) с удалением верхней части корня и точки возобновления"
+    groups: [mechanical, excavation]
+  digging:
+    title: "Выкапывание растений или корневищ, грунт с очага не перемещается"
+    groups: [mechanical, excavation]
+  umbel_removal:
+    title: "Срезка зонтиков или соцветий до созревания семян; в мешки и на уничтожение"
+    groups: [mechanical]
+  mowing:
+    title: "Многократный покос: каждые 2–3 недели с мая по сентябрь, до цветения"
+    groups: [mechanical]
+  covering:
+    title: "Укрытие светонепроницаемым материалом (плёнка, геотекстиль) на 1–2 сезона"
+    groups: [mechanical]
+  grassing:
+    title: "Залужение после удаления: посев конкурентных многолетних трав без глубокой обработки почвы"
+    groups: [restoration]
+  ground_herbicide_spot:
+    title: "Точечная наземная обработка гербицидом из Государственного каталога (ранцевый опрыскиватель, аппликатор) в фазе розетки"
+    groups: [pesticide, ground]
+  ground_herbicide_boom:
+    title: "Наземная штанговая обработка гербицидом из Государственного каталога"
+    groups: [pesticide, ground]
+  aerial_uav_herbicide:
+    title: "Опрыскивание гербицидом с беспилотника"
+    groups: [pesticide, aerial]
+
+size_classes:
+  small_lt_m2: 100      # отдельные растения и куртины из сообщений жителей
+  large_ge_m2: 5000     # совпадает с LARGE_STAND_M2 в InvaRadar
+
+taxa:
+  heracleum:
+    title: "Борщевик Сосновского (и гигантские борщевики)"
+    plan:
+      small: [root_cut, umbel_removal, grassing]
+      medium: [root_cut, ground_herbicide_spot, umbel_removal, mowing, grassing]
+      large: [mowing, ground_herbicide_boom, ground_herbicide_spot, covering, aerial_uav_herbicide, grassing]
+    heritage_fallback: [umbel_removal, covering, mowing]
+    always:
+      - "Защита кожи и глаз; работы в пасмурную погоду или вечером: сок с фурокумаринами под УФ-А вызывает ожоги"
+      - "Срезанные зонтики не оставлять на участке: семена дозревают на срезанных зонтиках"
+      - "Грунт с очага не вывозить; технику и обувь очистить на участке после работ"
+      - "Повторный осмотр через 3–4 недели: подрезанные и скошенные растения отрастают"
+    followup:
+      seasons: 5
+      first_season_days: [21, 42]
+      later_season_dates: ["06-10", "08-10"]
+    min_clean_seasons:
+      no_seed: 3      # семена в сезон работ не созрели; NYS DEC: 3 года подряд без растений
+      seeded: 5       # семена успели осыпаться: банк семян живёт несколько лет (<1% через 5 лет)
+    closure:          # байесовское закрытие (eradication.py); оценки — откалибровать в поле
+      p0_no_seed: 0.60
+      p0_seeded: 0.90
+      rho_no_seed: 0.50
+      rho_seeded: 0.80
+      reinvasion: 0.02
+      p_max: 0.05
+  solidago:
+    title: "Золотарники канадский и гигантский"
+    plan:
+      small: [digging, umbel_removal, grassing]
+      medium: [mowing, digging, umbel_removal, grassing]
+      large: [mowing, ground_herbicide_boom, umbel_removal, grassing]
+    heritage_fallback: [mowing, umbel_removal]
+    always:
+      - "Покос дважды за сезон: конец мая – июнь и начало августа, до цветения"
+      - "Соцветия убрать до созревания семянок (до сентября)"
+      - "Корневища не компостировать и не вывозить с грунтом"
+    followup:
+      seasons: 5
+      first_season_days: [30]
+      later_season_dates: ["06-15", "08-15"]
+    min_clean_seasons:
+      no_seed: 3      # корневища дают отрастание, поэтому не меньше трёх сезонов
+      seeded: 3
+    closure:
+      p0_no_seed: 0.70   # корневища: остаток после покоса вероятнее, чем после подрезки борщевика
+      p0_seeded: 0.80
+      rho_no_seed: 0.55
+      rho_seeded: 0.65
+      reinvasion: 0.03   # семянки разносит ветер
+      p_max: 0.05

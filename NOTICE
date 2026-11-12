@@ -10,7 +10,13 @@ Third-party data and works used by this project:
   Licensed under CC BY 4.0.
 * iNaturalist open data: observations and photos © their authors, under the licence chosen by each author
   (CC0, CC BY, CC BY-NC). Photos in presentation/assets are CC BY or CC0; authors are listed in
-  presentation/assets/CREDITS.csv.
+  presentation/assets/CREDITS.csv. scripts/photo_dataset.py keeps CC0 and CC BY only.
+* boundaries/jurisdictions.geojson is a simplified extract of geoBoundaries gbOpen RUS ADM1
+  (build 12 Dec 2023; source OpenStreetMap via Wambacher), © OpenStreetMap contributors,
+  licensed under the Open Database License 1.0. It names Moscow and Moscow oblast. It is not
+  a cadastral boundary and it is not part of the CC BY results in outputs/.
+* Code and documents in pro/ are Apache-2.0, the same licence as the rest of this repository.
+  Sample work orders in pro/data/sample/ are CC BY 4.0 outputs of this project.
 * Overture Maps Foundation data: ODbL 1.0 (OpenStreetMap-derived layers) and CDLA Permissive 2.0.
   © OpenStreetMap contributors, Overture Maps Foundation.
 * Copernicus DEM GLO-30: © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018,

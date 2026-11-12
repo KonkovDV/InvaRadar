@@ -15,6 +15,7 @@ from invaradar.splits import (
     WINDOW_M,
     boyce_index,
     boyce_ratios,
+    feature_year,
     iter_spatial_folds,
     landscape_percentile,
     prepare_fold,
@@ -194,3 +195,9 @@ def test_a_presence_owns_its_pixel_and_a_neighbour_thirty_metres_away_is_kept_un
     apart = pd.DataFrame([row(400000, 6180000, 499936), row(400040, 6180000, 47126)])
     both = build(apart, {499936}, {47126}, box=box)
     assert sorted(both.label) == [0, 1]
+
+
+def test_an_earlier_embedding_year_is_a_retro_forecast_and_the_default_is_the_map_year():
+    assert feature_year(2025, None) == (2025, "same_image")
+    assert feature_year(2025, 2024) == (2024, "retro_forecast")
+    assert feature_year(2024, 2024) == (2024, "same_image")

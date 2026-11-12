@@ -30,6 +30,7 @@ from invaradar.splits import (
     boyce_ratios,
     capture_rates,
     clear_training_mask,
+    feature_year,
     iter_spatial_folds,
     landscape_percentile,
     temporal_sets,
@@ -41,7 +42,12 @@ ap.add_argument("--top", type=int, default=25)
 ap.add_argument("--no-terrain", action="store_true",
                 help="drop DEM features (chosen per species by the forward-in-time test)")
 ap.add_argument("--variant", default="", help="write to outputs/variants/<taxon>_<variant> instead of outputs/<taxon>")
+ap.add_argument("--embedding-year", type=int, default=None,
+                help="AlphaEarth year for the features. Defaults to --year. "
+                     "A retro forecast of the 2025–2026 labels uses 2024 or 2023 here (audit A-02). "
+                     "The published 6 Nov map did not: it used the same 2025 image on both sides.")
 a = ap.parse_args()
+emb_year, temporal_protocol = feature_year(a.year, a.embedding_year)
 od = OUT / a.taxon if not a.variant else OUT / "variants" / f"{a.taxon}_{a.variant}"
 od.mkdir(parents=True, exist_ok=True); tmp = od / "tmp"; tmp.mkdir(exist_ok=True)
 t0 = time.time()
@@ -91,12 +97,12 @@ def segments():
     return out
 
 
-jobs = block_jobs(AEFIndex(AEF_INDEX), a.year, EPSG, STUDY_BOX)
+jobs = block_jobs(AEFIndex(AEF_INDEX), emb_year, EPSG, STUDY_BOX)
 cache = BlockCache(AEF_CACHE)
 for j in jobs:
-    cache.get(a.year, j[0], j[1], j[2])
+    cache.get(emb_year, j[0], j[1], j[2])
 grid = {"w": w, "n": n, "width": W, "height": H, "res": RES,
-        "blocks": [[str(cache.path(a.year, Path(j[0]).stem, j[1], j[2])), j[3], j[4]] for j in jobs],
+        "blocks": [[str(cache.path(emb_year, Path(j[0]).stem, j[1], j[2])), j[3], j[4]] for j in jobs],
         "segments": segments(), **({} if a.no_terrain else {"dem": str(DATA / "dem_10m.f32")})}
 gpath = tmp / f"grid_{a.year}.json"; json.dump(grid, open(gpath, "w", encoding="utf-8"))
 
@@ -134,7 +140,8 @@ if scored.sum() and len(np.unique(y[scored])) > 1:
 presence_ranks = rk[y == 1]
 boyce = boyce_index(presence_ranks)
 ratios = boyce_ratios(presence_ranks)
-metrics = {"taxon": a.taxon, "embedding_year": a.year, "features": int(X.shape[1]), "terrain": not a.no_terrain,
+metrics = {"taxon": a.taxon, "embedding_year": emb_year, "map_year": a.year,
+           "temporal_protocol": temporal_protocol, "features": int(X.shape[1]), "terrain": not a.no_terrain,
            "protocol": {"block_m": BLOCK_M, "purge_m": PURGE_M, "window_m": WINDOW_M,
                         "clear_m": 30.0, "folds": "checkerboard",
                         "rule": "ring around test presences only; wider than the feature window; clear background per side",
@@ -146,9 +153,9 @@ metrics = {"taxon": a.taxon, "embedding_year": a.year, "features": int(X.shape[1
                           **capture_rates(presence_ranks)}}
 log("spatial CV", json.dumps(metrics["spatial_cv"]))
 
-# Not a forecast from an earlier image: both sides still use one AlphaEarth year. A 2025–2026
-# presence counts as new only outside the 450 m window of an older presence, and training rows
-# inside that window of a new presence are not used.
+# A 2025–2026 presence counts as new only outside the 450 m window of an older presence, and
+# training rows inside that window of a new presence are not used. This is a retro forecast
+# only when --embedding-year is earlier than --year. The published run kept one 2025 image.
 tr, new, te_bg = temporal_sets(xy, y, yr)
 n_new_candidates = int(((yr >= 2025) & (y == 1)).sum())
 if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():

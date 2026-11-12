@@ -2,7 +2,7 @@
 PY ?= python3
 CORE := core-rs/target/release/invaradar_core
 
-.PHONY: all core test lint data heracleum solidago variants enrich requeue uncertainty figures drone deck release clean
+.PHONY: all core test lint data heracleum solidago variants enrich requeue uncertainty figures drone deck release clean pro-test pro-demo pro-reproduce
 
 all: core data heracleum solidago variants enrich uncertainty figures
 
@@ -77,5 +77,15 @@ deck:
 release:
 	$(PY) scripts/make_release.py
 
+# InvaRadar Pro: law, evidence log, five-season closure. Tests also run from `make test`.
+pro-test:
+	$(PY) -m pytest pro/tests
+
+pro-demo:
+	$(MAKE) -C pro demo
+
+pro-reproduce:
+	$(MAKE) -C pro reproduce
+
 clean:
-	rm -rf outputs/*/tmp outputs/variants/*/tmp
+	rm -rf outputs/*/tmp outputs/variants/*/tmp pro/out_demo

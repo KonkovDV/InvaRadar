@@ -1,0 +1,729 @@
+{
+  "box_epsg32637": [
+    381000.0,
+    6147000.0,
+    446000.0,
+    6212000.0
+  ],
+  "cut": "2024-12-31",
+  "end": "2026-11-07",
+  "features": "AlphaEarth pixel embedding, 64 dims",
+  "lgb": {
+    "n_estimators": 300,
+    "learning_rate": 0.05,
+    "num_leaves": 15,
+    "min_child_samples": 20,
+    "subsample": 0.8,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.5,
+    "reg_lambda": 1.0,
+    "random_state": 0,
+    "verbose": -1
+  },
+  "background_old": 11259,
+  "background_new": 6301,
+  "taxa": {
+    "heracleum": {
+      "n_old": 1156,
+      "n_new": 526,
+      "n_new_far": 221,
+      "by_year": {
+        "2023": {
+          "capture": {
+            "top1%": {
+              "capture": 0.0,
+              "lift": 0.0,
+              "wilson95": [
+                -0.0,
+                0.0171
+              ],
+              "block_boot95": [
+                0.0,
+                0.0
+              ]
+            },
+            "top5%": {
+              "capture": 0.0136,
+              "lift": 0.27,
+              "wilson95": [
+                0.0046,
+                0.0391
+              ],
+              "block_boot95": [
+                0.0,
+                0.032
+              ]
+            },
+            "top10%": {
+              "capture": 0.1131,
+              "lift": 1.13,
+              "wilson95": [
+                0.0778,
+                0.1617
+              ],
+              "block_boot95": [
+                0.0676,
+                0.1622
+              ]
+            },
+            "top20%": {
+              "capture": 0.276,
+              "lift": 1.38,
+              "wilson95": [
+                0.2213,
+                0.3384
+              ],
+              "block_boot95": [
+                0.2045,
+                0.347
+              ]
+            }
+          },
+          "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+          "n_train_pos": 1156,
+          "n_train_bg": 10931
+        },
+        "2024": {
+          "capture": {
+            "top1%": {
+              "capture": 0.009,
+              "lift": 0.9,
+              "wilson95": [
+                0.0025,
+                0.0324
+              ],
+              "block_boot95": [
+                0.0,
+                0.0244
+              ]
+            },
+            "top5%": {
+              "capture": 0.0362,
+              "lift": 0.72,
+              "wilson95": [
+                0.0185,
+                0.0698
+              ],
+              "block_boot95": [
+                0.0124,
+                0.0664
+              ]
+            },
+            "top10%": {
+              "capture": 0.1629,
+              "lift": 1.63,
+              "wilson95": [
+                0.12,
+                0.2173
+              ],
+              "block_boot95": [
+                0.0957,
+                0.2387
+              ]
+            },
+            "top20%": {
+              "capture": 0.2805,
+              "lift": 1.4,
+              "wilson95": [
+                0.2254,
+                0.3431
+              ],
+              "block_boot95": [
+                0.2042,
+                0.362
+              ]
+            }
+          },
+          "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+          "n_train_pos": 1156,
+          "n_train_bg": 10931
+        },
+        "2025": {
+          "capture": {
+            "top1%": {
+              "capture": 0.0045,
+              "lift": 0.45,
+              "wilson95": [
+                0.0008,
+                0.0252
+              ],
+              "block_boot95": [
+                0.0,
+                0.0152
+              ]
+            },
+            "top5%": {
+              "capture": 0.0226,
+              "lift": 0.45,
+              "wilson95": [
+                0.0097,
+                0.0519
+              ],
+              "block_boot95": [
+                0.0041,
+                0.0493
+              ]
+            },
+            "top10%": {
+              "capture": 0.1041,
+              "lift": 1.04,
+              "wilson95": [
+                0.0704,
+                0.1513
+              ],
+              "block_boot95": [
+                0.068,
+                0.1436
+              ]
+            },
+            "top20%": {
+              "capture": 0.2624,
+              "lift": 1.31,
+              "wilson95": [
+                0.2089,
+                0.3242
+              ],
+              "block_boot95": [
+                0.2043,
+                0.3209
+              ]
+            }
+          },
+          "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+          "n_train_pos": 1156,
+          "n_train_bg": 10931
+        }
+      },
+      "leakage_2025_minus_2024_top20": {
+        "diff": -0.0181,
+        "boot95": [
+          -0.0837,
+          0.0453
+        ]
+      },
+      "proximity": {
+        "top1%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.0171
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top5%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.0171
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top10%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.0171
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top20%": {
+          "capture": 0.2262,
+          "lift": 1.13,
+          "wilson95": [
+            0.176,
+            0.2858
+          ],
+          "block_boot95": [
+            0.1613,
+            0.297
+          ]
+        }
+      },
+      "combined_2024_plus_proximity": {
+        "top1%": {
+          "capture": 0.0181,
+          "lift": 1.81,
+          "wilson95": [
+            0.0071,
+            0.0456
+          ],
+          "block_boot95": [
+            0.0,
+            0.0429
+          ]
+        },
+        "top5%": {
+          "capture": 0.0995,
+          "lift": 1.99,
+          "wilson95": [
+            0.0667,
+            0.1461
+          ],
+          "block_boot95": [
+            0.0437,
+            0.1687
+          ]
+        },
+        "top10%": {
+          "capture": 0.2217,
+          "lift": 2.22,
+          "wilson95": [
+            0.172,
+            0.281
+          ],
+          "block_boot95": [
+            0.1471,
+            0.301
+          ]
+        },
+        "top20%": {
+          "capture": 0.3756,
+          "lift": 1.88,
+          "wilson95": [
+            0.3144,
+            0.441
+          ],
+          "block_boot95": [
+            0.2888,
+            0.476
+          ]
+        }
+      },
+      "dispersal_distance": {
+        "median_target_m": 350.94414925428725,
+        "median_background_m": 557.0786796329679,
+        "bins": [
+          {
+            "from_m": 0,
+            "to_m": 250,
+            "target_share": 0.424,
+            "target_ci95": [
+              0.3824,
+              0.4666
+            ],
+            "background_share": 0.2652,
+            "relative_risk": 1.6
+          },
+          {
+            "from_m": 250,
+            "to_m": 500,
+            "target_share": 0.1559,
+            "target_ci95": [
+              0.1274,
+              0.1894
+            ],
+            "background_share": 0.2001,
+            "relative_risk": 0.78
+          },
+          {
+            "from_m": 500,
+            "to_m": 1000,
+            "target_share": 0.1939,
+            "target_ci95": [
+              0.1624,
+              0.2299
+            ],
+            "background_share": 0.2493,
+            "relative_risk": 0.78
+          },
+          {
+            "from_m": 1000,
+            "to_m": 2000,
+            "target_share": 0.1635,
+            "target_ci95": [
+              0.1344,
+              0.1975
+            ],
+            "background_share": 0.215,
+            "relative_risk": 0.76
+          },
+          {
+            "from_m": 2000,
+            "to_m": 5000,
+            "target_share": 0.0608,
+            "target_ci95": [
+              0.0434,
+              0.0846
+            ],
+            "background_share": 0.0695,
+            "relative_risk": 0.88
+          },
+          {
+            "from_m": 5000,
+            "to_m": null,
+            "target_share": 0.0019,
+            "target_ci95": [
+              0.0003,
+              0.0107
+            ],
+            "background_share": 0.0008,
+            "relative_risk": 2.4
+          }
+        ]
+      }
+    },
+    "solidago": {
+      "n_old": 1224,
+      "n_new": 467,
+      "n_new_far": 188,
+      "by_year": {
+        "2023": {
+          "capture": {
+            "top1%": {
+              "capture": 0.0053,
+              "lift": 0.53,
+              "wilson95": [
+                0.0009,
+                0.0295
+              ],
+              "block_boot95": [
+                0.0,
+                0.0174
+              ]
+            },
+            "top5%": {
+              "capture": 0.0426,
+              "lift": 0.85,
+              "wilson95": [
+                0.0217,
+                0.0817
+              ],
+              "block_boot95": [
+                0.0174,
+                0.0739
+              ]
+            },
+            "top10%": {
+              "capture": 0.1383,
+              "lift": 1.38,
+              "wilson95": [
+                0.0962,
+                0.1949
+              ],
+              "block_boot95": [
+                0.0833,
+                0.1989
+              ]
+            },
+            "top20%": {
+              "capture": 0.266,
+              "lift": 1.33,
+              "wilson95": [
+                0.2079,
+                0.3333
+              ],
+              "block_boot95": [
+                0.2,
+                0.3474
+              ]
+            }
+          },
+          "verdict_top20": "не подтверждён: интервал включает случайный обход",
+          "n_train_pos": 1224,
+          "n_train_bg": 10721
+        },
+        "2024": {
+          "capture": {
+            "top1%": {
+              "capture": 0.016,
+              "lift": 1.6,
+              "wilson95": [
+                0.0054,
+                0.0459
+              ],
+              "block_boot95": [
+                0.0,
+                0.0379
+              ]
+            },
+            "top5%": {
+              "capture": 0.0532,
+              "lift": 1.06,
+              "wilson95": [
+                0.0291,
+                0.0951
+              ],
+              "block_boot95": [
+                0.0241,
+                0.0918
+              ]
+            },
+            "top10%": {
+              "capture": 0.0904,
+              "lift": 0.9,
+              "wilson95": [
+                0.0572,
+                0.14
+              ],
+              "block_boot95": [
+                0.0457,
+                0.1377
+              ]
+            },
+            "top20%": {
+              "capture": 0.1862,
+              "lift": 0.93,
+              "wilson95": [
+                0.137,
+                0.2479
+              ],
+              "block_boot95": [
+                0.1225,
+                0.2512
+              ]
+            }
+          },
+          "verdict_top20": "не подтверждён: интервал включает случайный обход",
+          "n_train_pos": 1224,
+          "n_train_bg": 10721
+        },
+        "2025": {
+          "capture": {
+            "top1%": {
+              "capture": 0.0053,
+              "lift": 0.53,
+              "wilson95": [
+                0.0009,
+                0.0295
+              ],
+              "block_boot95": [
+                0.0,
+                0.0182
+              ]
+            },
+            "top5%": {
+              "capture": 0.0691,
+              "lift": 1.38,
+              "wilson95": [
+                0.0409,
+                0.1147
+              ],
+              "block_boot95": [
+                0.0329,
+                0.1146
+              ]
+            },
+            "top10%": {
+              "capture": 0.1277,
+              "lift": 1.28,
+              "wilson95": [
+                0.0873,
+                0.1829
+              ],
+              "block_boot95": [
+                0.0814,
+                0.1856
+              ]
+            },
+            "top20%": {
+              "capture": 0.2713,
+              "lift": 1.36,
+              "wilson95": [
+                0.2128,
+                0.3389
+              ],
+              "block_boot95": [
+                0.2033,
+                0.3476
+              ]
+            }
+          },
+          "verdict_top20": "прогноз подтверждён: лучше случайного обхода",
+          "n_train_pos": 1224,
+          "n_train_bg": 10721
+        }
+      },
+      "leakage_2025_minus_2024_top20": {
+        "diff": 0.0851,
+        "boot95": [
+          0.0179,
+          0.1495
+        ]
+      },
+      "proximity": {
+        "top1%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.02
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top5%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.02
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top10%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.02
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top20%": {
+          "capture": 0.2979,
+          "lift": 1.49,
+          "wilson95": [
+            0.2371,
+            0.3668
+          ],
+          "block_boot95": [
+            0.1929,
+            0.3909
+          ]
+        }
+      },
+      "combined_2024_plus_proximity": {
+        "top1%": {
+          "capture": 0.0,
+          "lift": 0.0,
+          "wilson95": [
+            -0.0,
+            0.02
+          ],
+          "block_boot95": [
+            0.0,
+            0.0
+          ]
+        },
+        "top5%": {
+          "capture": 0.0745,
+          "lift": 1.49,
+          "wilson95": [
+            0.0449,
+            0.1211
+          ],
+          "block_boot95": [
+            0.0365,
+            0.1176
+          ]
+        },
+        "top10%": {
+          "capture": 0.2181,
+          "lift": 2.18,
+          "wilson95": [
+            0.165,
+            0.2824
+          ],
+          "block_boot95": [
+            0.1392,
+            0.3035
+          ]
+        },
+        "top20%": {
+          "capture": 0.4043,
+          "lift": 2.02,
+          "wilson95": [
+            0.3367,
+            0.4756
+          ],
+          "block_boot95": [
+            0.3136,
+            0.4935
+          ]
+        }
+      },
+      "dispersal_distance": {
+        "median_target_m": 310.8394323720558,
+        "median_background_m": 473.7986417310753,
+        "bins": [
+          {
+            "from_m": 0,
+            "to_m": 250,
+            "target_share": 0.4304,
+            "target_ci95": [
+              0.3862,
+              0.4757
+            ],
+            "background_share": 0.2884,
+            "relative_risk": 1.49
+          },
+          {
+            "from_m": 250,
+            "to_m": 500,
+            "target_share": 0.167,
+            "target_ci95": [
+              0.1359,
+              0.2035
+            ],
+            "background_share": 0.2335,
+            "relative_risk": 0.72
+          },
+          {
+            "from_m": 500,
+            "to_m": 1000,
+            "target_share": 0.2355,
+            "target_ci95": [
+              0.1993,
+              0.2761
+            ],
+            "background_share": 0.2671,
+            "relative_risk": 0.88
+          },
+          {
+            "from_m": 1000,
+            "to_m": 2000,
+            "target_share": 0.1113,
+            "target_ci95": [
+              0.0859,
+              0.1431
+            ],
+            "background_share": 0.1547,
+            "relative_risk": 0.72
+          },
+          {
+            "from_m": 2000,
+            "to_m": 5000,
+            "target_share": 0.0535,
+            "target_ci95": [
+              0.0365,
+              0.0778
+            ],
+            "background_share": 0.0481,
+            "relative_risk": 1.11
+          },
+          {
+            "from_m": 5000,
+            "to_m": null,
+            "target_share": 0.0021,
+            "target_ci95": [
+              0.0004,
+              0.012
+            ],
+            "background_share": 0.0083,
+            "relative_risk": 0.26
+          }
+        ]
+      }
+    }
+  }
+}

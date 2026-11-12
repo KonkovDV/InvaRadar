@@ -20,21 +20,36 @@ def test_upstream_invariants(engine, taxon):
     assert res["rows"] == 200 and res["errors"] == []
     # Moscow city is a verified pack, so those orders do not wait for a lawyer.
     # Oblast and anything outside the polygons still do.
-    city = sum(r.get("jurisdiction") == "moscow_city" for r in rows)
-    assert city > 0
-    assert res["legal_review"] == res["rows"] - city
+    def expects_review(r):
+        if r.get("jurisdiction") != "moscow_city":
+            return True
+        return bool(taxon == "solidago" or r.get("in_protected") or r.get("near_jurisdiction_boundary"))
+    assert sum(r.get("jurisdiction") == "moscow_city" for r in rows) > 0
+    assert res["legal_review"] == sum(expects_review(r) for r in rows)
 
 
 def test_agent_cannot_sign(store, engine, safe_ctx):
     store.act("c1", "signal_received", MODEL, {"taxon": "heracleum", "lat": 55.6, "lon": 37.6})
     store.act("c1", "field_result", {"id": "c", "role": "crew", "kind": "human"}, {"present": True, "photos": ["s"]})
-    store.act("c1", "order_drafted", AGENT, {"decision": engine.decide({**safe_ctx, "water_zone_m": 10.0}).to_dict()})
+    water = {**safe_ctx, "water_zone_m": 10.0}
+    store.act("c1", "order_drafted", AGENT, {"context": water, "decision": engine.decide(water).to_dict()})
     n = len(store.log)
     r = dispatch("approve_order", {"case_id": "c1", "method": "mowing", "due": "2027-06-30"}, AGENT, store, engine)
     assert r["status"] == "needs_human_approval" and len(store.log) == n
     why = dispatch("explain_law", {"case_id": "c1", "method": "ground_herbicide_spot"}, AGENT, store, engine)
     assert why["allowed"] is False and why["because"][0]["act"] == "Водный кодекс РФ"
     assert {t["name"] for t in tool_specs()} >= {"approve_order", "explain_law"}
+
+
+def test_prove_refuses_a_broken_chain(tmp_path):
+    log = tmp_path / "events.jsonl"
+    from invaradar_pro.events import EventLog
+    EventLog(log).append("c1", "signal_received", {"id": "m", "role": "model", "kind": "system"}, {"n": 1})
+    lines = log.read_text(encoding="utf-8").splitlines()
+    ev = json.loads(lines[0])
+    ev["payload"]["n"] = 2
+    log.write_text(json.dumps(ev, ensure_ascii=False) + "\n", encoding="utf-8")
+    assert main(["prove", str(log), "--seq", "0"]) == 1
 
 
 def test_demo_end_to_end(tmp_path):
@@ -72,7 +87,8 @@ def test_api(engine, safe_ctx):
     c.post("/cases/c1/events", json={"type": "field_result", "payload": {"present": True, "photos": ["s"]}}, headers=crew)
     dec = c.post("/law/decide", json=safe_ctx).json()
     agent = {"X-Actor-Id": "a", "X-Actor-Role": "agent", "X-Actor-Kind": "agent"}
-    assert c.post("/cases/c1/events", json={"type": "order_drafted", "payload": {"decision": dec}}, headers=agent).status_code == 200
+    assert c.post("/cases/c1/events", json={"type": "order_drafted", "payload": {"context": safe_ctx, "decision": dec}},
+                  headers=agent).status_code == 200
     bot = {"X-Actor-Id": "a", "X-Actor-Role": "inspector", "X-Actor-Kind": "agent"}
     r = c.post("/cases/c1/events", json={"type": "order_approved",
                                          "payload": {"signer": "a", "method": "mowing", "due": "2027-06-30"}}, headers=bot)

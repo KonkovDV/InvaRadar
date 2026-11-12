@@ -74,7 +74,7 @@ class Demo:
         self.engine = LawEngine()
         (out / "events.jsonl").unlink(missing_ok=True)
         self.log = EventLog(out / "events.jsonl")
-        self.store = CaseStore(self.log, self.engine.taxa)
+        self.store = CaseStore(self.log, self.engine.taxa, self.engine)
         self.photos = out / "photos"
         self.photos.mkdir(parents=True, exist_ok=True)
         self.seen: list[tuple[int, str, str]] = []
@@ -141,6 +141,7 @@ def run_demo(out_dir: str | Path, taxon: str = "heracleum", n: int = 8, seed: in
     ids = []
     shared_after: bytes | None = None
     herb_block_done = False
+    boom_block_done = False
 
     for i, row in enumerate(rows):
         cid = f"{taxon[:3].upper()}-2025-{row['rank']:03d}"
@@ -162,33 +163,36 @@ def run_demo(out_dir: str | Path, taxon: str = "heracleum", n: int = 8, seed: in
             D.act(cid, "field_result", CREW, {"present": True, "photos": [ph.sha256], "verified_by": "crew",
                                               "phenology": "сухие прошлогодние стебли и розетки"}, d_check)
         holder = HOLDERS[i % len(HOLDERS)]
-        dec = eng.decide(law_context(row, taxon, holder_type=holder)).to_dict()
-        D.act(cid, "order_drafted", AGENT, {"decision": dec}, d_check + timedelta(days=1))
+        ctx = law_context(row, taxon, holder_type=holder)
+        dec = eng.decide(ctx).to_dict()
+        D.act(cid, "order_drafted", AGENT, {"context": ctx, "decision": dec}, d_check + timedelta(days=1))
         if dec.get("requires_legal_review"):
-            # The sample used to have no jurisdiction. A lawyer may still clear an
-            # unverified oblast or an unknown point; the demo records that assumption.
-            dec2 = eng.decide(law_context(row, taxon, holder_type=holder, jurisdiction="moscow_city")).to_dict()
-            D.act(cid, "legal_cleared", LAWYER, {"note": "Юрисдикция определена по границе Москвы (демо-допущение)",
-                                                 "jurisdiction": "moscow_city", "decision": dec2},
-                  d_check + timedelta(days=3))
-        else:
-            dec2 = dec
+            # An oblast row, a protected Moscow row, or goldenrod stays with the lawyer.
+            # The demo does not relabel them as Moscow city.
+            D.story.append(f"- {d_check + timedelta(days=1)} · {cid}: наряд ждёт юриста "
+                           f"({', '.join(dec.get('flags') or ['review'])}), демо не подменяет юрисдикцию")
+            continue
         d_ap = d_check + timedelta(days=5)
         due = (d_ap + timedelta(days=45)).isoformat()
         if i == 0:
-            r = dispatch("approve_order", {"case_id": cid, "method": dec2["recommended"][0], "due": due}, AGENT, store, eng)
+            r = dispatch("approve_order", {"case_id": cid, "method": dec["recommended"][0], "due": due}, AGENT, store, eng)
             D.story.append(f"- {d_ap} · {cid}: агент попросил утвердить наряд → {r['status']}: нужна подпись человека")
-        if "ground_herbicide_spot" in dec2["prohibited"] and not herb_block_done:
+        if "ground_herbicide_spot" in dec["prohibited"] and not herb_block_done:
             D.act(cid, "order_approved", INSPECTOR, {"signer": INSPECTOR["name"], "method": "ground_herbicide_spot",
                                                      "due": due}, d_ap)
             herb_block_done = True
-        method = dec2["recommended"][0]
+        if "ground_herbicide_boom" in dec["prohibited"] and not boom_block_done:
+            D.act(cid, "order_approved", INSPECTOR, {"signer": INSPECTOR["name"], "method": "ground_herbicide_boom",
+                                                     "due": due}, d_ap)
+            boom_block_done = True
+        method = dec["recommended"][0]
         D.act(cid, "order_approved", INSPECTOR, {"signer": INSPECTOR["name"], "method": method, "due": due}, d_ap)
         d_w = d_ap + timedelta(days=10)
         D.act(cid, "work_started", CONTRACTOR, {}, d_w)
         d_r = d_w + timedelta(days=7)
-        if i == 4 and "ground_herbicide_boom" in dec2["prohibited"]:
+        if i == 4 and "ground_herbicide_boom" in dec["prohibited"]:
             D.act(cid, "work_reported", CONTRACTOR, {"method_used": "ground_herbicide_boom", "evidence": [{}],
+                                                     "checks": [{"name": "place", "ok": False, "detail": "тест"}],
                                                      "seed_set_prevented": True}, d_r)
         if i == 2 and shared_after is not None:
             D.report_work(cid, row, method, d_r, True, reuse=shared_after)
@@ -196,6 +200,11 @@ def run_demo(out_dir: str | Path, taxon: str = "heracleum", n: int = 8, seed: in
             D.story.append(f"- {d_r} · {cid}: повтор фото с другого очага пойман, работы возвращены")
             d_r = d_r + timedelta(days=6)
         after = D.report_work(cid, row, method, d_r, seed_ok=(i != 6))
+        if i == 5:
+            D.act(cid, "work_rejected", INSPECTOR, {"reason": "фото не подтверждает контур очага"}, d_r + timedelta(days=2))
+            D.story.append(f"- {d_r} · {cid}: первая сдача возвращена, контур на фото не совпал с очагом")
+            d_r = d_r + timedelta(days=6)
+            after = D.report_work(cid, row, method, d_r, seed_ok=True)
         if i == 0:
             shared_after = after
         d_acc = d_r + timedelta(days=3)
@@ -214,7 +223,7 @@ def run_demo(out_dir: str | Path, taxon: str = "heracleum", n: int = 8, seed: in
             D.act(cid, "followup", who, {"season": ds.year, "regrowth": regrowth, "photos": [fp.sha256]}, ds)
             if regrowth:
                 D.story.append(f"- {ds} · {cid}: отрастание после подрезки → рецидив, очаг снова в работе")
-                D.act(cid, "order_drafted", AGENT, {"decision": dec2}, ds + timedelta(days=1))
+                D.act(cid, "order_drafted", AGENT, {"context": ctx, "decision": dec}, ds + timedelta(days=1))
                 D.act(cid, "order_approved", INSPECTOR, {"signer": INSPECTOR["name"], "method": method,
                                                          "due": (ds + timedelta(days=30)).isoformat()}, ds + timedelta(days=2))
                 D.act(cid, "work_started", CONTRACTOR, {}, ds + timedelta(days=5))
@@ -229,7 +238,9 @@ def run_demo(out_dir: str | Path, taxon: str = "heracleum", n: int = 8, seed: in
                     _, fp2 = D.photo(cid, f"followup2_{s2}", lat, lon, _dt(ds2))
                     D.act(cid, "followup", CREW, {"season": ds2.year, "regrowth": False, "photos": [fp2.sha256]}, ds2)
                 break
-        D.act(cid, "case_closed", INSPECTOR, {}, date(2030, 9, 1))
+        # One confirmed city case stays in monitoring so the journal shows an open focus.
+        if i == 0:
+            D.act(cid, "case_closed", INSPECTOR, {}, date(2030, 9, 1))
 
     # --- отчёты --------------------------------------------------------------------------------
     pdir = out / "passports"

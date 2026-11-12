@@ -201,3 +201,4 @@ def test_an_earlier_embedding_year_is_a_retro_forecast_and_the_default_is_the_ma
     assert feature_year(2025, None) == (2025, "same_image")
     assert feature_year(2025, 2024) == (2024, "retro_forecast")
     assert feature_year(2024, 2024) == (2024, "same_image")
+    assert feature_year(2025, 2026) == (2026, "later_image")

@@ -42,13 +42,28 @@ NORMS = (
 )
 
 
-def listed_act(jurisdiction: str, taxon: str) -> str:
-    """What the work order may say about a legal duty to control this taxon here."""
+def listed_act(jurisdiction: str, taxon: str, protected: bool = False,
+               boundary_m: float | None = None) -> str:
+    """What the work order may say about a legal duty to control this taxon here.
+
+    369-ПП names a species and applies on Moscow's green fund, not on protected areas.
+    A point within 50 m of the simplified city boundary is too close to assign the duty.
+    Appendix 2 clause 3.2 of 369-ПП is deferred to 2027-01-01 for goldenrod.
+    """
     regime = REGIMES.get(jurisdiction)
     if regime is None:
         return "юрисдикция не определена"
+    if boundary_m is not None and boundary_m < 50:
+        return "участок ближе 50 м к границе юрисдикций: акт не применяется, пока юрист не сверит участок"
     if not regime["verified"]:
         return "перечень этой юрисдикции не сверен с официальным текстом"
-    if taxon in regime["taxa"]:
+    if taxon not in regime["taxa"]:
+        return "вне обязательного перечня — по решению правообладателя"
+    notes = []
+    if protected:
+        notes.append("порядок 369-ПП не действует на ООПТ, а слой охраны смешивает парк и резерват — нужен юрист")
+    if taxon == "solidago":
+        notes.append("пункт 3.2 приложения 2 для золотарников применяется с 01.01.2027, содержание пункта сверяет юрист")
+    if not notes:
         return regime["act"]
-    return "вне обязательного перечня — по решению правообладателя"
+    return regime["act"] + "; " + "; ".join(notes)

@@ -147,6 +147,8 @@ map.on("load", async () => {
         ["Водоохранная зона", p.water_zone_m > 0 ? `${p.water_zone_m} м` : "нет"],
         ["Модель применима", p.inside_aoa === true || p.inside_aoa === "true" ? "да" : "нет — нужна проверка"],
         ["Юрисдикция", ({moscow_city: "Москва", moscow_oblast: "Московская область", unknown: "не определена"})[p.jurisdiction] || "не определена"],
+        ["До границы Москвы", p.jurisdiction_boundary_m === undefined || p.jurisdiction_boundary_m === "" ? "не считалось" : `${fmt(p.jurisdiction_boundary_m)} м`],
+        ["Перечень", p.listed_species_act || "не указан"],
       ];
       const dl = document.createElement("dl");
       for (const [k, v] of rows) {

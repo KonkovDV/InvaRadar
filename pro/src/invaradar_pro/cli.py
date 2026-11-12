@@ -96,6 +96,10 @@ def main(argv: list[str] | None = None) -> int:
     if a.cmd == "prove":
         from .merkle import leaf_hash, verify_inclusion
         log = EventLog(a.path)
+        ok_chain, bad = log.verify()
+        if not ok_chain:
+            print(f"цепочка нарушена на событии {bad}")
+            return 1
         tree = log.merkle()
         proof = tree.inclusion_proof(a.seq)
         ok = verify_inclusion(leaf_hash(log.leaf_bytes(a.seq)), a.seq, len(tree), proof, tree.root())

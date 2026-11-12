@@ -21,7 +21,7 @@ def engine():
 
 @pytest.fixture
 def store(engine):
-    return CaseStore(EventLog(), engine.taxa)
+    return CaseStore(EventLog(), engine.taxa, engine)
 
 
 @pytest.fixture

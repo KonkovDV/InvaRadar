@@ -152,6 +152,13 @@ def test_a_long_canal_keeps_the_right_of_way_rule_and_not_a_river_width():
     z = water_zones(water, CRS)
     assert z.zone_m.iloc[0] == 0
     assert "ч. 9" in z.zone_note.iloc[0] and "полосе отвода" in z.zone_note.iloc[0]
+    empty = gpd.GeoDataFrame({"class": [], "subtype": []}, geometry=[], crs=CRS)
+    places = gpd.GeoDataFrame({"basic_category": []}, geometry=[], crs=CRS)
+    hot = gpd.GeoDataFrame(geometry=[Point(1_000, 0).buffer(5)], crs=CRS)
+    order = prescribe(hot, "heracleum", water, empty, places)
+    assert order.water_zone_unknown[0] and order.water_zone_m[0] == 0
+    assert "ч. 9" in order.legal_basis[0]
+    assert "с дрона" not in order.method[0] and "наземная точечная" not in order.method[0]
 
 
 def test_a_pond_takes_the_wider_connected_river_not_the_nearer_ditch():
@@ -239,6 +246,8 @@ def test_large_heracleum_stand_is_mown_not_dug_by_hand():
     assert "грунт с очага не вывозить" in p.method[1]
     assert "3–4 недели" in p.method[1]
     assert "без глубокой обработки" in p.method[1]
+    assert "местные злаки" in p.method[1]
+    assert "поэтапные" in p.method[0] and "поэтапные" not in p.method[1]
 
 
 def test_drinking_water_zone_and_a_farm_block_chemicals():
@@ -271,6 +280,15 @@ def test_moscow_list_is_verified_and_the_oblast_list_is_not():
     assert city.jurisdiction[0] == "moscow_city" and "369-ПП" in city.listed_species_act[0]
     assert "не сверен" in oblast.listed_species_act[0]
     assert outside.listed_species_act[0].startswith("вне обязательного перечня")
+    edge = gpd.GeoDataFrame(geometry=[Point(10, 500).buffer(2)], crs=CRS)
+    near = prescribe(edge, "heracleum", empty, empty, places, regions=regions)
+    assert near.near_jurisdiction_boundary[0] and "ближе 50" in near.listed_species_act[0]
+    assert "369-ПП" not in near.listed_species_act[0]
+    park = gpd.GeoDataFrame({"class": ["park"], "subtype": ["park"]}, geometry=[box(0, 0, 200, 200)], crs=CRS)
+    guarded = prescribe(hot.iloc[[0]], "heracleum", empty, park, places, regions=regions)
+    assert "ООПТ" in guarded.listed_species_act[0]
+    goldenrod = prescribe(hot.iloc[[0]], "solidago", empty, empty, places, regions=regions)
+    assert "01.01.2027" in goldenrod.listed_species_act[0]
 
 
 def test_the_shipped_polygons_separate_moscow_from_the_oblast():

@@ -13,13 +13,25 @@ def fmt_ci(c: dict) -> str:
     return f"{c['capture']:.1%} ({lo:.1%}–{hi:.1%})".replace(".", ",")
 
 
+def _shown_verdict(year, verdict: str) -> str:
+    if str(year) != "2025":
+        return verdict
+    return {
+        "прогноз подтверждён: лучше случайного обхода": "тот же снимок: лучше случайного обхода (не прогноз)",
+        "сильный прогноз: нижняя граница выше удвоенной случайной доли": "тот же снимок: сильный сигнал (не прогноз)",
+        "не подтверждён: интервал включает случайный обход": "тот же снимок: интервал включает случайный обход (не прогноз)",
+    }.get(verdict, verdict)
+
+
 def summarize(r: dict) -> str:
-    L = ["| Вид | Признаки / модель | Новых мест (> 500 м) | Верхние 10% площади | Верхние 20% площади (95% ДИ, блоки 5 км) | Вердикт по правилу |",
+    L = ["2023 и 2024 — ретро-прогноз. 2025 — тот же снимок (same_image), не прогноз и не карта на 265 признаках.",
+         "",
+         "| Вид | Признаки / модель | Новых мест (> 500 м) | Верхние 10% площади | Верхние 20% площади (95% ДИ, блоки 5 км) | Вердикт по правилу |",
          "|---|---|---|---|---|---|"]
     for tx, t in r["taxa"].items():
         for y, v in t["by_year"].items():
             c = v["capture"]
-            L.append(f"| {tx} | AlphaEarth {y} | {t['n_new_far']} | {fmt_ci(c['top10%'])} | {fmt_ci(c['top20%'])} | {v['verdict_top20']} |")
+            L.append(f"| {tx} | AlphaEarth {y} | {t['n_new_far']} | {fmt_ci(c['top10%'])} | {fmt_ci(c['top20%'])} | {_shown_verdict(y, v['verdict_top20'])} |")
         L.append(f"| {tx} | близость к старым находкам | {t['n_new_far']} | {fmt_ci(t['proximity']['top10%'])} | "
                  f"{fmt_ci(t['proximity']['top20%'])} | — |")
         L.append(f"| {tx} | AlphaEarth 2024 + близость | {t['n_new_far']} | {fmt_ci(t['combined_2024_plus_proximity']['top10%'])} | "

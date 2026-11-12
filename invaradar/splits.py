@@ -227,11 +227,18 @@ def feature_year(map_year: int, embedding_year: int | None = None) -> tuple[int,
 
     The published 6 Nov 2026 map uses one 2025 image on both sides of the year split
     (``same_image``). An earlier embedding year, with the same 2025–2026 holdout,
-    is a retro forecast (audit A-02). The pixel-only numbers for that protocol are
-    in ``pro/analysis/results/TABLES.md``.
+    is a retro forecast (audit A-02). A later embedding year is ``later_image``:
+    it is not a forecast of the map year. The pixel-only numbers for the retro
+    protocol are in ``pro/analysis/results/TABLES.md``.
     """
-    year = int(map_year if embedding_year is None else embedding_year)
-    return year, "same_image" if year == int(map_year) else "retro_forecast"
+    if embedding_year is None:
+        return int(map_year), "same_image"
+    year = int(embedding_year)
+    if year == int(map_year):
+        return year, "same_image"
+    if year < int(map_year):
+        return year, "retro_forecast"
+    return year, "later_image"
 
 
 def temporal_sets(xy: np.ndarray, y: np.ndarray, year: np.ndarray,

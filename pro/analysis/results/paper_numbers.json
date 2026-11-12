@@ -12,6 +12,7 @@
     "obligations": "ok",
     "decisive_contexts_by_rule": {
       "vk65-water-zone": 1467,
+      "canal-width-unknown": 0,
       "sanpin-273-child-org": 1467,
       "sanpin-273-settlement": 0,
       "sanpin-272-notice": 0,
@@ -28,6 +29,7 @@
       "koap-8-7-2": 0
     },
     "never_decisive": [
+      "canal-width-unknown",
       "sanpin-273-settlement"
     ]
   },
@@ -36,47 +38,48 @@
       "rows": 200,
       "errors": [],
       "pro_stricter_on_uav": 0,
-      "legal_review": 107
+      "legal_review": 136
     },
     "solidago": {
       "rows": 200,
       "errors": [],
       "pro_stricter_on_uav": 0,
-      "legal_review": 121
+      "legal_review": 200
     }
   },
   "demo": {
     "states": {
       "HER-2025-001": "closed",
-      "HER-2025-002": "closed",
-      "HER-2025-003": "closed",
+      "HER-2025-002": "legal_review",
+      "HER-2025-003": "legal_review",
       "HER-2025-004": "rejected",
-      "HER-2025-005": "closed",
-      "HER-2025-006": "closed",
-      "HER-2025-007": "monitoring",
-      "HER-2025-008": "closed"
+      "HER-2025-005": "legal_review",
+      "HER-2025-006": "monitoring",
+      "HER-2025-007": "legal_review",
+      "HER-2025-008": "legal_review"
     },
     "kpi": {
       "cases": 8,
       "by_state": {
-        "closed": 6,
+        "closed": 1,
+        "legal_review": 5,
         "monitoring": 1,
         "rejected": 1
       },
       "signal_to_check_days_median": 8.5,
       "confirm_rate": 0.875,
       "ai_autoconfirm_share": 0.125,
-      "order_to_report_days_median": 17,
-      "first_pass_acceptance": 0.857,
+      "order_to_report_days_median": 17.0,
+      "first_pass_acceptance": 0.5,
       "overdue_orders": [],
-      "relapse_rate_per_followup": 0.017,
-      "closed_share_of_approved": 0.857,
-      "blocked_attempts": 4,
+      "relapse_rate_per_followup": 0.056,
+      "closed_share_of_approved": 0.5,
+      "blocked_attempts": 3,
       "blocked_prohibited_method": 2,
       "herbicide_l_per_ha": 0.0,
-      "treated_area_ha": 552.71,
+      "treated_area_ha": 125.98,
       "chain_ok": true,
-      "merkle_root": "c07fd0401771b605417d621ece6c07215caa074eddc8d0e9f69482d84dee0276"
+      "merkle_root": "23e7baa61373a1a0b2366cec28b7af9f00d5b4b3403ec68d85cd98404fd4c2f9"
     },
     "spread": {
       "new_cells": 394,
@@ -102,11 +105,11 @@
       }
     },
     "transparency": {
-      "tree_size": 146,
-      "root": "c07fd0401771b605417d621ece6c07215caa074eddc8d0e9f69482d84dee0276",
+      "tree_size": 71,
+      "root": "23e7baa61373a1a0b2366cec28b7af9f00d5b4b3403ec68d85cd98404fd4c2f9",
       "inclusion_ok": true,
       "consistency_ok": true,
-      "proof_len": 8
+      "proof_len": 7
     }
   },
   "closure_thresholds": [

@@ -67,6 +67,20 @@ AERIAL_MANNED_M = 2000.0      # the same item for manned aircraft; kept for refe
 HERITAGE_M = 50.0
 LARGE_STAND_M2 = 5_000.0      # above ~0.5 ha manual root-collar cutting is impractical: repeated mowing instead
 COLLAR = "подрезка корневой шейки на 10–15 см, у крупных растений до 20 см"
+BOUNDARY_REVIEW_M = 50.0
+
+
+def stand_strategy(area_m2: float | None) -> str:
+    """Size caveat from Rejmánek & Pitcairn. Appended so the method class stays the first clause."""
+    if area_m2 is None:
+        return ""
+    area = float(area_m2)
+    if area >= 1_000_000:
+        return ("; очаг крупнее 100 га: сдерживание границ и снятие малых сателлитов, "
+                "не разовое искоренение всего контура")
+    if area >= 10_000:
+        return "; очаг от 1 до 100 га: работы поэтапные, ликвидация всего контура не обещана"
+    return ""
 RESERVE_M = 200.0
 LAKE_MIN_KM2 = 0.5
 CONNECT_M = 30.0
@@ -214,6 +228,25 @@ def water_zones(water: gpd.GeoDataFrame, crs) -> gpd.GeoDataFrame:
     return w.assign(zone_m=zone, zone_note=note)
 
 
+def _boundary_m(g: gpd.GeoDataFrame, regions) -> np.ndarray:
+    """Metres from each hotspot to the Moscow city boundary, in the hotspot CRS.
+
+    A geographic CRS would turn 50 m into 50 degrees, so the distance stays unknown.
+    """
+    out = np.full(len(g), np.nan)
+    if g.crs is not None and getattr(g.crs, "is_geographic", False):
+        return out
+    if regions is None or len(regions) == 0 or "jurisdiction" not in regions.columns:
+        return out
+    city = regions.to_crs(g.crs)
+    city = city[city["jurisdiction"] == "moscow_city"]
+    if len(city) == 0:
+        return out
+    line = city.geometry.union_all().boundary
+    pts = g.geometry.representative_point()
+    return np.array([pts.iloc[i].distance(line) for i in range(len(pts))], dtype=float)
+
+
 def _jurisdiction(g: gpd.GeoDataFrame, regions) -> np.ndarray:
     out = np.full(len(g), "unknown", dtype=object)
     if regions is None or len(regions) == 0 or "jurisdiction" not in regions.columns:
@@ -242,6 +275,8 @@ def _near(g: gpd.GeoDataFrame, layer: gpd.GeoDataFrame | None, dist: float) -> n
 def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localities=None,
               zso=None, regions=None) -> gpd.GeoDataFrame:
     g = h.reset_index(drop=True).copy()
+    if g.crs is not None and getattr(g.crs, "is_geographic", False):
+        raise ValueError("prescribe distances are metres: pass a projected CRS, not degrees")
     lu_cls = landuse["class"].astype(str)
     pc = places["basic_category"].astype(str)
     protected = landuse[lu_cls.isin(PROTECTED_LANDUSE)]
@@ -255,6 +290,10 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
         zone_hit[inside] = np.maximum(zone_hit[inside], width)
     g["water_zone_m"] = zone_hit
     g["in_water_zone"] = zone_hit > 0
+    canals = wz[wz["class"].astype(str).isin(CANAL_CLASS)]
+    # Art. 65 part 9 sets a canal's zone to its right-of-way. The layer has no width, so a
+    # point on the canal does not inherit a river zone: pesticides stay off until a lawyer measures it.
+    g["water_zone_unknown"] = _near(g, canals, 50.0) & ~g["in_water_zone"].to_numpy()
     g["in_protected"] = _near(g, protected, 0.0) | _near(g, reserves, RESERVE_M)
     g["child_org_territory"] = _near(g, child_organisations(landuse, g.crs), 0.0)
     g["near_children"] = _near(g, child_facilities(places, landuse, g.crs), CHILD_M)
@@ -269,17 +308,24 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
     g["near_farm_uav"] = _near(g, farms, AERIAL_UAV_M)
     g["in_zso"] = _near(g, zso, 0.0)
     g["jurisdiction"] = _jurisdiction(g, regions)
-    g["listed_species_act"] = [listed_act(j, taxon) for j in g["jurisdiction"]]
+    g["jurisdiction_boundary_m"] = _boundary_m(g, regions)
+    g["near_jurisdiction_boundary"] = g["jurisdiction_boundary_m"] < BOUNDARY_REVIEW_M
+    g["listed_species_act"] = [
+        listed_act(j, taxon, protected=bool(p), boundary_m=None if b != b else float(b))
+        for j, p, b in zip(g["jurisdiction"], g["in_protected"], g["jurisdiction_boundary_m"], strict=True)
+    ]
 
     methods, basis = [], []
     for r in g.itertuples():
         b = []
-        chem_ok = not (r.in_water_zone or r.in_protected or r.near_children or r.in_zso)
+        chem_ok = not (r.in_water_zone or r.in_protected or r.near_children or r.in_zso or r.water_zone_unknown)
         aerial_ok = chem_ok and not (r.near_settlement_uav or r.near_reserve_or_water_uav or r.near_farm_uav)
         dig_ok = not r.near_heritage
         if r.in_water_zone:
             b.append(f"ВК РФ ст. 65 ч. 15 п. 3 и 6: водоохранная зона {r.water_zone_m:.0f} м, пестициды и авиаобработка "
                      "запрещены")
+        if r.water_zone_unknown:
+            b.append("ВК РФ ст. 65 ч. 9: у канала нет полосы отвода в данных, пестициды не назначаются, пока ширина неизвестна")
         if r.child_org_territory:
             b.append("СанПиН 2.1.3684-21 п. 273: территория детской организации, пестициды запрещены")
         elif r.near_children:
@@ -309,7 +355,8 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
                "при попадании сока — смыть водой с мылом, кожу беречь от солнца 48 ч; "
                "срезанные зонтики не оставлять на участке — семена дозревают, в герметичных мешках на уничтожение; "
                "грунт с очага не вывозить; технику и обувь очистить на участке; "
-               "повторный осмотр через 3–4 недели; после работ подсеять злаки без глубокой обработки почвы")
+               "повторный осмотр через 3–4 недели; после работ подсеять местные злаки, не из перечня инвазивных, "
+               "без глубокой обработки почвы")
         large = getattr(r, "area_m2", 0.0) >= LARGE_STAND_M2
         if taxon == "heracleum":
             cut = "зонтики срезать до конца июля и повторно вторичные в августе"
@@ -328,7 +375,8 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
             elif chem_ok:
                 m = ground + m
         else:
-            m = "покос дважды: конец мая–июнь и до цветения в августе; удаление соцветий до сентября; наблюдение 5 сезонов"
+            m = ("покос дважды снимает цветение и не выбирает корневище: конец мая–июнь и до цветения в августе; "
+                 "удаление соцветий до сентября; наблюдение 5 сезонов")
             if dig_ok:
                 m += "; выборка корневищ на малых куртинах"
             m += "; корневища и грунт с очага не вывозить и не компостировать; технику и обувь очистить на участке"
@@ -337,7 +385,8 @@ def prescribe(h: gpd.GeoDataFrame, taxon: str, water, landuse, places, localitie
                      f"на использование воздушного пространства и дистанции {AERIAL_UAV_M:.0f} м до людей и животных); " + chem_tail + m)
             elif chem_ok:
                 m = "при необходимости " + ground + m
-        methods.append(m + "; осмотр до работ: уничтожение только после подтверждения вида")
+        methods.append(m + stand_strategy(getattr(r, "area_m2", None))
+                       + "; осмотр до работ: уничтожение только после подтверждения вида")
         basis.append("; ".join(b) if b else "ограничений по открытым слоям не найдено; вид подтвердить на месте")
     g["method"] = methods
     g["legal_basis"] = basis
@@ -373,6 +422,8 @@ def summarize(P: gpd.GeoDataFrame) -> dict:
     drone = classes.eq("drone")
     ground = classes.eq("ground")
     chem_ok = ~(P.in_water_zone | P.in_protected | P.near_children)
+    if "water_zone_unknown" in P.columns:
+        chem_ok = chem_ok & ~P.water_zone_unknown
     if "in_zso" in P.columns:
         chem_ok = chem_ok & ~P.in_zso
     uav_block = P.near_settlement_uav | P.near_reserve_or_water_uav

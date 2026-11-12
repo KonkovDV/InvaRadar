@@ -71,6 +71,20 @@ def test_jurisdiction_gate(engine, safe_ctx):
     assert mo.requires_legal_review and "jurisdiction_unverified" in mo.flags
 
 
+def test_moscow_scope_and_an_untied_fishery_distance(engine, safe_ctx):
+    solidago = engine.decide({**safe_ctx, "taxon": "solidago"})
+    assert solidago.requires_legal_review and "solidago_clause_3_2" in solidago.flags
+    protected = engine.decide({**safe_ctx, "in_protected": True})
+    assert protected.requires_legal_review and "oopt_scope" in protected.flags
+    edge = engine.decide({**safe_ctx, "near_jurisdiction_boundary": True})
+    assert edge.requires_legal_review and "jurisdiction_boundary" in edge.flags
+    canal = engine.decide({**safe_ctx, "water_zone_unknown": True})
+    assert PEST <= set(canal.prohibited)
+    # The 177147 grid ties the three 700 m distances. An untied fishery distance still bans the drone.
+    far = {"d_settlement_m": 1500.0, "d_drinking_water_m": 2000.0, "d_protected_m": 2000.0, "d_fishery_water_m": 100.0}
+    assert "aerial_uav_herbicide" in engine.decide({**safe_ctx, **far}).prohibited
+
+
 def test_invariants_on_random_contexts(engine, safe_ctx):
     rng = np.random.default_rng(1)
     for _ in range(500):

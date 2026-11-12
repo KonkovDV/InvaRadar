@@ -218,6 +218,24 @@ def next_state(case: Case, et: str, actor: dict, payload: dict, policy: dict | N
     return _guard(case, et, actor, payload, policy)
 
 
+def _same_decision(sent: dict, decided: dict) -> bool:
+    """The client may echo the server's decision. It may not widen what the law allows."""
+    return all(sent.get(key) == decided.get(key) for key in ("allowed", "recommended", "requires_legal_review", "prohibited"))
+
+
+def verdict_from_checks(checks) -> str:
+    """A reported verdict is the checks recomputed here. A bare word «pass» is not evidence."""
+    if not checks:
+        return "unchecked"
+    from .evidence import Check, verdict
+    parsed = []
+    for item in checks:
+        if not isinstance(item, dict) or "name" not in item or "ok" not in item:
+            return "unchecked"
+        parsed.append(Check(name=str(item["name"]), ok=item["ok"], detail=str(item.get("detail") or "")))
+    return verdict(parsed)
+
+
 def apply(case: Case, e: Event, policy: dict | None = None) -> Case:
     target = next_state(case, e.type, e.actor, e.payload, policy)
     p = e.payload
@@ -231,7 +249,7 @@ def apply(case: Case, e: Event, policy: dict | None = None) -> Case:
         case.contractor = e.actor.get("id")
     elif e.type == "work_reported":
         case.reporter = e.actor.get("id")
-        case.evidence_verdict = p.get("verdict")
+        case.evidence_verdict = verdict_from_checks(p.get("checks"))
         case.seed_set_prevented = bool(p["seed_set_prevented"])
     elif e.type == "work_rejected":
         case.evidence_verdict = None
@@ -266,9 +284,25 @@ def followup_schedule(accepted: date, taxon: str, policy: dict) -> list[str]:
 class CaseStore:
     """Очаги поверх журнала. Каждое действие проверяется, отказ тоже пишется в журнал."""
 
-    def __init__(self, log: EventLog, policy: dict | None = None):
+    def __init__(self, log: EventLog, policy: dict | None = None, engine=None):
         self.log = log
         self.policy = policy
+        self.engine = engine
+
+    def _prepare(self, et: str, payload: dict) -> dict:
+        """Recompute a legal decision before it is logged. Replay reads the logged one."""
+        if et not in ("order_drafted", "legal_cleared"):
+            return payload
+        if self.engine is None:
+            raise TransitionError("решение пересчитывает сервер, а LawEngine не подключён")
+        ctx = payload.get("context")
+        if not isinstance(ctx, dict):
+            raise TransitionError("нужен context: решение пересчитывается на сервере")
+        decided = self.engine.decide(ctx).to_dict()
+        sent = payload.get("decision")
+        if sent is not None and not _same_decision(sent, decided):
+            raise TransitionError("приложенное решение не совпадает с пересчётом нормы")
+        return {**payload, "decision": decided}
 
     def case(self, case_id: str) -> Case:
         c = Case(id=case_id)
@@ -291,6 +325,7 @@ class CaseStore:
         except KeyError:
             c = Case(id=case_id)
         try:
+            payload = self._prepare(et, payload)
             next_state(c, et, actor, payload, self.policy)
         except TransitionError as err:
             if log_blocked and c.state is not None:

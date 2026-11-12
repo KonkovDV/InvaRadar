@@ -27,7 +27,7 @@ class EventIn(BaseModel):
 
 def create_app(store: CaseStore | None = None, engine: LawEngine | None = None) -> FastAPI:
     engine = engine or LawEngine()
-    store = store or CaseStore(EventLog(), engine.taxa)
+    store = store or CaseStore(EventLog(), engine.taxa, engine)
     app = FastAPI(title="ИнваРадар Pro", version=__version__)
 
     @app.get("/health")

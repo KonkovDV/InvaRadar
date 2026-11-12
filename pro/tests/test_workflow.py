@@ -17,18 +17,24 @@ def at(s):
     return f"{s}T10:00:00+00:00"
 
 
+def drafted(engine, ctx):
+    return {"context": ctx, "decision": engine.decide(ctx).to_dict()}
+
+
 def to_approved(store, engine, ctx, cid="c1"):
     store.act(cid, "signal_received", MODEL, {"taxon": ctx["taxon"], "lat": 55.6, "lon": 37.6, "area_m2": ctx["area_m2"]},
               at=at("2027-04-20"))
     store.act(cid, "field_result", CREW, {"present": True, "photos": ["sha"]}, at=at("2027-04-25"))
-    store.act(cid, "order_drafted", AGENT, {"decision": engine.decide(ctx).to_dict()}, at=at("2027-04-26"))
+    store.act(cid, "order_drafted", AGENT, drafted(engine, ctx), at=at("2027-04-26"))
     store.act(cid, "order_approved", INSP, {"signer": "И.", "method": "mowing", "due": "2027-06-30"}, at=at("2027-04-28"))
     store.act(cid, "work_started", CTR, {}, at=at("2027-05-05"))
 
 
 def report(store, cid="c1", seed=True, verdict="pass", day="2027-05-20", method="mowing"):
-    store.act(cid, "work_reported", CTR, {"method_used": method, "evidence": [{"sha256": "x"}], "verdict": verdict,
-                                          "seed_set_prevented": seed}, at=at(day))
+    ok = {"pass": True, "fail": False, "needs_review": None}[verdict]
+    store.act(cid, "work_reported", CTR, {"method_used": method, "evidence": [{"sha256": "x"}],
+                                          "checks": [{"name": "place", "ok": ok, "detail": "тест"}],
+                                          "verdict": "pass", "seed_set_prevented": seed}, at=at(day))
 
 
 def test_full_cycle_to_closed(store, engine, safe_ctx):
@@ -64,7 +70,8 @@ def test_human_gates_and_blocked_log(store, engine, safe_ctx):
         store.act("c1", "field_result", MODEL, {"present": True, "photos": ["s"], "verified_by": "ai_photo",
                                                 "confidence": 0.7})
     store.act("c1", "field_result", MODEL, {"present": True, "photos": ["s"], "verified_by": "ai_photo", "confidence": 0.95})
-    store.act("c1", "order_drafted", AGENT, {"decision": engine.decide({**safe_ctx, "water_zone_m": 50.0}).to_dict()})
+    water = {**safe_ctx, "water_zone_m": 50.0}
+    store.act("c1", "order_drafted", AGENT, drafted(engine, water))
     agent_as_inspector = {"id": "a", "role": "inspector", "kind": "agent"}
     with pytest.raises(TransitionError, match="только человек"):
         store.act("c1", "order_approved", agent_as_inspector, {"signer": "a", "method": "mowing", "due": "2027-06-30"})
@@ -76,15 +83,15 @@ def test_human_gates_and_blocked_log(store, engine, safe_ctx):
 def test_legal_review_gate(store, engine, safe_ctx):
     store.act("c1", "signal_received", MODEL, {"taxon": "heracleum", "lat": 55.6, "lon": 37.6})
     store.act("c1", "field_result", CREW, {"present": True, "photos": ["s"]})
-    store.act("c1", "order_drafted", AGENT, {"decision": engine.decide({**safe_ctx, "jurisdiction": "unknown"}).to_dict()})
+    unknown = {**safe_ctx, "jurisdiction": "unknown"}
+    store.act("c1", "order_drafted", AGENT, drafted(engine, unknown))
     assert store.case("c1").state == State.LEGAL_REVIEW
     with pytest.raises(TransitionError):
         store.act("c1", "order_approved", INSP, {"signer": "И.", "method": "mowing", "due": "2027-06-30"})
     with pytest.raises(TransitionError, match="открытых"):
-        store.act("c1", "legal_cleared", LAWYER, {"note": "n", "jurisdiction": "x",
-                                                  "decision": engine.decide({**safe_ctx, "jurisdiction": "unknown"}).to_dict()})
+        store.act("c1", "legal_cleared", LAWYER, {"note": "n", "jurisdiction": "x", **drafted(engine, unknown)})
     store.act("c1", "legal_cleared", LAWYER, {"note": "по границе", "jurisdiction": "moscow_city",
-                                              "decision": engine.decide(safe_ctx).to_dict()})
+                                              **drafted(engine, safe_ctx)})
     store.act("c1", "order_approved", INSP, {"signer": "И.", "method": "mowing", "due": "2027-06-30"})
     assert store.case("c1").state == State.ORDER_APPROVED
 
@@ -114,6 +121,25 @@ def test_relapse_resets_clean_seasons(store, engine, safe_ctx):
     store.act("c1", "followup", CREW, {"season": 2028, "regrowth": True, "photos": ["p"]}, at=at("2028-08-10"))
     c = store.case("c1")
     assert c.state == State.RELAPSE and c.clean_seasons == 0
+
+
+def test_a_forged_decision_is_recomputed(store, engine, safe_ctx):
+    store.act("c1", "signal_received", MODEL, {"taxon": "heracleum", "lat": 55.6, "lon": 37.6})
+    store.act("c1", "field_result", CREW, {"present": True, "photos": ["s"]})
+    water = {**safe_ctx, "water_zone_m": 50.0}
+    forged = engine.decide(safe_ctx).to_dict()
+    with pytest.raises(TransitionError, match="не совпадает"):
+        store.act("c1", "order_drafted", AGENT, {"context": water, "decision": forged})
+    assert store.case("c1").state == State.CONFIRMED
+
+
+def test_a_bare_pass_without_checks_does_not_pass(store, engine, safe_ctx):
+    to_approved(store, engine, safe_ctx)
+    store.act("c1", "work_reported", CTR, {"method_used": "mowing", "evidence": [{"sha256": "x"}],
+                                           "verdict": "pass", "seed_set_prevented": True})
+    assert store.case("c1").evidence_verdict == "unchecked"
+    with pytest.raises(TransitionError, match="причина"):
+        store.act("c1", "work_accepted", INSP, {})
 
 
 def test_replay_rejects_forged_but_rehashed_log(engine):

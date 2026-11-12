@@ -188,6 +188,15 @@ class LawEngine:
             else:
                 flags.append("taxon_not_listed")
                 review = True
+        if ctx.get("near_jurisdiction_boundary") is True:
+            flags.append("jurisdiction_boundary")
+            review = True
+        if jur == "moscow_city" and ctx.get("in_protected") is True:
+            flags.append("oopt_scope")
+            review = True
+        if jur == "moscow_city" and taxon == "solidago":
+            flags.append("solidago_clause_3_2")
+            review = True
 
         return Decision(taxon=taxon, size_class=size, jurisdiction=jur, allowed=allowed, recommended=recommended,
                         prohibited=prohibited, requirements=requirements, obligations=obligations, fired=fired,

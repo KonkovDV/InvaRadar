@@ -70,7 +70,7 @@ Project video: [github.com/KonkovDV/InvaRadar/blob/main/presentation/invaradar_v
 
 [![InvaRadar web map: priority hogweed stands coloured by control method](docs/assets/web_map.jpg)](https://konkovdv.github.io/InvaRadar/)
 
-<sub>Rust: mechanical only. Amber: ground spot treatment. Blue: drone spraying allowed. Basemap © OpenStreetMap contributors. The interface is in Russian.</sub>
+<sub>Rust: mechanical only. Amber: ground spot treatment. Blue: drone spraying allowed. Basemap: OpenFreeMap © OpenMapTiles, data © OpenStreetMap contributors. The interface is in Russian.</sub>
 
 | You are | Read |
 |---|---|
@@ -247,7 +247,7 @@ docs/           science, experiments, model and data cards, landscape, plan, sou
 - **Rust 2024**, minimum 1.89: `rayon`, `memmap2`, `serde_json`, `anyhow`. One multithreaded pass over the mosaic. The 64-channel sums live in `core-rs/src/kernel.rs`: AVX-512 or AVX2, same order as the scalar loop.
 - **Python**: LightGBM, scikit-learn, GeoPandas, Shapely, rasterio, pyproj, PyArrow. Drone module: PyTorch and timm (`.[drone]`). Photo classifier: Ultralytics (`.[photo]`).
 - **Formats**: Cloud Optimized GeoTIFF, GeoParquet, STAC 1.1.
-- **Web map**: MapLibre GL over OpenStreetMap, published with GitHub Pages.
+- **Web map**: MapLibre GL JS 6.18.0 stored next to the page, the OpenFreeMap Positron vector style, published with GitHub Pages.
 - **CI**: `cargo fmt`, `clippy -D warnings`, `cargo test`, `ruff`, `pytest` on Python 3.11, 3.12 and 3.13.
 
 ## Documents

@@ -70,7 +70,7 @@
 
 [![Веб-карта ИнваРадара: приоритетные очаги борщевика, раскрашенные по методу работ](docs/assets/web_map.jpg)](https://konkovdv.github.io/InvaRadar/)
 
-<sub>Ржавый — только механика, янтарный — наземная точечная обработка, синий — опрыскивание с дрона допустимо. Подложка © участники OpenStreetMap.</sub>
+<sub>Ржавый — только механика, янтарный — наземная точечная обработка, синий — опрыскивание с дрона допустимо. Подложка — OpenFreeMap © OpenMapTiles, данные © участники OpenStreetMap.</sub>
 
 | Вы | Смотрите |
 |---|---|
@@ -250,7 +250,7 @@ docs/           наука, эксперименты, карточки моде�
 - **Rust 2024**, минимальная версия 1.89: `rayon`, `memmap2`, `serde_json`, `anyhow`. Один многопоточный проход по мозаике. Сложение 64 каналов — `core-rs/src/kernel.rs`, AVX-512 или AVX2, тот же порядок, что у скалярного цикла.
 - **Python**: LightGBM, scikit-learn, GeoPandas, Shapely, rasterio, pyproj, PyArrow. Модуль БПЛА: PyTorch и timm (`.[drone]`). Классификатор фото: Ultralytics (`.[photo]`).
 - **Форматы**: Cloud Optimized GeoTIFF, GeoParquet, STAC 1.1.
-- **Веб-карта**: MapLibre GL, подложка OpenStreetMap, публикация через GitHub Pages.
+- **Веб-карта**: MapLibre GL JS 6.18.0 рядом со страницей, векторная подложка OpenFreeMap Positron, публикация через GitHub Pages.
 - **CI**: `cargo fmt`, `clippy -D warnings`, `cargo test`, `ruff`, `pytest` на Python 3.11, 3.12 и 3.13.
 
 ## Документы

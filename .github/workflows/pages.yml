@@ -2,10 +2,7 @@ name: Web map
 
 on:
   push:
-    # The feature branch is listed once, so this push publishes the corrected map
-    # before the pull request is merged. The following commit drops that name:
-    # a site must not keep deploying from a temporary branch.
-    branches: [main, cursor/cpu-kernel-and-records-0f32]
+    branches: [main]
     paths: ["web/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 

@@ -10,6 +10,11 @@ feat = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(feat)
 
 
+def test_the_only_presence_is_not_zero_metres_from_itself():
+    dist = feat.distance_excluding_self([[0.0, 0.0]], [[0.0, 0.0]])
+    assert np.isinf(dist).all()
+
+
 def test_a_reference_point_uses_the_next_presence_rather_than_itself():
     dist = feat.distance_excluding_self([[0.0, 0.0], [30.0, 0.0]], [[0.0, 0.0], [10.0, 0.0]])
     assert dist[0] == 10.0

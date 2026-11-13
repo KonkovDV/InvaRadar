@@ -55,7 +55,8 @@ def distance_excluding_self(query: np.ndarray, reference: np.ndarray) -> np.ndar
     dist, _ = cKDTree(reference).query(query, k=k)
     dist = np.asarray(dist, dtype=np.float64)
     if k == 1:
-        return dist
+        # The only recorded presence is this point. There is no other plant to measure.
+        return np.where(np.atleast_1d(dist) <= 1e-6, np.inf, np.atleast_1d(dist))
     return np.where(dist[:, 0] <= 1e-6, dist[:, 1], dist[:, 0])
 
 

@@ -36,196 +36,201 @@ from invaradar.splits import (
     temporal_sets,
 )
 
-CORE = core_binary()
-ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
-ap.add_argument("--top", type=int, default=25)
-ap.add_argument("--no-terrain", action="store_true",
-                help="drop DEM features (chosen per species by the forward-in-time test)")
-ap.add_argument("--variant", default="", help="write to outputs/variants/<taxon>_<variant> instead of outputs/<taxon>")
-ap.add_argument("--embedding-year", type=int, default=None,
-                help="AlphaEarth year for the features. Defaults to --year. "
-                     "A retro forecast of the 2025–2026 labels uses 2024 or 2023 here (audit A-02). "
-                     "The published 6 Nov map did not: it used the same 2025 image on both sides.")
-a = ap.parse_args()
-emb_year, temporal_protocol = feature_year(a.year, a.embedding_year)
-od = OUT / a.taxon if not a.variant else OUT / "variants" / f"{a.taxon}_{a.variant}"
-od.mkdir(parents=True, exist_ok=True); tmp = od / "tmp"; tmp.mkdir(exist_ok=True)
-t0 = time.time()
-log = lambda *s: print(f"[{time.time() - t0:6.1f}s]", *s, flush=True)
-w, s, e, n = STUDY_BOX; RES = 10.0
-W, H = int((e - w) / RES), int((n - s) / RES)
+def main():
+    CORE = core_binary()
+    ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
+    ap.add_argument("--top", type=int, default=25)
+    ap.add_argument("--no-terrain", action="store_true",
+                    help="drop DEM features (chosen per species by the forward-in-time test)")
+    ap.add_argument("--variant", default="", help="write to outputs/variants/<taxon>_<variant> instead of outputs/<taxon>")
+    ap.add_argument("--embedding-year", type=int, default=None,
+                    help="AlphaEarth year for the features. Defaults to --year. "
+                         "A retro forecast of the 2025–2026 labels uses 2024 or 2023 here (audit A-02). "
+                         "The published 6 Nov map did not: it used the same 2025 image on both sides.")
+    a = ap.parse_args()
+    emb_year, temporal_protocol = feature_year(a.year, a.embedding_year)
+    od = OUT / a.taxon if not a.variant else OUT / "variants" / f"{a.taxon}_{a.variant}"
+    od.mkdir(parents=True, exist_ok=True); tmp = od / "tmp"; tmp.mkdir(exist_ok=True)
+    t0 = time.time()
+    log = lambda *s: print(f"[{time.time() - t0:6.1f}s]", *s, flush=True)
+    w, s, e, n = STUDY_BOX; RES = 10.0
+    W, H = int((e - w) / RES), int((n - s) / RES)
 
 
-def core(*args):
-    subprocess.run([str(CORE), *map(str, args)], check=True)
+    def core(*args):
+        subprocess.run([str(CORE), *map(str, args)], check=True)
 
 
-# ---- grid description for the Rust core (blocks + corridor segments in pixel space)
-def segments():
-    out = []
-    seg_dir = DATA / "segments"; seg_dir.mkdir(exist_ok=True)
-    ov = DATA / "overture"
-    roads = gpd.read_parquet(ov / "roads.parquet")
-    major = {"motorway", "trunk", "primary", "secondary", "tertiary"}
-    layers = {"road_major": roads[(roads.subtype == "road") & roads["class"].isin(major)],
-              "road_minor": roads[(roads.subtype == "road") & ~roads["class"].isin(major)],
-              "rail": roads[roads.subtype == "rail"],
-              "water": gpd.read_parquet(ov / "water.parquet"),
-              "power": gpd.read_parquet(ov / "infra.parquet")}
-    for k, g in layers.items():
-        p = seg_dir / f"{k}.f32"
-        # Rebuild when a source layer is newer. An old segment file would keep yesterday's roads.
-        fresh = p.exists() and p.stat().st_mtime >= max(src.stat().st_mtime for src in (
-            ov / "roads.parquet", ov / "water.parquet", ov / "infra.parquet"))
-        if not fresh:
-            gg = g.to_crs(EPSG)
-            lines = gg.geometry.boundary.where(gg.geom_type.str.contains("Polygon"), gg.geometry)
-            from shapely import get_coordinates, get_parts
-            q = []
-            for piece in get_parts(lines.dropna().values):
-                for part in get_parts(piece):
-                    xy = get_coordinates(part)
-                    if len(xy) < 2:
-                        continue
-                    c = (xy[:, 0] - w) / RES; r = (n - xy[:, 1]) / RES
-                    q.append(np.c_[c[:-1], r[:-1], c[1:], r[1:]])
-            if q:
-                np.concatenate(q).astype("<f4").tofile(p)
-            else:
-                p.write_bytes(b"")
-        out.append(str(p))
-    return out
+    # ---- grid description for the Rust core (blocks + corridor segments in pixel space)
+    def segments():
+        out = []
+        seg_dir = DATA / "segments"; seg_dir.mkdir(exist_ok=True)
+        ov = DATA / "overture"
+        roads = gpd.read_parquet(ov / "roads.parquet")
+        major = {"motorway", "trunk", "primary", "secondary", "tertiary"}
+        layers = {"road_major": roads[(roads.subtype == "road") & roads["class"].isin(major)],
+                  "road_minor": roads[(roads.subtype == "road") & ~roads["class"].isin(major)],
+                  "rail": roads[roads.subtype == "rail"],
+                  "water": gpd.read_parquet(ov / "water.parquet"),
+                  "power": gpd.read_parquet(ov / "infra.parquet")}
+        for k, g in layers.items():
+            p = seg_dir / f"{k}.f32"
+            # Rebuild when a source layer is newer. An old segment file would keep yesterday's roads.
+            fresh = p.exists() and p.stat().st_mtime >= max(src.stat().st_mtime for src in (
+                ov / "roads.parquet", ov / "water.parquet", ov / "infra.parquet"))
+            if not fresh:
+                gg = g.to_crs(EPSG)
+                lines = gg.geometry.boundary.where(gg.geom_type.str.contains("Polygon"), gg.geometry)
+                from shapely import get_coordinates, get_parts
+                q = []
+                for piece in get_parts(lines.dropna().values):
+                    for part in get_parts(piece):
+                        xy = get_coordinates(part)
+                        if len(xy) < 2:
+                            continue
+                        c = (xy[:, 0] - w) / RES; r = (n - xy[:, 1]) / RES
+                        q.append(np.c_[c[:-1], r[:-1], c[1:], r[1:]])
+                if q:
+                    np.concatenate(q).astype("<f4").tofile(p)
+                else:
+                    p.write_bytes(b"")
+            out.append(str(p))
+        return out
 
 
-jobs = block_jobs(AEFIndex(AEF_INDEX), emb_year, EPSG, STUDY_BOX)
-cache = BlockCache(AEF_CACHE)
-for j in jobs:
-    cache.get(emb_year, j[0], j[1], j[2])
-grid = {"w": w, "n": n, "width": W, "height": H, "res": RES,
-        "blocks": [[str(cache.path(emb_year, Path(j[0]).stem, j[1], j[2])), j[3], j[4]] for j in jobs],
-        "segments": segments(), **({} if a.no_terrain else {"dem": str(DATA / "dem_10m.f32")})}
-gpath = tmp / f"grid_{a.year}.json"; json.dump(grid, open(gpath, "w", encoding="utf-8"))
+    jobs = block_jobs(AEFIndex(AEF_INDEX), emb_year, EPSG, STUDY_BOX)
+    cache = BlockCache(AEF_CACHE)
+    for j in jobs:
+        cache.get(emb_year, j[0], j[1], j[2])
+    grid = {"w": w, "n": n, "width": W, "height": H, "res": RES,
+            "blocks": [[str(cache.path(emb_year, Path(j[0]).stem, j[1], j[2])), j[3], j[4]] for j in jobs],
+            "segments": segments(), **({} if a.no_terrain else {"dem": str(DATA / "dem_10m.f32")})}
+    gpath = tmp / f"grid_{a.year}.json"; json.dump(grid, open(gpath, "w", encoding="utf-8"))
 
-# ---- samples + landscape points → Rust features
-S = build(load_obs(), TAXA[a.taxon]["ids"], plant_taxa())
-rng = np.random.default_rng(0)
-LXY = np.c_[rng.uniform(w, e, 40000), rng.uniform(s, n, 40000)]
-xy_all = np.vstack([S[["x", "y"]].to_numpy(), LXY]).astype("<f8")
-xy_all.tofile(tmp / "pts.f64")
-core("points", gpath, tmp / "pts.f64", tmp / "pts.f32")
-F = np.fromfile(tmp / "pts.f32", "<f4").reshape(len(xy_all), -1)
-X, XL = F[:len(S)], F[len(S):]
-ok = ~np.isnan(X[:, 0]); S, X = S[ok].reset_index(drop=True), X[ok]
-XL = XL[~np.isnan(XL[:, 0])]
-y = S.label.to_numpy(); xy = S[["x", "y"]].to_numpy(); yr = S.year.to_numpy()
-log("samples", int(y.sum()), "presence /", int((y == 0).sum()), "background; features", X.shape[1])
+    # ---- samples + landscape points → Rust features
+    S = build(load_obs(), TAXA[a.taxon]["ids"], plant_taxa())
+    rng = np.random.default_rng(0)
+    LXY = np.c_[rng.uniform(w, e, 40000), rng.uniform(s, n, 40000)]
+    xy_all = np.vstack([S[["x", "y"]].to_numpy(), LXY]).astype("<f8")
+    xy_all.tofile(tmp / "pts.f64")
+    core("points", gpath, tmp / "pts.f64", tmp / "pts.f32")
+    F = np.fromfile(tmp / "pts.f32", "<f4").reshape(len(xy_all), -1)
+    X, XL = F[:len(S)], F[len(S):]
+    ok = ~np.isnan(X[:, 0]); S, X = S[ok].reset_index(drop=True), X[ok]
+    XL = XL[~np.isnan(XL[:, 0])]
+    y = S.label.to_numpy(); xy = S[["x", "y"]].to_numpy(); yr = S.year.to_numpy()
+    log("samples", int(y.sum()), "presence /", int((y == 0).sum()), "background; features", X.shape[1])
 
-# Checkerboard of 5 km blocks, then a 500 m ring around test presences only.
-# The ring is wider than the 450 m embedding window. Background within 30 m is cleared per side.
-oof = np.full(len(y), np.nan)
-rk = np.full(len(y), np.nan)
-for tr, te in iter_spatial_folds(xy, y):
-    if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
-        continue
-    m = fit_map(X[tr], y[tr])
-    oof[te] = m.predict(X[te], raw_score=True)
-    land = np.sort(m.predict(XL, raw_score=True))
-    rk[te] = landscape_percentile(land, oof[te])
-# The same ranks, so the interval script does not fit these folds a second time.
-rk.astype("<f8").tofile(tmp / "oof_rank.f64")
-scored = np.isfinite(oof)
-auc = None
-if scored.sum() and len(np.unique(y[scored])) > 1:
-    auc = float(roc_auc_score(y[scored], oof[scored]))
-presence_ranks = rk[y == 1]
-boyce = boyce_index(presence_ranks)
-ratios = boyce_ratios(presence_ranks)
-metrics = {"taxon": a.taxon, "embedding_year": emb_year, "map_year": a.year,
-           "temporal_protocol": temporal_protocol, "features": int(X.shape[1]), "terrain": not a.no_terrain,
-           "protocol": {"block_m": BLOCK_M, "purge_m": PURGE_M, "window_m": WINDOW_M,
-                        "clear_m": 30.0, "folds": "checkerboard",
-                        "rule": "ring around test presences only; wider than the feature window; clear background per side",
-                        "reported_capture": "out of fold; the GeoTIFF is refit on every presence"},
-           "samples": {"presence": int(y.sum()), "background": int((y == 0).sum())},
-           "spatial_cv": {"roc_auc_vs_background": auc, "n_scored": int(scored.sum()),
-                          "boyce": None if boyce is None else round(boyce, 3),
-                          "boyce_ratio": None if ratios is None else [round(float(v), 3) for v in ratios],
-                          **capture_rates(presence_ranks)}}
-log("spatial CV", json.dumps(metrics["spatial_cv"]))
+    # Checkerboard of 5 km blocks, then a 500 m ring around test presences only.
+    # The ring is wider than the 450 m embedding window. Background within 30 m is cleared per side.
+    oof = np.full(len(y), np.nan)
+    rk = np.full(len(y), np.nan)
+    for tr, te in iter_spatial_folds(xy, y):
+        if len(te) == 0 or y[tr].sum() == 0 or (y[tr] == 0).sum() == 0:
+            continue
+        m = fit_map(X[tr], y[tr])
+        oof[te] = m.predict(X[te], raw_score=True)
+        land = np.sort(m.predict(XL, raw_score=True))
+        rk[te] = landscape_percentile(land, oof[te])
+    # The same ranks, so the interval script does not fit these folds a second time.
+    rk.astype("<f8").tofile(tmp / "oof_rank.f64")
+    scored = np.isfinite(oof)
+    auc = None
+    if scored.sum() and len(np.unique(y[scored])) > 1:
+        auc = float(roc_auc_score(y[scored], oof[scored]))
+    presence_ranks = rk[y == 1]
+    boyce = boyce_index(presence_ranks)
+    ratios = boyce_ratios(presence_ranks)
+    metrics = {"taxon": a.taxon, "embedding_year": emb_year, "map_year": a.year,
+               "temporal_protocol": temporal_protocol, "features": int(X.shape[1]), "terrain": not a.no_terrain,
+               "protocol": {"block_m": BLOCK_M, "purge_m": PURGE_M, "window_m": WINDOW_M,
+                            "clear_m": 30.0, "folds": "checkerboard",
+                            "rule": "ring around test presences only; wider than the feature window; clear background per side",
+                            "reported_capture": "out of fold; the GeoTIFF is refit on every presence"},
+               "samples": {"presence": int(y.sum()), "background": int((y == 0).sum())},
+               "spatial_cv": {"roc_auc_vs_background": auc, "n_scored": int(scored.sum()),
+                              "boyce": None if boyce is None else round(boyce, 3),
+                              "boyce_ratio": None if ratios is None else [round(float(v), 3) for v in ratios],
+                              **capture_rates(presence_ranks)}}
+    log("spatial CV", json.dumps(metrics["spatial_cv"]))
 
-# A 2025–2026 presence counts as new only outside the 450 m window of an older presence, and
-# training rows inside that window of a new presence are not used. This is a retro forecast
-# only when --embedding-year is earlier than --year. The published run kept one 2025 image.
-tr, new, te_bg = temporal_sets(xy, y, yr)
-n_new_candidates = int(((yr >= 2025) & (y == 1)).sum())
-if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():
-    m = fit_map(X[tr], y[tr])
-    land = np.sort(m.predict(XL, raw_score=True))
-    pp, pb = m.predict(X[new], raw_score=True), m.predict(X[te_bg], raw_score=True)
-    r_new = landscape_percentile(land, pp)
-    r_new.astype("<f8").tofile(tmp / "temporal_rank.f64")
-    temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
-                "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
-                "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
-                **capture_rates(r_new)}
-else:
-    stale = tmp / "temporal_rank.f64"
-    if stale.exists():
-        stale.unlink()
-    temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
-                "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
-                "roc_auc_vs_background": None, **capture_rates([])}
-metrics["temporal_test"] = temporal
-obs_path = INAT_OBS
-if obs_path.is_file():
-    stt = obs_path.stat()
-    metrics["observation_file"] = {
-        "name": obs_path.name, "bytes": stt.st_size,
-        "mtime_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(stt.st_mtime)),
-        "note": "iNaturalist open data changes daily. This file is the export on disk, not the 6 Nov 2025 sample.",
-    }
-log("temporal", json.dumps(metrics["temporal_test"]))
-# The wall-to-wall map can run out of memory after the folds are done. Keep the measured
-# folds on disk before that step; the final dump below replaces this file.
-json.dump(metrics, open(od / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    # A 2025–2026 presence counts as new only outside the 450 m window of an older presence, and
+    # training rows inside that window of a new presence are not used. This is a retro forecast
+    # only when --embedding-year is earlier than --year. The published run kept one 2025 image.
+    tr, new, te_bg = temporal_sets(xy, y, yr)
+    n_new_candidates = int(((yr >= 2025) & (y == 1)).sum())
+    if len(new) and len(te_bg) and y[tr].sum() and (y[tr] == 0).sum():
+        m = fit_map(X[tr], y[tr])
+        land = np.sort(m.predict(XL, raw_score=True))
+        pp, pb = m.predict(X[new], raw_score=True), m.predict(X[te_bg], raw_score=True)
+        r_new = landscape_percentile(land, pp)
+        r_new.astype("<f8").tofile(tmp / "temporal_rank.f64")
+        temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
+                    "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
+                    "roc_auc_vs_background": float(roc_auc_score(np.r_[np.ones(len(pp)), np.zeros(len(pb))], np.r_[pp, pb])),
+                    **capture_rates(r_new)}
+    else:
+        stale = tmp / "temporal_rank.f64"
+        if stale.exists():
+            stale.unlink()
+        temporal = {"n_new_candidates": n_new_candidates, "n_new_presence": int(len(new)),
+                    "n_new_inside_ring": n_new_candidates - int(len(new)), "n_background": int(len(te_bg)),
+                    "roc_auc_vs_background": None, **capture_rates([])}
+    metrics["temporal_test"] = temporal
+    obs_path = INAT_OBS
+    if obs_path.is_file():
+        stt = obs_path.stat()
+        metrics["observation_file"] = {
+            "name": obs_path.name, "bytes": stt.st_size,
+            "mtime_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(stt.st_mtime)),
+            "note": "iNaturalist open data changes daily. This file is the export on disk, not the 6 Nov 2025 sample.",
+        }
+    log("temporal", json.dumps(metrics["temporal_test"]))
+    # The wall-to-wall map can run out of memory after the folds are done. Keep the measured
+    # folds on disk before that step; the final dump below replaces this file.
+    json.dump(metrics, open(od / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
-# Deployed model sees every presence and only the background that is not within 30 m of one.
-keep = clear_training_mask(xy, y)
-final = fit_map(X[keep], y[keep])
-json.dump(final.dump_model(), open(tmp / "model.json", "w", encoding="utf-8"))
-land = final.predict(XL, raw_score=True); land.astype("<f8").tofile(tmp / "land.f64")
-chk = xy[:2000].astype("<f8"); chk.tofile(tmp / "chk.f64")
-core("scoremap", gpath, tmp / "model.json", tmp / "chk.f64", tmp / "chk_score.f64", tmp / "land.f64", tmp / "map.u8")
-rs = np.fromfile(tmp / "chk_score.f64", "<f8"); ps = final.predict(X[:2000], raw_score=True)
-metrics["rust_parity_max_abs_diff"] = float(np.nanmax(np.abs(rs - ps)))
-log("Rust vs LightGBM max |diff|", metrics["rust_parity_max_abs_diff"])
-imp = final.feature_importance("gain"); grp = {"pixel": imp[:64].sum(), "50m": imp[64:128].sum(),
-      "150m": imp[128:192].sum(), "450m": imp[192:256].sum(), "corridors": imp[256:261].sum(),
-      "terrain": imp[261:].sum()}
-metrics["terrain_importance"] = {k: round(float(v / imp.sum()), 4) for k, v in zip(TERRAIN_FEATURES, imp[261:265])}
-metrics["importance_share"] = {k: round(float(v / imp.sum()), 3) for k, v in grp.items()}
+    # Deployed model sees every presence and only the background that is not within 30 m of one.
+    keep = clear_training_mask(xy, y)
+    final = fit_map(X[keep], y[keep])
+    json.dump(final.dump_model(), open(tmp / "model.json", "w", encoding="utf-8"))
+    land = final.predict(XL, raw_score=True); land.astype("<f8").tofile(tmp / "land.f64")
+    chk = xy[:2000].astype("<f8"); chk.tofile(tmp / "chk.f64")
+    core("scoremap", gpath, tmp / "model.json", tmp / "chk.f64", tmp / "chk_score.f64", tmp / "land.f64", tmp / "map.u8")
+    rs = np.fromfile(tmp / "chk_score.f64", "<f8"); ps = final.predict(X[:2000], raw_score=True)
+    metrics["rust_parity_max_abs_diff"] = float(np.nanmax(np.abs(rs - ps)))
+    log("Rust vs LightGBM max |diff|", metrics["rust_parity_max_abs_diff"])
+    imp = final.feature_importance("gain"); grp = {"pixel": imp[:64].sum(), "50m": imp[64:128].sum(),
+          "150m": imp[128:192].sum(), "450m": imp[192:256].sum(), "corridors": imp[256:261].sum(),
+          "terrain": imp[261:].sum()}
+    metrics["terrain_importance"] = {k: round(float(v / imp.sum()), 4) for k, v in zip(TERRAIN_FEATURES, imp[261:265])}
+    metrics["importance_share"] = {k: round(float(v / imp.sum()), 3) for k, v in grp.items()}
 
-# The map was written by scoremap, in the same context build as the parity scores.
-img = np.fromfile(tmp / "map.u8", np.uint8).reshape(H, W)
-prof = dict(driver="COG", width=W, height=H, count=1, dtype="uint8", nodata=255, crs=f"EPSG:{EPSG}",
-            transform=from_origin(w, n, RES, RES), compress="ZSTD", predictor=2, blocksize=512,
-            overview_resampling="nearest")
-with rasterio.open(od / f"likelihood_{a.year}.tif", "w", **prof) as ds:  # Cloud Optimized GeoTIFF
-    ds.write(img, 1)
-    ds.update_tags(units="landscape percentile x250 (0-250), 255 = no data", taxon=a.taxon,
-                   model="LightGBM on AlphaEarth Foundations embeddings + corridors" + ("" if a.no_terrain else " + terrain"))
-log("map written")
+    # The map was written by scoremap, in the same context build as the parity scores.
+    img = np.fromfile(tmp / "map.u8", np.uint8).reshape(H, W)
+    prof = dict(driver="COG", width=W, height=H, count=1, dtype="uint8", nodata=255, crs=f"EPSG:{EPSG}",
+                transform=from_origin(w, n, RES, RES), compress="ZSTD", predictor=2, blocksize=512,
+                overview_resampling="nearest")
+    with rasterio.open(od / f"likelihood_{a.year}.tif", "w", **prof) as ds:  # Cloud Optimized GeoTIFF
+        ds.write(img, 1)
+        ds.update_tags(units="landscape percentile x250 (0-250), 255 = no data", taxon=a.taxon,
+                       model="LightGBM on AlphaEarth Foundations embeddings + corridors" + ("" if a.no_terrain else " + terrain"))
+    log("map written")
 
-# ---- hotspots (Rust) → polygons → priority → route (Rust)
-core("hotspots", gpath, tmp / "map.u8", HOT_PCT, MIN_PX, tmp / "labels.i32", tmp / "hot.csv")
-lab = np.fromfile(tmp / "labels.i32", "<i4").reshape(H, W)
-st = pd.read_csv(tmp / "hot.csv")
-geoms = {}
-for g, v in shapes(lab, mask=lab > 0, transform=prof["transform"], connectivity=8):
-    geoms.setdefault(int(v), []).append(shape(g))
-from shapely.ops import unary_union
-st["geometry"] = [unary_union(geoms[i]) for i in st.hid]
-Hs = gpd.GeoDataFrame(st, geometry="geometry", crs=EPSG); Hs["area_m2"] = Hs.area
-metrics["hotspots"] = build_queue(Hs, od, a.year, a.top, load_context())
-json.dump(metrics, open(od / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-log("done", json.dumps(metrics["hotspots"], ensure_ascii=False))
+    # ---- hotspots (Rust) → polygons → priority → route (Rust)
+    core("hotspots", gpath, tmp / "map.u8", HOT_PCT, MIN_PX, tmp / "labels.i32", tmp / "hot.csv")
+    lab = np.fromfile(tmp / "labels.i32", "<i4").reshape(H, W)
+    st = pd.read_csv(tmp / "hot.csv")
+    geoms = {}
+    for g, v in shapes(lab, mask=lab > 0, transform=prof["transform"], connectivity=8):
+        geoms.setdefault(int(v), []).append(shape(g))
+    from shapely.ops import unary_union
+    st["geometry"] = [unary_union(geoms[i]) for i in st.hid]
+    Hs = gpd.GeoDataFrame(st, geometry="geometry", crs=EPSG); Hs["area_m2"] = Hs.area
+    metrics["hotspots"] = build_queue(Hs, od, a.year, a.top, load_context())
+    json.dump(metrics, open(od / "metrics.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    log("done", json.dumps(metrics["hotspots"], ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

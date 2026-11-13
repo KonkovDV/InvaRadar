@@ -39,7 +39,13 @@ sys.path.insert(0, str(HERE))
 from aef_points import GCS, NODATA, dequantize, embeddings_at  # noqa: E402
 from fetch_inat import fetch_all  # noqa: E402
 from invaradar_pro.sampling import wilson_ci  # noqa: E402
-from invaradar_pro.validation import capture_at_area, capture_report, nearest_dist, retro_forecast_verdict  # noqa: E402
+from invaradar_pro.validation import (  # noqa: E402
+    capture_at_area,
+    capture_report,
+    combine_model_and_proximity,
+    nearest_dist,
+    retro_forecast_verdict,
+)
 
 BOX = (381000.0, 6147000.0, 446000.0, 6212000.0)  # STUDY_BOX InvaRadar, EPSG:32637
 CUT, END = "2024-12-31", "2026-11-07"
@@ -80,11 +86,6 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
 def blocks5km(x, y):
     return (np.floor((np.asarray(x) - BOX[0]) / 5000) * 100 + np.floor((np.asarray(y) - BOX[1]) / 5000)).astype(int)
-
-
-def percentile_in(landscape: np.ndarray, s: np.ndarray) -> np.ndarray:
-    srt = np.sort(landscape)
-    return np.searchsorted(srt, s, side="right") / len(srt)
 
 
 def main() -> dict:
@@ -184,10 +185,12 @@ def main() -> dict:
         prox_far = -nearest_dist(far_xy, old_xy)
         tres["proximity"] = capture_report(prox_far, prox_land, blocks=blocks, n_boot=2000, seed=7)
         s_land24, s_far24 = scores[2024]
-        land_valid = valid_land = emb[2024][idx["land"], 0] != NODATA
-        comb_land = 0.5 * percentile_in(s_land24, s_land24) + 0.5 * percentile_in(prox_land, prox_land[valid_land])
-        comb_far = 0.5 * percentile_in(s_land24, s_far24) + 0.5 * percentile_in(prox_land, prox_far)
-        tres["combined_2024_plus_proximity"] = capture_report(comb_far, comb_land, blocks=blocks, n_boot=2000, seed=8)
+        land_valid = emb[2024][idx["land"], 0] != NODATA
+        far_valid = np.isfinite(s_far24)
+        comb_far, comb_land = combine_model_and_proximity(
+            s_land24, s_far24, prox_land, prox_far, land_valid, far_valid)
+        tres["combined_2024_plus_proximity"] = capture_report(
+            comb_far, comb_land, blocks=blocks[far_valid], n_boot=2000, seed=8)
         # ограничено ли распространение расстоянием: новые находки вида против новых наблюдений других растений
         d_t = S["d_new"]
         d_b = nearest_dist(bg_new[["x", "y"]].to_numpy(), old_xy)
@@ -201,7 +204,6 @@ def main() -> dict:
         tres["dispersal_distance"] = {"median_target_m": float(np.median(d_t)), "median_background_m": float(np.median(d_b)),
                                       "bins": rows}
         results["taxa"][taxon] = tres
-        _ = land_valid
     out = ROOT / "analysis" / "results"
     out.mkdir(parents=True, exist_ok=True)
     (out / "retro_forecast.json").write_text(json.dumps(results, ensure_ascii=False, indent=2, default=float), encoding="utf-8")

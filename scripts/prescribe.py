@@ -19,35 +19,40 @@ from invaradar.config import DATA, EPSG, OUT
 from invaradar.jurisdictions import load_regions
 from invaradar.management import prescribe, summarize
 
-ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
-a = ap.parse_args()
-od = OUT / a.taxon
+def main():
+    ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
+    a = ap.parse_args()
+    od = OUT / a.taxon
 
-H = gpd.read_parquet(od / f"hotspots_{a.year}.parquet").to_crs(EPSG)
-H = H.drop(columns=[c for c in ("dissimilarity", "inside_aoa") if c in H])
-with rasterio.open(od / "dissimilarity_index_100m.tif") as ds:
-    thr = float(ds.tags()["aoa_threshold"])
-    c = H.geometry.representative_point()
-    H["dissimilarity"] = [v[0] for v in ds.sample(list(zip(c.x, c.y)))]
-H["inside_aoa"] = H["dissimilarity"] <= thr
+    H = gpd.read_parquet(od / f"hotspots_{a.year}.parquet").to_crs(EPSG)
+    H = H.drop(columns=[c for c in ("dissimilarity", "inside_aoa") if c in H])
+    with rasterio.open(od / "dissimilarity_index_100m.tif") as ds:
+        thr = float(ds.tags()["aoa_threshold"])
+        c = H.geometry.representative_point()
+        H["dissimilarity"] = [v[0] for v in ds.sample(list(zip(c.x, c.y)))]
+    H["inside_aoa"] = H["dissimilarity"] <= thr
 
-ov = DATA / "overture"
-layers = {k: gpd.read_parquet(ov / f"{k}.parquet") for k in ("water", "landuse", "places")}
-loc = ov / "settlements.parquet"
-# City vs oblast comes from boundaries/jurisdictions.geojson. 369-ПП is written only
-# inside Moscow. The oblast polygon names the jurisdiction and does not create a duty.
-P = prescribe(H, a.taxon, layers["water"], layers["landuse"], layers["places"],
-              gpd.read_parquet(loc) if loc.exists() else None, regions=load_regions())
-P.to_crs(4326).to_file(od / f"hotspots_prescribed_{a.year}.geojson", driver="GeoJSON")
-P.to_crs(4326).to_parquet(od / f"hotspots_prescribed_{a.year}.parquet", compression="zstd")
-cols = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "inside_aoa", "water_zone_m", "in_protected",
-        "child_org_territory", "near_children", "d_child_m", "near_heritage", "in_settlement", "in_zso",
-        "jurisdiction", "listed_species_act", "status", "signed_by", "follow_up_years", "method", "legal_basis"]
-P.sort_values("priority", ascending=False)[cols].head(200).round(3) \
-    .to_csv(od / f"work_orders_top200_{a.year}.csv", index=False)
+    ov = DATA / "overture"
+    layers = {k: gpd.read_parquet(ov / f"{k}.parquet") for k in ("water", "landuse", "places")}
+    loc = ov / "settlements.parquet"
+    # City vs oblast comes from boundaries/jurisdictions.geojson. 369-ПП is written only
+    # inside Moscow. The oblast polygon names the jurisdiction and does not create a duty.
+    P = prescribe(H, a.taxon, layers["water"], layers["landuse"], layers["places"],
+                  gpd.read_parquet(loc) if loc.exists() else None, regions=load_regions())
+    P.to_crs(4326).to_file(od / f"hotspots_prescribed_{a.year}.geojson", driver="GeoJSON")
+    P.to_crs(4326).to_parquet(od / f"hotspots_prescribed_{a.year}.parquet", compression="zstd")
+    cols = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "inside_aoa", "water_zone_m", "in_protected",
+            "child_org_territory", "near_children", "d_child_m", "near_heritage", "in_settlement", "in_zso",
+            "jurisdiction", "listed_species_act", "status", "signed_by", "follow_up_years", "method", "legal_basis"]
+    P.sort_values("priority", ascending=False)[cols].head(200).round(3) \
+        .to_csv(od / f"work_orders_top200_{a.year}.csv", index=False)
 
-summary_path = od / "enrich_summary.json"
-summary = json.load(open(summary_path, encoding="utf-8")) if summary_path.exists() else {}
-summary["prescriptions"] = summarize(P)
-json.dump(summary, open(summary_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-print("prescriptions", json.dumps(summary["prescriptions"], ensure_ascii=False), flush=True)
+    summary_path = od / "enrich_summary.json"
+    summary = json.load(open(summary_path, encoding="utf-8")) if summary_path.exists() else {}
+    summary["prescriptions"] = summarize(P)
+    json.dump(summary, open(summary_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("prescriptions", json.dumps(summary["prescriptions"], ensure_ascii=False), flush=True)
+
+
+if __name__ == "__main__":
+    main()

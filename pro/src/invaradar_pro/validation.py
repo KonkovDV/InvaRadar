@@ -32,6 +32,40 @@ def new_sites_mask(new_xy, old_xy, min_dist: float) -> np.ndarray:
     return nearest_dist(new_xy, old_xy) > min_dist
 
 
+def percentile_in(landscape, scores) -> np.ndarray:
+    """Share of the landscape at or below each score. The landscape is sorted here."""
+    ref = np.sort(np.asarray(landscape, float))
+    return np.searchsorted(ref, np.asarray(scores, float), side="right") / len(ref)
+
+
+def combine_model_and_proximity(model_land, model_far, prox_land, prox_far, land_valid, far_valid):
+    """Average the two ranks on one landscape.
+
+    The model landscape is already the rows where the image exists. Proximity uses
+    those same rows as its reference, not the points the image could not score.
+    A new place without an image is left out of the capture.
+    """
+    model_land = np.asarray(model_land, float)
+    model_far = np.asarray(model_far, float)
+    prox_land = np.asarray(prox_land, float)
+    prox_far = np.asarray(prox_far, float)
+    land_valid = np.asarray(land_valid, bool)
+    far_valid = np.asarray(far_valid, bool)
+    if len(model_land) != int(land_valid.sum()):
+        raise ValueError("the model landscape must already be the valid rows")
+    if len(model_far) != len(far_valid) or len(prox_far) != len(far_valid):
+        raise ValueError("far scores must have one value per new place")
+    if len(prox_land) != len(land_valid):
+        raise ValueError("proximity must have one value per landscape point")
+    if len(model_land) == 0:
+        raise ValueError("the image scored no landscape point")
+    reference = prox_land[land_valid]
+    kept = model_far[far_valid]
+    comb_land = 0.5 * percentile_in(model_land, model_land) + 0.5 * percentile_in(reference, reference)
+    comb_far = 0.5 * percentile_in(model_land, kept) + 0.5 * percentile_in(reference, prox_far[far_valid])
+    return comb_far, comb_land
+
+
 def capture_at_area(target_scores, landscape_scores, k: float) -> float:
     thr = np.quantile(np.asarray(landscape_scores, float), 1 - k)
     return float(np.mean(np.asarray(target_scores, float) >= thr))

@@ -18,6 +18,7 @@ from invaradar.splits import (
     feature_year,
     iter_spatial_folds,
     landscape_percentile,
+    paired_area_difference,
     prepare_fold,
     presence_spacing,
     read_rank_cache,
@@ -195,6 +196,29 @@ def test_a_presence_owns_its_pixel_and_a_neighbour_thirty_metres_away_is_kept_un
     apart = pd.DataFrame([row(400000, 6180000, 499936), row(400040, 6180000, 47126)])
     both = build(apart, {499936}, {47126}, box=box)
     assert sorted(both.label) == [0, 1]
+
+
+def test_a_paired_difference_drops_a_place_missing_on_either_map_and_is_zero_when_the_maps_agree():
+    same = np.array([0.95, 0.10, 0.90, 0.20])
+    got = paired_area_difference(same, same, blocks=[1, 1, 2, 2], n_boot=50, seed=1)
+    assert got["n"] == 4 and got["diff"] == 0.0 and got["boot95"] == [0.0, 0.0]
+    # The second place is missing on one map, so only the first place remains and both capture it.
+    dropped = paired_area_difference([0.95, np.nan], [0.95, 0.10], blocks=[1, 1], n_boot=20)
+    assert dropped["n"] == 1 and dropped["diff"] == 0.0
+    # Two blocks. Block 1 is captured only by map A. Block 2 is captured only by map B.
+    a = [0.9, 0.9, 0.1]
+    b = [0.1, 0.1, 0.9]
+    paired = paired_area_difference(a, b, blocks=[1, 1, 2], percent=20, n_boot=200, seed=0)
+    assert paired["n"] == 3 and paired["n_blocks"] == 2
+    assert paired["capture_a"] == 2 / 3 and paired["capture_b"] == 1 / 3
+    assert abs(paired["diff"] - (1 / 3)) < 1e-12
+    assert paired["boot95"][0] <= paired["diff"] <= paired["boot95"][1]
+    try:
+        paired_area_difference([0.1], [0.1, 0.2], blocks=[1])
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unequal lengths must be rejected")
 
 
 def test_an_earlier_embedding_year_is_a_retro_forecast_and_the_default_is_the_map_year():

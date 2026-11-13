@@ -2,6 +2,7 @@
 /data/
 /cache/
 /outputs/**/tmp/
+/outputs/variants/paired_years_work/
 /outputs/variants/**/likelihood_*.tif
 /outputs/variants/**/hotspots_*.geojson
 /outputs/**/hotspots_*.geojson

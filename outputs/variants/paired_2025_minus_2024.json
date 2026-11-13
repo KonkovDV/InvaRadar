@@ -1,0 +1,246 @@
+{
+  "protocol": {
+    "map_year": 2025,
+    "embedding_years": [
+      2024,
+      2025
+    ],
+    "difference": "capture of the 2025 image minus capture of the 2024 image",
+    "split": "train on years through 2024; a 2025-2026 presence is new only outside 500 m of an older presence",
+    "blocks": "5 km groups of the new places, drawn with replacement; the landscape is not resampled",
+    "n_boot": 2000,
+    "seed": 0,
+    "landscape_points": 40000,
+    "landscape_seed": 0,
+    "published_6_nov_metrics": "not overwritten",
+    "stored_2024_variant": "compared after the fit; see agreement_with_stored_files",
+    "terrain_without_dem": "the core still writes four terrain columns, and they are zero"
+  },
+  "taxa": {
+    "heracleum": {
+      "terrain": true,
+      "features": 265,
+      "samples_dropped_as_nodata_on_either_image": 0,
+      "presence": 1574,
+      "background": 60000,
+      "n_new_candidates": 504,
+      "n_new_presence": 216,
+      "n_temporal_background": 11751,
+      "n_blocks": 82,
+      "by_year": {
+        "2024": {
+          "n_landscape": 40000,
+          "n_train_presence": 1070,
+          "n_train_background": 38961,
+          "roc_auc_vs_background": 0.6960416292388039,
+          "capture": {
+            "capture@1%area": 0.018518518518518517,
+            "capture@5%area": 0.11574074074074074,
+            "capture@10%area": 0.21296296296296297,
+            "capture@20%area": 0.33796296296296297
+          }
+        },
+        "2025": {
+          "n_landscape": 40000,
+          "n_train_presence": 1070,
+          "n_train_background": 38961,
+          "roc_auc_vs_background": 0.6838153254096578,
+          "capture": {
+            "capture@1%area": 0.004629629629629629,
+            "capture@5%area": 0.05555555555555555,
+            "capture@10%area": 0.18981481481481483,
+            "capture@20%area": 0.3472222222222222
+          }
+        }
+      },
+      "paired_2025_minus_2024": {
+        "top1%": {
+          "n": 216,
+          "n_blocks": 82,
+          "capture_a": 0.004629629629629629,
+          "capture_b": 0.018518518518518517,
+          "diff": -0.013888888888888888,
+          "boot95": [
+            -0.0312535033632287,
+            0.0
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 1.0
+        },
+        "top5%": {
+          "n": 216,
+          "n_blocks": 82,
+          "capture_a": 0.05555555555555555,
+          "capture_b": 0.11574074074074074,
+          "diff": -0.06018518518518519,
+          "boot95": [
+            -0.10182127096204768,
+            -0.01470055413469739
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 5.0
+        },
+        "top10%": {
+          "n": 216,
+          "n_blocks": 82,
+          "capture_a": 0.18981481481481483,
+          "capture_b": 0.21296296296296297,
+          "diff": -0.02314814814814814,
+          "boot95": [
+            -0.0643876735417282,
+            0.02551677887649902
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 10.0
+        },
+        "top20%": {
+          "n": 216,
+          "n_blocks": 82,
+          "capture_a": 0.3472222222222222,
+          "capture_b": 0.33796296296296297,
+          "diff": 0.009259259259259245,
+          "boot95": [
+            -0.05194935064935067,
+            0.0714285714285714
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 20.0
+        }
+      },
+      "columns": {
+        "width": 265,
+        "corridors_identical": true,
+        "terrain_identical": true,
+        "terrain_all_zero": false,
+        "embeddings_identical": false,
+        "nodata_rows_2024": 0,
+        "nodata_rows_2025": 0
+      },
+      "agreement_with_stored_files": {
+        "capture20_2024_equals_retro2024": true,
+        "capture20_2025_equals_published": true,
+        "auc_2024_equals_retro2024": true,
+        "auc_2025_equals_published": true
+      }
+    },
+    "solidago": {
+      "terrain": false,
+      "features": 265,
+      "samples_dropped_as_nodata_on_either_image": 0,
+      "presence": 1560,
+      "background": 60000,
+      "n_new_candidates": 446,
+      "n_new_presence": 188,
+      "n_temporal_background": 10973,
+      "n_blocks": 89,
+      "by_year": {
+        "2024": {
+          "n_landscape": 40000,
+          "n_train_presence": 1114,
+          "n_train_background": 38283,
+          "roc_auc_vs_background": 0.6765077142929163,
+          "capture": {
+            "capture@1%area": 0.015957446808510637,
+            "capture@5%area": 0.11702127659574468,
+            "capture@10%area": 0.16489361702127658,
+            "capture@20%area": 0.34574468085106386
+          }
+        },
+        "2025": {
+          "n_landscape": 40000,
+          "n_train_presence": 1114,
+          "n_train_background": 38283,
+          "roc_auc_vs_background": 0.6867262196765368,
+          "capture": {
+            "capture@1%area": 0.026595744680851064,
+            "capture@5%area": 0.13297872340425532,
+            "capture@10%area": 0.22872340425531915,
+            "capture@20%area": 0.4148936170212766
+          }
+        }
+      },
+      "paired_2025_minus_2024": {
+        "top1%": {
+          "n": 188,
+          "n_blocks": 89,
+          "capture_a": 0.026595744680851064,
+          "capture_b": 0.015957446808510637,
+          "diff": 0.010638297872340427,
+          "boot95": [
+            -0.009666595273791677,
+            0.03225806451612903
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 1.0
+        },
+        "top5%": {
+          "n": 188,
+          "n_blocks": 89,
+          "capture_a": 0.13297872340425532,
+          "capture_b": 0.11702127659574468,
+          "diff": 0.015957446808510634,
+          "boot95": [
+            -0.032613150392017114,
+            0.06763473731884057
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 5.0
+        },
+        "top10%": {
+          "n": 188,
+          "n_blocks": 89,
+          "capture_a": 0.22872340425531915,
+          "capture_b": 0.16489361702127658,
+          "diff": 0.06382978723404256,
+          "boot95": [
+            0.005434048178613393,
+            0.113645195478097
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 10.0
+        },
+        "top20%": {
+          "n": 188,
+          "n_blocks": 89,
+          "capture_a": 0.4148936170212766,
+          "capture_b": 0.34574468085106386,
+          "diff": 0.06914893617021273,
+          "boot95": [
+            -0.01734356096249495,
+            0.14480147058823525
+          ],
+          "n_boot": 2000,
+          "seed": 0,
+          "percent": 20.0
+        }
+      },
+      "columns": {
+        "width": 265,
+        "corridors_identical": true,
+        "terrain_identical": true,
+        "terrain_all_zero": true,
+        "embeddings_identical": false,
+        "nodata_rows_2024": 0,
+        "nodata_rows_2025": 0
+      },
+      "agreement_with_stored_files": {
+        "capture20_2024_equals_retro2024": true,
+        "capture20_2025_equals_published": true,
+        "auc_2024_equals_retro2024": true,
+        "auc_2025_equals_published": true
+      }
+    }
+  },
+  "observation_file": {
+    "name": "obs_region.tsv",
+    "bytes": 327950715,
+    "mtime_utc": "2026-11-12T21:16:01Z"
+  }
+}

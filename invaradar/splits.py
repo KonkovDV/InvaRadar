@@ -152,6 +152,50 @@ def capture_rates(ranks, levels=CAPTURE_LEVELS) -> dict:
     return {f"capture@{k}%area": float(above_area_share(finite, k).mean()) for k in levels}
 
 
+def paired_area_difference(ranks_a, ranks_b, blocks, percent: float = 20.0,
+                           n_boot: int = 2000, seed: int = 0) -> dict:
+    """Capture difference on the same points, with a block bootstrap.
+
+    ``ranks_a[i] - ranks_b[i]`` is one place seen by two maps. A place that is
+    missing on either map is dropped from both, so the pair stays aligned. The
+    landscape threshold is already inside the ranks and is not resampled. Blocks
+    are drawn with replacement. The reported difference is capture(a) minus capture(b).
+    """
+    a = np.asarray(ranks_a, dtype=float).ravel()
+    b = np.asarray(ranks_b, dtype=float).ravel()
+    groups = np.asarray(blocks).ravel()
+    if a.shape != b.shape or a.shape != groups.shape:
+        raise ValueError("ranks and blocks must have the same length")
+    if n_boot < 1:
+        raise ValueError("n_boot must be positive")
+    ok = np.isfinite(a) & np.isfinite(b)
+    a, b, groups = a[ok], b[ok], groups[ok]
+    if len(a) == 0:
+        return {"n": 0, "n_blocks": 0, "capture_a": None, "capture_b": None,
+                "diff": None, "boot95": None, "n_boot": int(n_boot), "seed": int(seed),
+                "percent": float(percent)}
+    threshold = 1.0 - float(percent) / 100.0
+
+    def share(values: np.ndarray) -> float:
+        return float(np.mean(values >= threshold))
+
+    unique, inverse = np.unique(groups, return_inverse=True)
+    members = [np.flatnonzero(inverse == i) for i in range(len(unique))]
+    rng = np.random.default_rng(seed)
+    boots = np.empty(n_boot, dtype=float)
+    n_groups = len(unique)
+    for i in range(n_boot):
+        chosen = rng.integers(0, n_groups, n_groups)
+        sel = np.concatenate([members[j] for j in chosen])
+        boots[i] = share(a[sel]) - share(b[sel])
+    low, high = np.percentile(boots, [2.5, 97.5])
+    return {"n": int(len(a)), "n_blocks": int(n_groups),
+            "capture_a": share(a), "capture_b": share(b),
+            "diff": share(a) - share(b),
+            "boot95": [float(low), float(high)],
+            "n_boot": int(n_boot), "seed": int(seed), "percent": float(percent)}
+
+
 def landscape_percentile(reference, scores) -> np.ndarray:
     """Share of a sorted reference strictly below each score.
 

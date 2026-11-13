@@ -13,6 +13,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from invaradar.config import AEF_INDEX
 
 URL = "https://storage.googleapis.com/alphaearth_foundations/satellite_embedding/v1/annual/aef_index.parquet"
-AEF_INDEX.parent.mkdir(parents=True, exist_ok=True)
-urllib.request.urlretrieve(URL, AEF_INDEX)
-print("AEF index:", AEF_INDEX, AEF_INDEX.stat().st_size // 1024, "KB")
+
+
+def main():
+    AEF_INDEX.parent.mkdir(parents=True, exist_ok=True)
+    urllib.request.urlretrieve(URL, AEF_INDEX)
+    print("AEF index:", AEF_INDEX, AEF_INDEX.stat().st_size // 1024, "KB")
+
+
+if __name__ == "__main__":
+    main()

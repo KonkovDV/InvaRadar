@@ -111,9 +111,13 @@ def fetch_photos():
     stream_filter(f"{BUCKET}/photos.csv.gz", OUT / "photos_sel.tsv", lambda f: len(f) > 2 and f[2] in ids)
 
 
-if __name__ == "__main__":
+def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "all"
     if what in ("obs", "all"):
         fetch_obs()
     if what in ("photos", "all"):
         fetch_photos()
+
+
+if __name__ == "__main__":
+    main()

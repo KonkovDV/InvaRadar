@@ -119,16 +119,20 @@ def test_web_map_matches_the_results(taxon):
     assert (w["hotspots"], w["mechanical"], w["ground"], w["drone"], w["near_children_100m"]) == \
         (p["hotspots"], p["mechanical_only"], p["ground_spot_treatment"], p["drone_spraying_allowed"],
          p["near_children_100m"])
+    from invaradar.management import BOUNDARY_REVIEW_M, CHILD_M
     pts = load(ROOT / "web" / "data" / f"{taxon}_top.geojson")["features"]
     assert len(pts) == w["shown"]
     for f in pts:
         q = f["properties"]
-        if q["water_zone_m"] > 0 or q["d_child_m"] < 100:
+        if q["water_zone_m"] > 0 or q["d_child_m"] <= CHILD_M:
             assert q["cls"] == "mechanical"
         if q["water_zone_m"] > 0:
             assert "ВК РФ ст. 65" in q["basis"]
         if q["cls"] == "drone":
             assert "запрещена" not in q["basis"] and q["water_zone_m"] == 0
+        boundary = q["jurisdiction_boundary_m"]
+        assert isinstance(boundary, (int, float)) and not isinstance(boundary, bool)
+        assert bool(q["near_jurisdiction_boundary"]) == (float(boundary) < BOUNDARY_REVIEW_M)
 
 
 @pytest.mark.parametrize("taxon", TAXA)

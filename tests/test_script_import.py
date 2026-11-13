@@ -1,21 +1,10 @@
-"""Importing a map script must not parse arguments or write the published outputs."""
+"""Importing a script must not parse arguments or write the published outputs."""
 import importlib.util
 from pathlib import Path
 
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = (
-    "scripts/pipeline.py",
-    "scripts/uncertainty.py",
-    "scripts/enrich.py",
-    "scripts/exp_labels.py",
-    "scripts/render_maps.py",
-    "scripts/prefetch_aef.py",
-    "scripts/fetch_overture.py",
-    "scripts/train_photo_verifier.py",
-    "scripts/prescribe.py",
-)
 
 
 def _load(relative: str):
@@ -27,9 +16,21 @@ def _load(relative: str):
 
 
 def test_map_scripts_do_not_run_when_imported():
-    for relative in SCRIPTS:
-        module = _load(relative)
-        assert callable(module.main)
+    for path in sorted((ROOT / "scripts").glob("*.py")):
+        module = _load(f"scripts/{path.name}")
+        assert callable(module.main), path.name
+
+
+def test_a_fresh_export_keeps_the_city_line():
+    prescribe = _load("scripts/prescribe.py")
+    export = _load("scripts/export_web.py")
+    assert "jurisdiction_boundary_m" in prescribe.ORDER_COLUMNS
+    assert "near_jurisdiction_boundary" in prescribe.ORDER_COLUMNS
+    assert "jurisdiction_boundary_m" in export.WEB_FIELDS
+    assert "near_jurisdiction_boundary" in export.WEB_FIELDS
+    for taxon in ("heracleum", "solidago"):
+        header = (ROOT / "outputs" / taxon / "work_orders_top200_2025.csv").read_text().splitlines()[0]
+        assert header.split(",") == prescribe.ORDER_COLUMNS
 
 
 def test_a_missing_embedding_is_left_out_of_both_ranks():

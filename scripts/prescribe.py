@@ -19,6 +19,15 @@ from invaradar.config import DATA, EPSG, OUT
 from invaradar.jurisdictions import load_regions
 from invaradar.management import prescribe, summarize
 
+# The published top-200 table keeps the distance to the city line. Dropping these two
+# columns made a later recheck the only place that still wrote them.
+ORDER_COLUMNS = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "inside_aoa", "water_zone_m",
+                 "in_protected", "child_org_territory", "near_children", "d_child_m", "near_heritage",
+                 "in_settlement", "in_zso", "jurisdiction", "listed_species_act", "status", "signed_by",
+                 "follow_up_years", "method", "legal_basis", "jurisdiction_boundary_m",
+                 "near_jurisdiction_boundary"]
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("taxon"); ap.add_argument("--year", type=int, default=2025)
     a = ap.parse_args()
@@ -41,10 +50,7 @@ def main():
                   gpd.read_parquet(loc) if loc.exists() else None, regions=load_regions())
     P.to_crs(4326).to_file(od / f"hotspots_prescribed_{a.year}.geojson", driver="GeoJSON")
     P.to_crs(4326).to_parquet(od / f"hotspots_prescribed_{a.year}.parquet", compression="zstd")
-    cols = ["rank", "priority", "lat", "lon", "area_m2", "mean_rank", "inside_aoa", "water_zone_m", "in_protected",
-            "child_org_territory", "near_children", "d_child_m", "near_heritage", "in_settlement", "in_zso",
-            "jurisdiction", "listed_species_act", "status", "signed_by", "follow_up_years", "method", "legal_basis"]
-    P.sort_values("priority", ascending=False)[cols].head(200).round(3) \
+    P.sort_values("priority", ascending=False)[ORDER_COLUMNS].head(200).round(3) \
         .to_csv(od / f"work_orders_top200_{a.year}.csv", index=False)
 
     summary_path = od / "enrich_summary.json"

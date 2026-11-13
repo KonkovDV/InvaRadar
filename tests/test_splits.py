@@ -13,6 +13,7 @@ from invaradar.splits import (
     CAPTURE_LEVELS,
     PURGE_M,
     WINDOW_M,
+    block_capture,
     boyce_index,
     boyce_ratios,
     feature_year,
@@ -219,6 +220,15 @@ def test_a_paired_difference_drops_a_place_missing_on_either_map_and_is_zero_whe
         pass
     else:
         raise AssertionError("unequal lengths must be rejected")
+
+
+def test_a_block_bootstrap_of_one_map_stays_at_one_when_every_place_is_captured():
+    got = block_capture([1.0, 1.0, 1.0], blocks=[1, 1, 2], percent=20, n_boot=30, seed=0)
+    assert got["n"] == 3 and got["n_captured"] == 3
+    assert got["capture"] == 1.0 and got["boot95"] == [1.0, 1.0]
+    mixed = block_capture([0.9, 0.1], blocks=[1, 2], percent=20, n_boot=100, seed=0)
+    assert mixed["n_captured"] == 1 and mixed["capture"] == 0.5
+    assert mixed["boot95"][0] <= mixed["capture"] <= mixed["boot95"][1]
 
 
 def test_an_earlier_embedding_year_is_a_retro_forecast_and_the_default_is_the_map_year():

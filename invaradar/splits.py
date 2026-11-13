@@ -196,6 +196,40 @@ def paired_area_difference(ranks_a, ranks_b, blocks, percent: float = 20.0,
             "n_boot": int(n_boot), "seed": int(seed), "percent": float(percent)}
 
 
+def block_capture(ranks, blocks, percent: float = 20.0, n_boot: int = 2000, seed: int = 0) -> dict:
+    """Capture on one map, with a block bootstrap of the places.
+
+    The landscape threshold is already inside the ranks and is not resampled.
+    """
+    values = np.asarray(ranks, dtype=float).ravel()
+    groups = np.asarray(blocks).ravel()
+    if values.shape != groups.shape:
+        raise ValueError("ranks and blocks must have the same length")
+    if n_boot < 1:
+        raise ValueError("n_boot must be positive")
+    ok = np.isfinite(values)
+    values, groups = values[ok], groups[ok]
+    if len(values) == 0:
+        return {"n": 0, "n_blocks": 0, "capture": None, "n_captured": 0,
+                "boot95": None, "n_boot": int(n_boot), "seed": int(seed), "percent": float(percent)}
+    threshold = 1.0 - float(percent) / 100.0
+    unique, inverse = np.unique(groups, return_inverse=True)
+    members = [np.flatnonzero(inverse == i) for i in range(len(unique))]
+    rng = np.random.default_rng(seed)
+    boots = np.empty(n_boot, dtype=float)
+    n_groups = len(unique)
+    for i in range(n_boot):
+        chosen = rng.integers(0, n_groups, n_groups)
+        sel = np.concatenate([members[j] for j in chosen])
+        boots[i] = float(np.mean(values[sel] >= threshold))
+    low, high = np.percentile(boots, [2.5, 97.5])
+    captured = int(np.sum(values >= threshold))
+    return {"n": int(len(values)), "n_blocks": int(n_groups),
+            "capture": captured / len(values), "n_captured": captured,
+            "boot95": [float(low), float(high)],
+            "n_boot": int(n_boot), "seed": int(seed), "percent": float(percent)}
+
+
 def landscape_percentile(reference, scores) -> np.ndarray:
     """Share of a sorted reference strictly below each score.
 

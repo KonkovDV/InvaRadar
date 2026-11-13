@@ -1,0 +1,512 @@
+{
+  "protocol": {
+    "year": 2024,
+    "split": "train through 2024; a 2025-2026 presence counts only outside 500 m of an older presence",
+    "forest": "invaradar.model.fit_map",
+    "landscape": "the 40 000 points stored with the paired 2024 run",
+    "scales": "pixel, valid-weighted 5x5, then 3x3 and 9x9 means of the 50 m cells, replicate edges",
+    "context": "the 2024 corridor and terrain columns, unchanged",
+    "olmoearth": "v1.3, bands 0:64, published dequantization",
+    "tessera": "v1.1 dClimate, 128 bands times the per-pixel scale",
+    "published_map": "not overwritten",
+    "license_olmoearth": "OlmoEarth Artifact License; not for military, policing or extractive use",
+    "stores": {
+      "olmoearth": {
+        "url": "s3://olmoearth/olmoearth-v1-3-embeddings/embeddings.zarr",
+        "group": "utm37",
+        "year": 2024,
+        "bands": 64,
+        "row0": 329072,
+        "col0": 38100,
+        "shape": [
+          64,
+          6500,
+          6500
+        ],
+        "proj": "EPSG:32637",
+        "transform": [
+          10.0,
+          0.0,
+          0.0,
+          0.0,
+          -10.0,
+          9502720.0
+        ]
+      },
+      "tessera": {
+        "url": "s3://tessera/tessera/zarr/v1.1-dclimate",
+        "group": "utm37",
+        "year": 2024,
+        "bands": 128,
+        "row0": 312688,
+        "col0": 21716,
+        "shape": [
+          128,
+          6500,
+          6500
+        ],
+        "proj": "EPSG:32637",
+        "transform": [
+          10.0,
+          0.0,
+          163840.0,
+          0.0,
+          -10.0,
+          9338880.0
+        ]
+      }
+    }
+  },
+  "taxa": {
+    "heracleum": {
+      "alone": {
+        "alphaearth": {
+          "n_features": 265,
+          "n_landscape": 40000,
+          "n_new": 216,
+          "roc_auc_vs_background": 0.6960416292388039,
+          "capture": {
+            "capture@1%area": 0.018518518518518517,
+            "capture@5%area": 0.11574074074074074,
+            "capture@10%area": 0.21296296296296297,
+            "capture@20%area": 0.33796296296296297
+          },
+          "samples_kept": 61574,
+          "samples_dropped": 0,
+          "n_blocks": 82
+        },
+        "olmoearth": {
+          "n_features": 265,
+          "n_landscape": 40000,
+          "n_new": 216,
+          "roc_auc_vs_background": 0.6817504893200579,
+          "capture": {
+            "capture@1%area": 0.046296296296296294,
+            "capture@5%area": 0.11574074074074074,
+            "capture@10%area": 0.23148148148148148,
+            "capture@20%area": 0.4212962962962963
+          },
+          "samples_kept": 61574,
+          "samples_dropped": 0,
+          "n_blocks": 82
+        },
+        "tessera": {
+          "n_features": 521,
+          "n_landscape": 40000,
+          "n_new": 216,
+          "roc_auc_vs_background": 0.6947651421313237,
+          "capture": {
+            "capture@1%area": 0.023148148148148147,
+            "capture@5%area": 0.12962962962962962,
+            "capture@10%area": 0.23148148148148148,
+            "capture@20%area": 0.4027777777777778
+          },
+          "samples_kept": 61574,
+          "samples_dropped": 0,
+          "n_blocks": 82
+        }
+      },
+      "olmoearth_minus_alphaearth": {
+        "n_new": 216,
+        "n_blocks": 82,
+        "sides": {
+          "olmoearth": {
+            "n_features": 265,
+            "n_landscape": 40000,
+            "n_new": 216,
+            "roc_auc_vs_background": 0.6817504893200579,
+            "capture": {
+              "capture@1%area": 0.046296296296296294,
+              "capture@5%area": 0.11574074074074074,
+              "capture@10%area": 0.23148148148148148,
+              "capture@20%area": 0.4212962962962963
+            }
+          },
+          "alphaearth": {
+            "n_features": 265,
+            "n_landscape": 40000,
+            "n_new": 216,
+            "roc_auc_vs_background": 0.6960416292388039,
+            "capture": {
+              "capture@1%area": 0.018518518518518517,
+              "capture@5%area": 0.11574074074074074,
+              "capture@10%area": 0.21296296296296297,
+              "capture@20%area": 0.33796296296296297
+            }
+          }
+        },
+        "minus_alphaearth": {
+          "top1%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.046296296296296294,
+            "capture_b": 0.018518518518518517,
+            "diff": 0.027777777777777776,
+            "boot95": [
+              0.004694835680751174,
+              0.0526369276850663
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 1.0
+          },
+          "top5%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.11574074074074074,
+            "capture_b": 0.11574074074074074,
+            "diff": 0.0,
+            "boot95": [
+              -0.039999999999999994,
+              0.044644104150039894
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 5.0
+          },
+          "top10%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.23148148148148148,
+            "capture_b": 0.21296296296296297,
+            "diff": 0.018518518518518517,
+            "boot95": [
+              -0.04390619963468358,
+              0.09005751506346896
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 10.0
+          },
+          "top20%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.4212962962962963,
+            "capture_b": 0.33796296296296297,
+            "diff": 0.08333333333333331,
+            "boot95": [
+              0.008928571428571452,
+              0.15668202764976957
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 20.0
+          }
+        }
+      },
+      "tessera_minus_alphaearth": {
+        "n_new": 216,
+        "n_blocks": 82,
+        "sides": {
+          "tessera": {
+            "n_features": 521,
+            "n_landscape": 40000,
+            "n_new": 216,
+            "roc_auc_vs_background": 0.6947651421313237,
+            "capture": {
+              "capture@1%area": 0.023148148148148147,
+              "capture@5%area": 0.12962962962962962,
+              "capture@10%area": 0.23148148148148148,
+              "capture@20%area": 0.4027777777777778
+            }
+          },
+          "alphaearth": {
+            "n_features": 265,
+            "n_landscape": 40000,
+            "n_new": 216,
+            "roc_auc_vs_background": 0.6960416292388039,
+            "capture": {
+              "capture@1%area": 0.018518518518518517,
+              "capture@5%area": 0.11574074074074074,
+              "capture@10%area": 0.21296296296296297,
+              "capture@20%area": 0.33796296296296297
+            }
+          }
+        },
+        "minus_alphaearth": {
+          "top1%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.023148148148148147,
+            "capture_b": 0.018518518518518517,
+            "diff": 0.004629629629629629,
+            "boot95": [
+              -0.015467944587628867,
+              0.024271844660194178
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 1.0
+          },
+          "top5%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.12962962962962962,
+            "capture_b": 0.11574074074074074,
+            "diff": 0.013888888888888881,
+            "boot95": [
+              -0.03241243961352658,
+              0.06547684029943855
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 5.0
+          },
+          "top10%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.23148148148148148,
+            "capture_b": 0.21296296296296297,
+            "diff": 0.018518518518518517,
+            "boot95": [
+              -0.03825662042875156,
+              0.08293699186991864
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 10.0
+          },
+          "top20%": {
+            "n": 216,
+            "n_blocks": 82,
+            "capture_a": 0.4027777777777778,
+            "capture_b": 0.33796296296296297,
+            "diff": 0.06481481481481483,
+            "boot95": [
+              0.0,
+              0.1361611130195808
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 20.0
+          }
+        }
+      }
+    },
+    "solidago": {
+      "alone": {
+        "alphaearth": {
+          "n_features": 265,
+          "n_landscape": 40000,
+          "n_new": 188,
+          "roc_auc_vs_background": 0.6765077142929163,
+          "capture": {
+            "capture@1%area": 0.015957446808510637,
+            "capture@5%area": 0.11702127659574468,
+            "capture@10%area": 0.16489361702127658,
+            "capture@20%area": 0.34574468085106386
+          },
+          "samples_kept": 61560,
+          "samples_dropped": 0,
+          "n_blocks": 89
+        },
+        "olmoearth": {
+          "n_features": 265,
+          "n_landscape": 40000,
+          "n_new": 188,
+          "roc_auc_vs_background": 0.7251580765941935,
+          "capture": {
+            "capture@1%area": 0.06914893617021277,
+            "capture@5%area": 0.17553191489361702,
+            "capture@10%area": 0.25,
+            "capture@20%area": 0.4521276595744681
+          },
+          "samples_kept": 61560,
+          "samples_dropped": 0,
+          "n_blocks": 89
+        },
+        "tessera": {
+          "n_features": 521,
+          "n_landscape": 40000,
+          "n_new": 188,
+          "roc_auc_vs_background": 0.7087100639674558,
+          "capture": {
+            "capture@1%area": 0.005319148936170213,
+            "capture@5%area": 0.0851063829787234,
+            "capture@10%area": 0.22340425531914893,
+            "capture@20%area": 0.35106382978723405
+          },
+          "samples_kept": 61560,
+          "samples_dropped": 0,
+          "n_blocks": 89
+        }
+      },
+      "olmoearth_minus_alphaearth": {
+        "n_new": 188,
+        "n_blocks": 89,
+        "sides": {
+          "olmoearth": {
+            "n_features": 265,
+            "n_landscape": 40000,
+            "n_new": 188,
+            "roc_auc_vs_background": 0.7251580765941935,
+            "capture": {
+              "capture@1%area": 0.06914893617021277,
+              "capture@5%area": 0.17553191489361702,
+              "capture@10%area": 0.25,
+              "capture@20%area": 0.4521276595744681
+            }
+          },
+          "alphaearth": {
+            "n_features": 265,
+            "n_landscape": 40000,
+            "n_new": 188,
+            "roc_auc_vs_background": 0.6765077142929163,
+            "capture": {
+              "capture@1%area": 0.015957446808510637,
+              "capture@5%area": 0.11702127659574468,
+              "capture@10%area": 0.16489361702127658,
+              "capture@20%area": 0.34574468085106386
+            }
+          }
+        },
+        "minus_alphaearth": {
+          "top1%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.06914893617021277,
+            "capture_b": 0.015957446808510637,
+            "diff": 0.053191489361702135,
+            "boot95": [
+              0.01666208791208791,
+              0.09474272272860922
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 1.0
+          },
+          "top5%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.17553191489361702,
+            "capture_b": 0.11702127659574468,
+            "diff": 0.05851063829787234,
+            "boot95": [
+              -0.010527708159287111,
+              0.12796208530805686
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 5.0
+          },
+          "top10%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.25,
+            "capture_b": 0.16489361702127658,
+            "diff": 0.08510638297872342,
+            "boot95": [
+              0.017538789169455428,
+              0.1518378188053029
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 10.0
+          },
+          "top20%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.4521276595744681,
+            "capture_b": 0.34574468085106386,
+            "diff": 0.10638297872340424,
+            "boot95": [
+              0.0194622564935065,
+              0.19000113122171947
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 20.0
+          }
+        }
+      },
+      "tessera_minus_alphaearth": {
+        "n_new": 188,
+        "n_blocks": 89,
+        "sides": {
+          "tessera": {
+            "n_features": 521,
+            "n_landscape": 40000,
+            "n_new": 188,
+            "roc_auc_vs_background": 0.7087100639674558,
+            "capture": {
+              "capture@1%area": 0.005319148936170213,
+              "capture@5%area": 0.0851063829787234,
+              "capture@10%area": 0.22340425531914893,
+              "capture@20%area": 0.35106382978723405
+            }
+          },
+          "alphaearth": {
+            "n_features": 265,
+            "n_landscape": 40000,
+            "n_new": 188,
+            "roc_auc_vs_background": 0.6765077142929163,
+            "capture": {
+              "capture@1%area": 0.015957446808510637,
+              "capture@5%area": 0.11702127659574468,
+              "capture@10%area": 0.16489361702127658,
+              "capture@20%area": 0.34574468085106386
+            }
+          }
+        },
+        "minus_alphaearth": {
+          "top1%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.005319148936170213,
+            "capture_b": 0.015957446808510637,
+            "diff": -0.010638297872340424,
+            "boot95": [
+              -0.03268692092221504,
+              0.010419407894736827
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 1.0
+          },
+          "top5%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.0851063829787234,
+            "capture_b": 0.11702127659574468,
+            "diff": -0.03191489361702128,
+            "boot95": [
+              -0.08152696488294314,
+              0.01099677158999189
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 5.0
+          },
+          "top10%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.22340425531914893,
+            "capture_b": 0.16489361702127658,
+            "diff": 0.05851063829787234,
+            "boot95": [
+              -0.012820512820512803,
+              0.1265123875784829
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 10.0
+          },
+          "top20%": {
+            "n": 188,
+            "n_blocks": 89,
+            "capture_a": 0.35106382978723405,
+            "capture_b": 0.34574468085106386,
+            "diff": 0.005319148936170193,
+            "boot95": [
+              -0.07878862516793547,
+              0.08948235108729904
+            ],
+            "n_boot": 2000,
+            "seed": 0,
+            "percent": 20.0
+          }
+        }
+      }
+    }
+  }
+}

@@ -25,7 +25,7 @@
 | Link | Question | InvaRadar |
 |---|---|---|
 | Satellite | where the landscape rank is higher | a map of both species over 4,225 km² at 10 m |
-| Queue | where should the crew go first | rank × proximity to people × proximity to roads, rivers and power lines × size; a straight-line order, not a road route |
+| Queue | where should the crew go first | rank × proximity to people × proximity to roads, rivers and power lines × size; the 15 south-Moscow stops follow roads for 31.57 km, against a straight line of 18.05 km |
 | Check | is it hogweed or wild angelica | a resident's photo → species classifier; a drone orthomosaic → stand outline |
 | **Work order** | **which method is lawful here** | **method and rule: Water Code art. 65, sanitary rules СанПиН 2.1.3684-21, heritage law 73-ФЗ** |
 | Follow-up | did it work | a revisit date in the order; the image after the work closes the loop in the 2027 season |
@@ -116,7 +116,7 @@ flowchart LR
 1. **Features.** 64 dimensions of the AlphaEarth Foundations embedding at the 10 m cell and the means in windows of 50, 150 and 450 m. Log distance to major roads, minor roads, railways, water and power lines. Terrain: Priority-Flood depression filling, D8 flow, TWI and HAND. 265 features in all.
 2. **Model.** LightGBM, a report against background. The background is 60,000 records of other vascular plants by any observer in the same window. That reduces the pull toward roads and parks. It does not remove it.
 3. **Test.** A checkerboard of 5 × 5 km blocks and a 500 m ring around test presences, wider than the 450 m window. A second split uses label year on the single 2025 image, with the same 500 m ring, as above. Area of applicability after Meyer & Pebesma. A 250-point field sample over four rank strata is laid out for the 2027 pilot. The shares in `outputs/` are the 6 November 2026 run.
-4. **Queue.** Connected patches of about the top 2.2% of area after the rank is stored in 250 levels, 400 m² and up. Three ranks are separate columns: near children area does not count, containment prefers a small isolated stand, stands of 1 ha and more are a separate programme. The straight line through the first points follows `priority`, which still includes area. There is no road network.
+4. **Queue.** Connected patches of about the top 2.2% of area after the rank is stored in 250 levels, 400 m² and up. Three ranks are separate columns: near children area does not count, containment prefers a small isolated stand, stands of 1 ha and more are a separate programme. The straight line through the first points follows `priority`, which still includes area. On the site the 15 south-Moscow stops follow Overture roads: 31.57 km against a straight line of 18.05 km, with 1,334.6 m of walking off the road. Yards are not part of the route, and the extract has no one-way attribute. The city-wide queue still has no road network.
 5. **Work order.** The rules in `invaradar/management.py`, each with its own legal basis. The order stays a draft until an inspector signs it. Resolution 369-ПП is written only when a jurisdiction polygon is passed. The photo classifier and the UAV module do not write the order.
 
 Terrain stays on for hogweed and is off for goldenrod. The rule was set before the comparison: the share of new reports in the top 20% of area. The share of new hogweed places in the top 20% of area rose from 30.6% to 34.7%. For goldenrod, terrain lowered it from 41.5% to 35.6%. Hogweed keeps to damp verges, abandoned fields and banks; on old fields goldenrod follows abandonment more than water.

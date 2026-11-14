@@ -37,7 +37,8 @@
 | `survey_queue_2025.csv` | очередь обследования со всеми расстояниями |
 | `work_orders_top200_2025.csv` | 200 первых нарядов с методом и основанием |
 | `validation_sample.csv`, `.geojson` | 250 точек стратифицированной полевой выборки |
-| `route_top25_2025.geojson`, `route_district_2025.geojson` | маршруты обследования |
+| `route_top25_2025.geojson`, `route_district_2025.geojson` | прямые маршруты обследования |
+| `route_district_roads_2025.geojson`, `route_district_roads.json` | те же 15 точек юга Москвы по дорогам Overture: 31,57 км, подход 1 334,6 м |
 | `exp_labels.json` | эксперимент с устойчивыми очагами (борщевик) |
 | `outputs/photo/metrics.json` | качество классификатора фото |
 | `outputs/drone/benchmark.json`, `dinov2s_probe.joblib` | проверка модуля БПЛА на реальных аэрофото и обученный классификатор |
